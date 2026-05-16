@@ -1,0 +1,9 @@
+.env
+data/wow_advisor.db
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+.superpowers/
