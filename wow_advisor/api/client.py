@@ -60,26 +60,26 @@ class BnetClient:
 
     async def _get(self, client: httpx.AsyncClient, url: str, namespace: str) -> dict | None:
         token = await self._auth.get_token()
-        async with self._semaphore:
-            for attempt in range(3):
-                try:
+        for attempt in range(3):
+            try:
+                async with self._semaphore:
                     resp = await client.get(
                         url,
                         headers=_headers(token, namespace),
                         params={"locale": "en_US"},
                         timeout=10.0,
                     )
-                    if resp.status_code == 404:
-                        return None
-                    if resp.status_code == 429:
-                        await asyncio.sleep(2 ** attempt)
-                        continue
-                    resp.raise_for_status()
-                    return resp.json()
-                except httpx.TimeoutException:
-                    if attempt == 2:
-                        return None
-                    await asyncio.sleep(1)
+                if resp.status_code == 404:
+                    return None
+                if resp.status_code == 429:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                resp.raise_for_status()
+                return resp.json()
+            except httpx.TimeoutException:
+                if attempt == 2:
+                    return None
+                await asyncio.sleep(1)
         return None
 
     async def fetch_leaderboard(
@@ -89,7 +89,7 @@ class BnetClient:
         namespace = f"dynamic-{self._region}"
         async with httpx.AsyncClient() as client:
             data = await self._get(client, url, namespace)
-        if not data:
+        if data is None:
             return []
         entries = []
         for e in data.get("entries", []):
