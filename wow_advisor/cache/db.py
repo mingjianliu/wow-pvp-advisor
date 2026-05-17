@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS player_loadouts (
     class_node_ids TEXT,
     spec_node_ids TEXT,
     hero_node_ids TEXT,
+    pvp_talent_ids TEXT,
+    pvp_talent_names TEXT,
     gear TEXT
 );
 

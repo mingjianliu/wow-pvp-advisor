@@ -23,4 +23,5 @@ def get_talent_distribution(spec: str, bracket: str, region: str = "us") -> dict
         "sample_size": agg.get("sample_size", 0),
         "cached_at": agg.get("cached_at"),
         "talents": agg.get("talents", {}),
+        "pvp_talents": agg.get("pvp_talents", []),
     }

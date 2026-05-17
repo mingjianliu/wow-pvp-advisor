@@ -42,6 +42,14 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
     for spec in spec_data.get("specializations", []):
         if spec.get("specialization", {}).get("name") != active_spec:
             continue
+        # PvP talents live at the spec level, not inside the loadout
+        pvp_ids, pvp_names = [], []
+        for slot in spec.get("pvp_talent_slots", []):
+            selected = slot.get("selected", {})
+            talent = selected.get("talent", {})
+            if talent.get("id"):
+                pvp_ids.append(talent["id"])
+                pvp_names.append(talent.get("name", ""))
         for loadout in spec.get("loadouts", []):
             if not loadout.get("is_active"):
                 continue
@@ -50,6 +58,8 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
                 class_node_ids=[t["id"] for t in loadout.get("selected_class_talents", [])],
                 spec_node_ids=[t["id"] for t in loadout.get("selected_spec_talents", [])],
                 hero_node_ids=[t["id"] for t in loadout.get("selected_hero_talents", [])],
+                pvp_talent_ids=pvp_ids,
+                pvp_talent_names=pvp_names,
             )
     return None
 

@@ -25,6 +25,8 @@ class TalentData:
     class_node_ids: list[int] = field(default_factory=list)
     spec_node_ids: list[int] = field(default_factory=list)
     hero_node_ids: list[int] = field(default_factory=list)
+    pvp_talent_ids: list[int] = field(default_factory=list)
+    pvp_talent_names: list[str] = field(default_factory=list)
 
     @property
     def all_node_ids(self) -> set[int]:

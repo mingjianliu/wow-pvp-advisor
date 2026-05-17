@@ -1,5 +1,6 @@
 import json
 import os
+from collections import Counter
 from wow_advisor.api.models import CharacterData
 from wow_advisor.processor.talents import summarize_talent_clusters
 from wow_advisor.processor.gear import aggregate_gear
@@ -43,6 +44,24 @@ def build_aggregation(
         equipped_ilvls=equipped_ilvls,
     )
 
+    # PvP talent aggregation: frequency of each named PvP talent across all players
+    pvp_name_counts: Counter = Counter()
+    pvp_players_with_data = 0
+    for p in players_with_talent:
+        if p.talent.pvp_talent_names:
+            pvp_players_with_data += 1
+            for name in p.talent.pvp_talent_names:
+                pvp_name_counts[name] += 1
+
+    n_pvp = pvp_players_with_data or 1
+    pvp_summary = sorted(
+        [
+            {"name": name, "count": count, "pct": round(count / n_pvp * 100, 1)}
+            for name, count in pvp_name_counts.items()
+        ],
+        key=lambda x: -x["count"],
+    )
+
     return {
         "spec": spec,
         "bracket": bracket,
@@ -50,6 +69,7 @@ def build_aggregation(
         "sample_size": len(players),
         "avg_ilvl": gear_summary["avg_ilvl"],
         "talents": talent_summary,
+        "pvp_talents": pvp_summary,
         "gear": gear_summary["gear"],
         "enchants": gear_summary["enchants"],
     }
