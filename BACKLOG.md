@@ -17,6 +17,10 @@
 - [ ] `fetch_character_spec` and `fetch_character_details` — the two new Phase 1/2 methods added in the two-phase fetch refactor have no unit tests.
 - [ ] `_parse_gear` enchant markup stripping — should have a unit test for the `|A:...|a` regex.
 
+## Future Improvements
+
+- [ ] **Per-player cache granularity** — currently cache is per spec+bracket+region (all 50 players lumped together with one TTL). A finer approach: cache each player's gear/talent data individually with their own `fetched_at` timestamp. On the next fetch, only re-fetch players whose data is stale or whose rank has changed significantly, and skip players already fresh. This avoids hammering the API for 50 characters when only a few have changed rankings.
+
 ## TODO
 
 - [ ] **Season ID auto-detection** — `CURRENT_SEASON_ID = 41` is hardcoded in `client.py`. Should query `/data/wow/pvp-season/index` on startup and use `current_season.id` automatically, so it doesn't break at each new season.
@@ -34,3 +38,17 @@
 - [ ] **Solo Shuffle and 2v2 validation** — fetch at least one spec for each bracket to confirm the season ID and leaderboard parsing work for non-3v3 brackets.
 
 - [ ] **keystone_talents.json for Resto Shaman** — add node IDs for the 3-4 genuinely defining talent choices to produce cleaner clusters. Requires knowing current Midnight S1 Resto Shaman talent tree.
+
+## Visualisation & Reporting
+
+Items below are blocked on talent node name lookup landing first.
+
+- [ ] **Text summary MCP tool (`get_build_summary_tool`)** — new MCP tool returning a human-readable breakdown Claude can narrate directly. Shows mandatory talents (≥80%), per-cluster flexible choices, and top gear per slot. Depends on talent name lookup.
+
+- [ ] **Talent tree HTML report** — CLI command `python cli.py report <spec> <bracket>` that generates and opens a local HTML page showing: cluster comparison table (clusters side-by-side, mandatory nodes highlighted green, contested nodes highlighted yellow, flex nodes dimmed), gear table per slot with pick-rate bars. Use the visual companion server already running at localhost.
+
+- [ ] **Slack integration** — after each fetch, optionally post a text summary to a configured Slack channel via the Slack MCP. Good for sharing meta snapshots with teammates.
+
+- [ ] **GitHub Pages publishing** — commit the HTML report to a `gh-pages` branch via the GitHub MCP so the report is accessible as a permanent URL without running anything locally.
+
+- [ ] **Google Drive export** — export the build report as a Google Doc via the Google Drive MCP for annotation and sharing.
