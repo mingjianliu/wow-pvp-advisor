@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS aggregations (
     data TEXT NOT NULL,
     PRIMARY KEY (spec, bracket, region)
 );
+
+CREATE INDEX IF NOT EXISTS idx_players_spec_bracket_region ON players(spec, bracket, region);
+CREATE INDEX IF NOT EXISTS idx_loadouts_player_id ON player_loadouts(player_id);
 """
 
 
@@ -40,6 +43,7 @@ def init_db(path: str) -> sqlite3.Connection:
     if parent:
         os.makedirs(parent, exist_ok=True)
     conn = sqlite3.connect(path)
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
     conn.commit()

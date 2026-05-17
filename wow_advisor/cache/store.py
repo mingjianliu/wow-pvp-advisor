@@ -11,6 +11,8 @@ class CacheStore:
     def save_players(
         self, players: list[CharacterData], spec: str, bracket: str
     ) -> None:
+        if not players:
+            return
         region = players[0].region if players else "us"
         self._conn.execute(
             "DELETE FROM players WHERE spec=? AND bracket=? AND region=?",
