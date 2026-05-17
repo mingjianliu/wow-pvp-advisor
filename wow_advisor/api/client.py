@@ -1,9 +1,10 @@
 import asyncio
+import re
 import httpx
 from wow_advisor.api.auth import BnetAuth
 from wow_advisor.api.models import LeaderboardEntry, CharacterData, TalentData, GearSlot
 
-CURRENT_SEASON_ID = 40
+CURRENT_SEASON_ID = 41
 _API_BASE = "https://{region}.api.blizzard.com"
 _CONCURRENCY = 10
 
@@ -23,11 +24,13 @@ def _parse_gear(equipped_items: list) -> list[GearSlot]:
         level = item.get("level", {}).get("value", 0)
         enchants = item.get("enchantments", [])
         enchant_id = enchants[0].get("enchantment_id") if enchants else None
-        enchant_name = enchants[0].get("display_string") if enchants else None
+        raw_enchant = enchants[0].get("display_string", "") if enchants else ""
+        # Strip Blizzard UI icon embedding syntax e.g. "|A:...|a"
+        enchant_name = re.sub(r'\|A:[^|]+\|a', '', raw_enchant).strip() if raw_enchant else None
         slots.append(GearSlot(
             slot=slot_type,
             item_id=item_data.get("id", 0),
-            item_name=item_data.get("name", ""),
+            item_name=item.get("name", ""),  # name is top-level, not inside item{}
             ilvl=level,
             enchant_id=enchant_id,
             enchant_name=enchant_name,
