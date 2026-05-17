@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest*)",
+      "Bash(python*)",
+      "Bash(pip*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git status*)",
+      "Bash(git show*)",
+      "Bash(curl*)",
+      "Bash(source .venv/bin/activate*)",
+      "Bash(ls*)",
+      "Bash(find*)",
+      "Bash(cat*)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Read(**)",
+      "Write(**)",
+      "Edit(**)"
+    ]
+  }
+}

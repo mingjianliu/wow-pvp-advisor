@@ -30,6 +30,13 @@ async def fetch_top_players_async(
     if class_spec is None:
         return {"error": f"Unknown spec: {spec}. Check spelling or add it to normalize.py."}
 
+    # Skip API fetch if data is less than 2 hours old
+    conn = get_default_db()
+    store = CacheStore(conn)
+    if not store.is_stale(spec, bracket, region, ttl_hours=2):
+        agg = store.get_aggregation(spec, bracket, region)
+        return {"fetched": agg.get("sample_size", 0), "cached_at": agg.get("cached_at"), "spec": spec, "bracket": bracket, "skipped": True}
+
     target_class, target_spec = class_spec
     _, client = _make_client(region)
 

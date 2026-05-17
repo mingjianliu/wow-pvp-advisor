@@ -21,6 +21,10 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "-m 'not regression'"
+markers = [
+    "regression: long-running tests comparing against live external sources (murlok.io, pvpq.net, Blizzard API)",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["wow_advisor"]
