@@ -105,6 +105,40 @@ class BnetClient:
             ))
         return entries
 
+    async def fetch_character_spec(
+        self, client: httpx.AsyncClient, name: str, realm: str, rating: int
+    ) -> CharacterData | None:
+        """Cheap spec-only fetch: profile endpoint only (no talents/gear)."""
+        namespace = f"profile-{self._region}"
+        base_url = f"{self._base}/profile/wow/character/{realm}/{name.lower()}"
+        profile = await self._get(client, base_url, namespace)
+        if profile is None:
+            return None
+        return CharacterData(
+            name=profile.get("name", name),
+            realm=realm,
+            region=self._region,
+            character_class=profile.get("character_class", {}).get("name", ""),
+            spec=profile.get("active_spec", {}).get("name", ""),
+            equipped_ilvl=profile.get("equipped_item_level", 0),
+            rating=rating,
+        )
+
+    async def fetch_character_details(
+        self, name: str, realm: str, char: CharacterData
+    ) -> CharacterData:
+        """Fetch talents + gear for a character whose spec is already known."""
+        namespace = f"profile-{self._region}"
+        base_url = f"{self._base}/profile/wow/character/{realm}/{name.lower()}"
+        async with httpx.AsyncClient() as client:
+            spec_data, equip_data = await asyncio.gather(
+                self._get(client, f"{base_url}/specializations", namespace),
+                self._get(client, f"{base_url}/equipment", namespace),
+            )
+        char.talent = _parse_talents(spec_data or {}, char.spec) if spec_data else None
+        char.gear = _parse_gear((equip_data or {}).get("equipped_items", []))
+        return char
+
     async def fetch_character(
         self, name: str, realm: str, rating: int
     ) -> CharacterData | None:

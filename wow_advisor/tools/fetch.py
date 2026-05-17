@@ -22,7 +22,6 @@ async def fetch_top_players_async(
     bracket: str,
     region: str = "us",
     limit: int = 50,
-    scan_limit: int = 500,
 ) -> dict:
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
@@ -38,34 +37,39 @@ async def fetch_top_players_async(
     if not leaderboard:
         return {"error": f"No leaderboard data for bracket '{bracket}'. Check bracket name and season ID."}
 
-    candidates = leaderboard[:scan_limit]
+    # Phase 1: cheap spec-only scan across full leaderboard (1 API call per player).
+    # Stops as soon as we have `limit` matching players.
+    import httpx as _httpx
+    matched: list[CharacterData] = []
+    batch_size = 50
 
-    collected: list[CharacterData] = []
-    batch_size = 20
-
-    for i in range(0, len(candidates), batch_size):
-        if len(collected) >= limit:
-            break
-        batch = candidates[i:i + batch_size]
-        results = await asyncio.gather(*[
-            client.fetch_character(name=e.name, realm=e.realm, rating=e.rating)
-            for e in batch
-        ])
-        for char in results:
-            if char is None:
-                continue
-            if char.character_class == target_class and char.spec == target_spec:
-                collected.append(char)
-            if len(collected) >= limit:
+    async with _httpx.AsyncClient() as http_client:
+        for i in range(0, len(leaderboard), batch_size):
+            if len(matched) >= limit:
                 break
+            batch = leaderboard[i:i + batch_size]
+            results = await asyncio.gather(*[
+                client.fetch_character_spec(http_client, e.name, e.realm, e.rating)
+                for e in batch
+            ])
+            for char in results:
+                if char is None:
+                    continue
+                if char.character_class == target_class and char.spec == target_spec:
+                    matched.append(char)
+                    if len(matched) >= limit:
+                        break
 
-    if not collected:
+    if not matched:
         return {
-            "error": (
-                f"Found 0 {spec} players in the top {min(scan_limit, len(leaderboard))} "
-                f"{bracket} leaderboard entries. Try increasing scan_limit or check spec name."
-            )
+            "error": f"Found 0 {spec} players across {len(leaderboard)} {bracket} leaderboard entries."
         }
+
+    # Phase 2: fetch full talent + gear for matched players only (2 API calls each).
+    collected: list[CharacterData] = await asyncio.gather(*[
+        client.fetch_character_details(name=c.name, realm=c.realm, char=c)
+        for c in matched
+    ])
 
     conn = get_default_db()
     store = CacheStore(conn)
@@ -90,3 +94,10 @@ def fetch_top_players(
 ) -> dict:
     """Synchronous wrapper for MCP tool use."""
     return asyncio.run(fetch_top_players_async(spec=spec, bracket=bracket, region=region, limit=limit))
+
+
+async def _scan_full_leaderboard(bracket: str, region: str) -> int:
+    """Utility: returns total leaderboard entry count (for debugging)."""
+    _, client = _make_client(region)
+    leaderboard = await client.fetch_leaderboard(bracket=bracket)
+    return len(leaderboard)
