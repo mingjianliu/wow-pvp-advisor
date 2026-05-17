@@ -5,6 +5,7 @@ from fastmcp import FastMCP
 from wow_advisor.tools.fetch import fetch_top_players
 from wow_advisor.tools.talents import get_talent_distribution
 from wow_advisor.tools.gear import get_gear_summary, get_player_details
+from wow_advisor.tools.summary import get_full_summary
 
 mcp = FastMCP("wow-pvp-advisor")
 
@@ -50,6 +51,22 @@ def get_gear_summary_tool(spec: str, bracket: str, region: str = "us") -> dict:
         region: 'us' or 'eu' (default: 'us')
     """
     return get_gear_summary(spec=spec, bracket=bracket, region=region)
+
+
+@mcp.tool()
+def get_full_summary_tool(spec: str, bracket: str, region: str = "us") -> dict:
+    """Complete PvP meta summary for a spec+bracket in one call.
+
+    Returns everything: regular talent clusters, PvP talent pick rates,
+    gear per slot, and enchants. Auto-fetches from Blizzard API if cache
+    is older than 2 hours. Use this as the default starting point.
+
+    Args:
+        spec: Spec name, e.g. 'restoration shaman', 'rsham', 'arms warrior'
+        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle'
+        region: 'us' or 'eu' (default: 'us')
+    """
+    return get_full_summary(spec=spec, bracket=bracket, region=region)
 
 
 @mcp.tool()
