@@ -38,6 +38,16 @@ function deriveNodeMap(data, cluster) {
   return map;
 }
 
+
+// Pick the hero tree whose nodeIds have the most overlap with the cluster's
+// core+takes node IDs. Falls back to the right tree (Totemic for Resto Shaman).
+function selectHeroTree(data, nodeMap) {
+  const heroTrees = data.tree && data.tree.heroTrees;
+  if (!heroTrees) return null;
+  const dominated = (ht) => ht.nodeIds.filter(id => nodeMap[id]).length;
+  return dominated(heroTrees.left) >= dominated(heroTrees.right)
+    ? heroTrees.left : heroTrees.right;
+}
 function App() {
   const data = window.CLUSTER_DATA;
 
@@ -57,6 +67,7 @@ function App() {
   // Derived node-state map for the active cluster.
   const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
   const clusterForRenderer = { ...cluster, nodes: nodeMap, name: `Cluster #${cluster.rank}` };
+  const heroTree = useMemo(() => selectHeroTree(data, nodeMap), [data, nodeMap]);
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [tip, setTip] = useState(null);
@@ -129,7 +140,7 @@ function App() {
         <section className="tree-pane">
           <div className="tree-pane-inner">
             <div className="trees-row">
-              {(window.CLUSTER_DATA.tree || window.TREE).trees.map(tree => (
+              {(() => { const src = window.CLUSTER_DATA.tree || window.TREE; const trees = heroTree ? [src.trees[0], heroTree, src.trees[1]] : src.trees; return trees; })().map(tree => (
                 <div className="tree" key={tree.id}>
                   <div className="tree-header">
                     <h3>{tree.label}</h3>
