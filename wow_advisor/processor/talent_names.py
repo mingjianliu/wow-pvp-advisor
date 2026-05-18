@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sqlite3
+import threading
 import time
 
 from wow_advisor.api.client import BnetClient
@@ -63,9 +64,26 @@ class TalentNameCache:
         if spec_id is None:
             return {}
         try:
-            return asyncio.run(self._resolve_async(spec, spec_id, client))
-        except Exception:
-            return {}
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop is None:
+            try:
+                return asyncio.run(self._resolve_async(spec, spec_id, client))
+            except Exception:
+                return {}
+        # Called from within an async context (e.g. fastmcp) — run in a thread
+        # so asyncio.run() can create its own event loop without conflict.
+        result: dict[int, dict] = {}
+        def _run() -> None:
+            try:
+                result.update(asyncio.run(self._resolve_async(spec, spec_id, client)))
+            except Exception:
+                pass
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join()
+        return result
 
     async def _resolve_async(
         self, spec: str, spec_id: int, client: BnetClient
