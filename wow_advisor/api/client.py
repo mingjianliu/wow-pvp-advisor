@@ -95,6 +95,75 @@ class BnetClient:
                 await asyncio.sleep(1)
         return None
 
+    async def _get_static(
+        self, url: str, namespace: str, if_modified_since: str | None = None
+    ) -> httpx.Response:
+        """GET for static game data. Returns the raw Response (caller handles 304)."""
+        token = await self._auth.get_token()
+        headers = _headers(token, namespace)
+        if if_modified_since:
+            headers["If-Modified-Since"] = if_modified_since
+        async with httpx.AsyncClient() as client:
+            return await client.get(
+                url,
+                headers=headers,
+                params={"locale": "en_US"},
+                timeout=10.0,
+            )
+
+    async def fetch_talent_tree_id(self, spec_id: int) -> tuple[int, str | None]:
+        """Returns (tree_id, last_modified) for the given spec_id."""
+        url = f"{self._base}/data/wow/talent-tree/index"
+        resp = await self._get_static(url, f"static-{self._region}")
+        resp.raise_for_status()
+        last_modified = resp.headers.get("Last-Modified")
+        for entry in resp.json().get("spec_talent_trees", []):
+            href = entry.get("key", {}).get("href", "")
+            m = re.search(r"/talent-tree/(\d+)/playable-specialization/(\d+)", href)
+            if m and int(m.group(2)) == spec_id:
+                return int(m.group(1)), last_modified
+        raise ValueError(f"spec_id {spec_id} not found in talent-tree index")
+
+    async def fetch_talent_nodes(
+        self,
+        tree_id: int,
+        spec_id: int,
+        if_modified_since: str | None = None,
+    ) -> tuple[dict[int, dict], str | None, bool]:
+        """
+        Returns (nodes, last_modified, was_modified).
+        was_modified=False on 304 — caller skips cache write.
+        nodes maps node_id → {name, row, col, type, max_rank, icon, children}.
+        """
+        url = f"{self._base}/data/wow/talent-tree/{tree_id}/playable-specialization/{spec_id}"
+        resp = await self._get_static(url, f"static-{self._region}", if_modified_since=if_modified_since)
+        if resp.status_code == 304:
+            return {}, None, False
+        resp.raise_for_status()
+        last_modified = resp.headers.get("Last-Modified")
+        data = resp.json()
+        nodes: dict[int, dict] = {}
+        for node in data.get("class_talent_nodes", []) + data.get("spec_talent_nodes", []):
+            node_id = node["id"]
+            ranks = node.get("ranks", [])
+            name = None
+            icon = None
+            if ranks:
+                tooltip = ranks[0].get("tooltip", {})
+                name = tooltip.get("talent", {}).get("name")
+                spell = tooltip.get("spell_tooltip", {}).get("spell", {})
+                icon = str(spell["id"]) if spell.get("id") else None
+            nodes[node_id] = {
+                "name": name,
+                "row": node.get("display_row"),
+                "col": node.get("display_col"),
+                "type": node.get("node_type", {}).get("type"),
+                "max_rank": len(ranks),
+                "icon": icon,
+                "children": node.get("child_ids", []),
+            }
+        return nodes, last_modified, True
+
     async def fetch_leaderboard(
         self, bracket: str, season_id: int = CURRENT_SEASON_ID
     ) -> list[LeaderboardEntry]:
