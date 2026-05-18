@@ -1,5 +1,6 @@
+import os as _os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".env"))
 
 from fastmcp import FastMCP
 from wow_advisor.tools.fetch import fetch_top_players
