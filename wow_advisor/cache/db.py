@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS aggregations (
     PRIMARY KEY (spec, bracket, region)
 );
 
+CREATE TABLE IF NOT EXISTS talent_node_cache (
+    spec          TEXT PRIMARY KEY,
+    nodes_json    TEXT NOT NULL,
+    last_modified TEXT,
+    checked_at    INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_players_spec_bracket_region ON players(spec, bracket, region);
 CREATE INDEX IF NOT EXISTS idx_loadouts_player_id ON player_loadouts(player_id);
 """
