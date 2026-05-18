@@ -83,12 +83,37 @@ window.TREE = (function () {
     ['s14','s15'], ['s14','s16'],
   ];
 
+  // Hero tree (middle) — placeholder Farseer layout (~10 nodes, narrower).
+  // Swap label per cluster (e.g. "Hero · Totemic") when backend wires hero choice.
+  const heroNodes = [
+    n('h01', 'Call of the Ancestors', { col: 1, row: 0 }),
+    n('h02', 'Latent Wisdom',         { col: 0, row: 1 }),
+    n('h03', 'Ancient Fellowship',    { col: 2, row: 1 }),
+    n('h04', 'Routine Communion',     { col: 1, row: 2, type: 'diamond' }),
+    n('h05', 'Heed My Call',          { col: 0, row: 3 }),
+    n('h06', 'Offering from Beyond',  { col: 2, row: 3 }),
+    n('h07', 'Primordial Capacity',   { col: 1, row: 4 }),
+    n('h08', 'Maelstrom Supremacy',   { col: 0, row: 5 }),
+    n('h09', 'Final Calling',         { col: 1, row: 6, type: 'capstone' }),
+    n('h10', 'Earthen Communion',     { col: 2, row: 5 }),
+  ];
+
+  const heroEdges = [
+    ['h01','h02'], ['h01','h03'],
+    ['h02','h04'], ['h03','h04'],
+    ['h04','h05'], ['h04','h06'],
+    ['h05','h07'], ['h06','h07'],
+    ['h07','h08'], ['h07','h10'],
+    ['h08','h09'], ['h10','h09'],
+  ];
+
   const byId = {};
-  [...classNodes, ...specNodes].forEach(node => { byId[node.id] = node; });
+  [...classNodes, ...specNodes, ...heroNodes].forEach(node => { byId[node.id] = node; });
 
   return {
     trees: [
       { id: 'class', label: 'Class Tree',     nodes: classNodes, edges: classEdges },
+      { id: 'hero',  label: 'Hero · Farseer', nodes: heroNodes,  edges: heroEdges },
       { id: 'spec',  label: 'Spec Tree',      nodes: specNodes,  edges: specEdges },
     ],
     byId,

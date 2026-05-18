@@ -86,3 +86,22 @@ def get_player_details_tool(name: str, realm: str, region: str = "us") -> dict:
 
 if __name__ == "__main__":
     mcp.run()
+
+# Re-register with the new import before the if __name__ guard
+from wow_advisor.talent_tree import get_tree_structure as _get_tree_structure
+
+@mcp.tool()
+def get_tree_structure_tool(spec: str) -> dict:
+    """Return the talent tree layout (nodes, positions, edges) for a spec.
+
+    The node IDs match what get_full_summary_tool returns in talents.core/flex/contested,
+    so the frontend can color the tree based on cluster data automatically.
+    Use this to populate CLUSTER_DATA.tree in the frontend data.js.
+
+    Args:
+        spec: Spec name, e.g. 'restoration shaman', 'rsham'
+    """
+    return _get_tree_structure(spec=spec)
+
+if __name__ == "__main__":
+    mcp.run()
