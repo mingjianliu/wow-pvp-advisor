@@ -778,6 +778,18 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .sig-item.flex { background: var(--bg-2); }
 .sig-item.skip { background: var(--bg-0); color: var(--text-2); }
 .sig-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sig-name.talent-link {
+  text-decoration: none;
+  color: inherit;
+}
+.sig-name.talent-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+/* Wowhead's power.js stamps q1–q5 quality classes onto its anchors; keep our
+   color contract so links look at-home in the dark theme. */
+a.sig-name.q1, a.sig-name.q2, a.sig-name.q3,
+a.sig-name.q4, a.sig-name.q5 { color: inherit; }
 .sig-item.skip .sig-name { text-decoration: line-through; text-decoration-color: var(--text-3); }
 .sig-bar {
   width: 60px; height: 4px;
@@ -829,7 +841,16 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .gear-slot-item {
   font-size: 12px; color: var(--text-0);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block;
+  text-decoration: none;
 }
+a.gear-slot-item:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+/* Wowhead's power.js adds quality color classes (q1–q5) to its links; let those win */
+a.gear-slot-item.q1, a.gear-slot-item.q2, a.gear-slot-item.q3,
+a.gear-slot-item.q4, a.gear-slot-item.q5 { color: inherit; }
 .gear-slot-enchant {
   display: flex; align-items: center; gap: 6px;
   margin-top: 4px;
@@ -877,3 +898,81 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   color: var(--text-3); font-size: 11.5px;
   padding: 8px 0;
 }
+
+
+/* === Bottom gear panel (full-width) === */
+.gear-panel {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+.gear-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.gear-panel-head h3 {
+  margin: 0;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-1); font-weight: 600;
+}
+.gear-panel-head .stat {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+  letter-spacing: 0.08em;
+}
+.gear-panel-head .stat .num { color: var(--text-0); font-weight: 600; }
+
+.gear-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.gear-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column;
+  min-height: 86px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.gear-card:hover { border-color: var(--line-2); background: var(--bg-2); }
+.gear-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.gear-card-slot {
+  font-family: var(--font-mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2);
+}
+.gear-card-pct {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--core); font-weight: 500;
+}
+.gear-card-item {
+  font-size: 12.5px; color: var(--text-0);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+a.gear-card-item:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+a.gear-card-item.q1, a.gear-card-item.q2, a.gear-card-item.q3,
+a.gear-card-item.q4, a.gear-card-item.q5 { color: inherit; }
+.gear-card-enchant {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: auto;
+  font-size: 10.5px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.gear-card-enchant.placeholder { opacity: 0.5; }
+.gear-card-enchant .enchant-name {
+  flex: 1; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gear-card-enchant .enchant-pct {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+}
+.enchant-tag.dim { color: var(--text-3); background: var(--bg-2); }
+.enchant-name.dim { color: var(--text-3); font-style: italic; }

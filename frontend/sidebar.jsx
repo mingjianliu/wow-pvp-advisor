@@ -1,9 +1,35 @@
-// Right sidebar — cluster summary, signature (takes/skips), gear stub, legend,
-// build code + copy. Wired to the real backend shape.
+// Right sidebar — cluster summary, signature (takes + flex), legend, build code + copy.
+// Gear moved out to its own bottom panel in the main pane.
 
 function Sidebar({ cluster, group, onCopy, heatmap }) {
   const takes = cluster.takes || [];
   const flex = (group.talents && group.talents.flex) || [];
+
+  // Resolve spellIds for the tree-node ids referenced in cluster.takes.
+  // (Global talents carry both `id` and `spellId`; cluster takes carry just `id`
+  // — we look up the spellId so the takes link to Wowhead too.)
+  const spellIdById = React.useMemo(() => {
+    const m = {};
+    ['core', 'flex', 'contested'].forEach(role => {
+      const list = (group.talents && group.talents[role]) || [];
+      list.forEach(t => { if (t.spellId) m[t.id] = t.spellId; });
+    });
+    return m;
+  }, [group]);
+
+  const TalentLink = ({ t, className }) => {
+    const sid = t.spellId || spellIdById[t.id];
+    if (!sid) return <span className={className}>{t.name}</span>;
+    return (
+      <a
+        className={`${className} talent-link`}
+        href={`https://www.wowhead.com/spell=${sid}`}
+        target="_blank"
+        rel="noopener"
+        data-wowhead={`spell=${sid}`}
+      >{t.name}</a>
+    );
+  };
 
   return (
     <aside className="sidebar" data-screen-label="Cluster details">
@@ -35,7 +61,7 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
           <ul className="signature-list">
             {takes.map(t => (
               <li key={t.id} className="sig-item take">
-                <span className="sig-name">{t.name}</span>
+                <TalentLink t={t} className="sig-name" />
                 <span className="sig-bar"><span className="sig-bar-fill" style={{width: `${t.pct}%`}}></span></span>
                 <span className="sig-pct">{t.pct}%</span>
               </li>
@@ -50,7 +76,7 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             <ul className="signature-list">
               {flex.map(t => (
                 <li key={t.id} className="sig-item flex">
-                  <span className="sig-name">{t.name}</span>
+                  <TalentLink t={t} className="sig-name" />
                   <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
                   <span className="sig-pct">{t.pct}%</span>
                 </li>
@@ -60,38 +86,6 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             <div className="signature-empty">No flex points for this spec</div>
           )}
         </div>
-      </div>
-
-      <div className="side-section">
-        <h4>Gear <span className="side-h-hint">top pick per slot · enchants where applicable</span></h4>
-        {group.gear && group.gear.slots ? (
-          <>
-            <div className="gear-summary">
-              <span className="gear-label">avg ilvl</span>
-              <span className="gear-value gear-ilvl">{group.gear.avg_ilvl}</span>
-            </div>
-            <ul className="gear-list">
-              {group.gear.slots.map(s => (
-                <li className="gear-slot" key={s.slot}>
-                  <div className="gear-slot-head">
-                    <span className="gear-slot-name">{s.slot}</span>
-                    <span className="gear-slot-pct">{s.item.pct}%</span>
-                  </div>
-                  <div className="gear-slot-item">{s.item.name}</div>
-                  {s.enchant && (
-                    <div className="gear-slot-enchant">
-                      <span className="enchant-tag">ENCH</span>
-                      <span className="enchant-name">{s.enchant.name}</span>
-                      <span className="enchant-pct">{s.enchant.pct}%</span>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <div className="gear-placeholder">No gear data yet</div>
-        )}
       </div>
 
       <div className="side-section">
@@ -132,6 +126,53 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
   );
 }
 
+// Bottom panel — full-width gear grid. Lives below the trees / PvP in the main pane.
+function GearPanel({ group }) {
+  if (!group.gear || !group.gear.slots) return null;
+  return (
+    <div className="gear-panel" data-screen-label="Gear">
+      <div className="gear-panel-head">
+        <h3>Gear</h3>
+        <div className="stat">
+          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>GLOBAL</span>
+          <span>avg ilvl <span className="num">{group.gear.avg_ilvl}</span> · top pick per slot · n={group.sample_size.toLocaleString()}</span>
+        </div>
+      </div>
+      <ul className="gear-grid">
+        {group.gear.slots.map(s => (
+          <li className="gear-card" key={s.slot}>
+            <div className="gear-card-head">
+              <span className="gear-card-slot">{s.slot}</span>
+              <span className="gear-card-pct">{s.item.pct}%</span>
+            </div>
+            {s.item.id ? (
+              <a className="gear-card-item"
+                 href={`https://www.wowhead.com/item=${s.item.id}`}
+                 target="_blank"
+                 rel="noopener"
+                 data-wowhead={`item=${s.item.id}`}>{s.item.name}</a>
+            ) : (
+              <span className="gear-card-item">{s.item.name}</span>
+            )}
+            {s.enchant ? (
+              <div className="gear-card-enchant">
+                <span className="enchant-tag">ENCH</span>
+                <span className="enchant-name">{s.enchant.name}</span>
+                <span className="enchant-pct">{s.enchant.pct}%</span>
+              </div>
+            ) : (
+              <div className="gear-card-enchant placeholder">
+                <span className="enchant-tag dim">—</span>
+                <span className="enchant-name dim">no enchant</span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CopyIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
@@ -140,6 +181,6 @@ function CopyIcon() {
     </svg>
   );
 }
-function PencilIcon() { return null; }
 
 window.Sidebar = Sidebar;
+window.GearPanel = GearPanel;
