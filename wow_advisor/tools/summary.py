@@ -6,7 +6,7 @@ from wow_advisor.tools.fetch import fetch_top_players
 
 def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
     """Transform raw talent node IDs into {id, name, pct} objects."""
-    pick_rates = talents.get("pick_rates", {})
+    pick_rates = {int(k): v for k, v in talents.get("pick_rates", {}).items()}
 
     def enrich(ids: list[int]) -> list[dict]:
         return [{
