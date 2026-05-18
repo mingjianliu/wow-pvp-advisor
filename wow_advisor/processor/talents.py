@@ -106,6 +106,7 @@ def summarize_talent_clusters(
         "core_nodes": sorted(analysis.core_nodes),
         "flex_nodes": sorted(analysis.flex_nodes),
         "contested_nodes": sorted(decision_nodes),
+        "pick_rates": {node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()},
         "clusters": cluster_summaries,
         "clustering_method": method,
     }

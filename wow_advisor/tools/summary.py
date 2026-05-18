@@ -5,9 +5,15 @@ from wow_advisor.tools.fetch import fetch_top_players
 
 
 def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
-    """Transform raw talent node IDs into {id, name} objects."""
+    """Transform raw talent node IDs into {id, name, pct} objects."""
+    pick_rates = talents.get("pick_rates", {})
+
     def enrich(ids: list[int]) -> list[dict]:
-        return [{"id": nid, "name": (node_map.get(nid) or {}).get("name")} for nid in ids]
+        return [{
+            "id": nid,
+            "name": (node_map.get(nid) or {}).get("name"),
+            "pct": pick_rates.get(nid),
+        } for nid in ids]
 
     return {
         "core": enrich(talents.get("core_nodes", [])),

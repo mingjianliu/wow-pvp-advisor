@@ -22,6 +22,7 @@ RAW_TALENTS = {
         {"rank": 2, "pct": 28.0, "canonical_code": "def", "takes": [201], "skips": [200]},
     ],
     "clustering_method": "variance+hamming",
+    "pick_rates": {100: 95.0, 101: 88.0, 200: 52.0, 201: 48.0},
 }
 
 
@@ -38,16 +39,16 @@ def test_enrich_renames_keys():
 def test_enrich_core_contains_id_and_name():
     result = _enrich_talents(RAW_TALENTS, NODE_MAP)
     assert result["core"] == [
-        {"id": 100, "name": "Lightning Bolt"},
-        {"id": 101, "name": "Chain Lightning"},
+        {"id": 100, "name": "Lightning Bolt", "pct": 95.0},
+        {"id": 101, "name": "Chain Lightning", "pct": 88.0},
     ]
 
 
 def test_enrich_cluster_takes_and_skips():
     result = _enrich_talents(RAW_TALENTS, NODE_MAP)
     cluster = result["clusters"][0]
-    assert cluster["takes"] == [{"id": 200, "name": "Stormkeeper"}]
-    assert cluster["skips"] == [{"id": 201, "name": "Tempest"}]
+    assert cluster["takes"] == [{"id": 200, "name": "Stormkeeper", "pct": 52.0}]
+    assert cluster["skips"] == [{"id": 201, "name": "Tempest", "pct": 48.0}]
 
 
 def test_enrich_preserves_non_talent_cluster_fields():
@@ -64,9 +65,10 @@ def test_enrich_preserves_clustering_method():
 
 
 def test_enrich_null_name_when_node_not_in_map():
-    result = _enrich_talents(RAW_TALENTS, {})
-    assert result["core"][0] == {"id": 100, "name": None}
-    assert result["clusters"][0]["takes"][0] == {"id": 200, "name": None}
+    talents_no_rates = {**RAW_TALENTS, "pick_rates": {}}
+    result = _enrich_talents(talents_no_rates, {})
+    assert result["core"][0] == {"id": 100, "name": None, "pct": None}
+    assert result["clusters"][0]["takes"][0] == {"id": 200, "name": None, "pct": None}
 
 
 def test_enrich_empty_flex():
