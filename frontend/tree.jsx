@@ -58,7 +58,7 @@ function heatBucket(rate) {
   return 0;
 }
 
-function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap }) {
+function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showSignature }) {
   const widthCols = Math.max(...tree.nodes.map(n => n.col)) + 1;
   const heightRows = Math.max(...tree.nodes.map(n => n.row)) + 1;
   const W = PAD_X * 2 + (widthCols - 1) * COL_W;
@@ -70,6 +70,7 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap }) {
     'tree-svg',
     flexStyle ? `flex-${flexStyle}` : '',
     heatmap ? 'heatmap' : '',
+    showSignature ? 'show-signature' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -109,6 +110,7 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap }) {
             const pickRate = st ? st.pickRate : 0;
             const heat = heatBucket(pickRate);
             const rankFlex = st && isRankFlex(node, st);
+            const contestedTake = st && st.contested;
             const displayRank = st ? (st.rankDist ? modalRank(st) : st.pts) : 0;
 
             const onEnter = (e) => onHover({ node, state: st, x: e.clientX, y: e.clientY });
@@ -116,7 +118,7 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap }) {
 
             return (
               <g key={node.id}
-                className={`node-group ${role} ${rankFlex ? 'rank-flex' : ''}`}
+                className={`node-group ${role} ${rankFlex ? 'rank-flex' : ''} ${contestedTake ? 'contested-take' : ''}`}
                 onMouseEnter={onEnter}
                 onMouseMove={onMove}
                 onMouseLeave={onLeave}
@@ -128,6 +130,14 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap }) {
                     node={node} x={x} y={y}
                     scale={0.62}
                     extraClass="node-inner-ring"
+                  />
+                )}
+                {/* Cluster-take accent ring for contested takes */}
+                {contestedTake && !rankFlex && (
+                  <NodeShape
+                    node={node} x={x} y={y}
+                    scale={0.55}
+                    extraClass="node-signature-ring"
                   />
                 )}
                 {displayRank > 0 && (

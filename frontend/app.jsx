@@ -1,10 +1,12 @@
-// Main app — composes topbar, cluster tabs, tree pane, PvP panel, sidebar, tooltip, and tweaks panel.
+// Main app — composes topbar, cluster tabs, tree pane, global PvP panel,
+// sidebar, tooltip, and tweaks panel. Wired to the real backend shape.
 
 const { useState, useEffect, useRef, useMemo } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "flexStyle": "glow",
-  "heatmap": false
+  "heatmap": false,
+  "showSignature": true
 }/*EDITMODE-END*/;
 
 const FLEX_STYLES = [
@@ -14,24 +16,66 @@ const FLEX_STYLES = [
   { value: 'pulse',  label: 'Pulse' },
 ];
 
-const PVP_BY_ID = (window.PVP_POOL || []).reduce((m, p) => { m[p.id] = p; return m; }, {});
+const PVP_BY_ID = {};
+
+// === Derive per-cluster node state from backend shape =====================
+// Global core → core; Global flex → flex; Cluster.takes → core (with
+// `contested: true` flag so the renderer can mark cluster-defining picks).
+// Cluster.skips and everything else → not in map (renders as skip).
+function deriveNodeMap(group, cluster) {
+  const map = {};
+  group.talents.core.forEach(t => {
+    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name };
+  });
+  group.talents.flex.forEach(t => {
+    map[t.id] = { role: 'flex', pts: 1, pickRate: t.pct, sourceName: t.name };
+  });
+  cluster.takes.forEach(t => {
+    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name, contested: true };
+  });
+  // Skips: nothing added — the tree renderer treats missing IDs as skip.
+  return map;
+}
+
+function clusterLabel(c, customLabels) {
+  if (customLabels && customLabels[c.rank]) return customLabels[c.rank];
+  return `Cluster #${c.rank}`;
+}
 
 function App() {
-  const [groupSize, setGroupSize] = useState('Shuffle');
   const data = window.CLUSTER_DATA;
-  const group = data.byGroup[groupSize];
+  const [bracket, setBracket] = useState('3v3');
+  const group = data.byBracket[bracket];
 
+  // Sort clusters by share desc (backend gives them roughly sorted by rank).
   const clusters = useMemo(
     () => [...group.clusters].sort((a, b) => b.pct - a.pct),
     [group]
   );
 
-  const [activeId, setActiveId] = useState(clusters[0].id);
+  const [activeRank, setActiveRank] = useState(clusters[0].rank);
   useEffect(() => {
-    if (!clusters.find(c => c.id === activeId)) setActiveId(clusters[0].id);
-  }, [clusters, activeId]);
+    if (!clusters.find(c => c.rank === activeRank)) setActiveRank(clusters[0].rank);
+  }, [clusters, activeRank]);
 
-  const cluster = clusters.find(c => c.id === activeId) || clusters[0];
+  const cluster = clusters.find(c => c.rank === activeRank) || clusters[0];
+
+  // User-applied cluster labels — persisted in localStorage so they survive reload.
+  const [customLabels, setCustomLabels] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cp.labels') || '{}'); }
+    catch { return {}; }
+  });
+  const setLabel = (rank, label) => {
+    const next = { ...customLabels };
+    if (label && label.trim()) next[rank] = label.trim();
+    else delete next[rank];
+    setCustomLabels(next);
+    try { localStorage.setItem('cp.labels', JSON.stringify(next)); } catch {}
+  };
+
+  // Derived node state map for the active cluster.
+  const nodeMap = useMemo(() => deriveNodeMap(group, cluster), [group, cluster]);
+  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: clusterLabel(cluster, customLabels) };
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [tip, setTip] = useState(null);
@@ -40,19 +84,25 @@ function App() {
   useEffect(() => {
     function onKey(e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      const idx = clusters.findIndex(c => c.id === activeId);
-      if (e.key === 'ArrowRight') setActiveId(clusters[(idx + 1) % clusters.length].id);
-      else if (e.key === 'ArrowLeft') setActiveId(clusters[(idx - 1 + clusters.length) % clusters.length].id);
+      const idx = clusters.findIndex(c => c.rank === activeRank);
+      if (e.key === 'ArrowRight') setActiveRank(clusters[(idx + 1) % clusters.length].rank);
+      else if (e.key === 'ArrowLeft') setActiveRank(clusters[(idx - 1 + clusters.length) % clusters.length].rank);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [clusters, activeId]);
+  }, [clusters, activeRank]);
 
   const onCopy = () => {
-    navigator.clipboard.writeText(cluster.buildString).catch(() => {});
-    setToast('Build string copied');
+    navigator.clipboard.writeText(cluster.canonical_code).catch(() => {});
+    setToast('Build code copied');
     setTimeout(() => setToast(null), 1500);
   };
+
+  // Build PvP lookup once per group (it's global, doesn't depend on cluster).
+  useMemo(() => {
+    Object.keys(PVP_BY_ID).forEach(k => delete PVP_BY_ID[k]);
+    (group.pvp_talents || []).forEach(p => { PVP_BY_ID[p.id] = p; });
+  }, [group]);
 
   return (
     <div className="app" data-screen-label="Talent cluster picker">
@@ -62,52 +112,55 @@ function App() {
           CLUSTER<span style={{color:'var(--text-2)'}}>·</span>PICK
         </div>
         <div className="crumb">
-          <span>{data.spec.class}</span>
+          <span>{data.specLabel.class}</span>
           <span className="sep">/</span>
-          <span className="active">{data.spec.spec}</span>
+          <span className="active">{data.specLabel.spec}</span>
           <span className="sep">/</span>
-          <span style={{color:'var(--text-3)'}}>solo / shuffle</span>
+          <span style={{color:'var(--text-3)'}}>{bracket.toLowerCase()}</span>
         </div>
 
         <div className="topbar-right">
           <div className="filter-group">
-            <span className="filter-label">Group</span>
+            <span className="filter-label">Bracket</span>
             <div className="seg" role="tablist">
-              {data.groupSizes.map(g => (
+              {data.brackets.map(b => (
                 <button
-                  key={g}
-                  className={g === groupSize ? 'active' : ''}
-                  onClick={() => setGroupSize(g)}
-                >{g}</button>
+                  key={b}
+                  className={b === bracket ? 'active' : ''}
+                  onClick={() => setBracket(b)}
+                >{b}</button>
               ))}
             </div>
           </div>
-          <div className="filter-group">
-            <span className="filter-label">N=</span>
-            <span style={{fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text-1)'}}>
-              {group.sampleSize.toLocaleString()}
-            </span>
+          <div className="topbar-stat">
+            <span className="filter-label">N</span>
+            <span className="topbar-stat-val">{group.sample_size.toLocaleString()}</span>
           </div>
         </div>
       </header>
 
       <nav className="tabs" role="tablist" aria-label="Cluster">
-        {clusters.map(c => (
-          <button
-            key={c.id}
-            className={`tab ${c.id === activeId ? 'active' : ''}`}
-            onClick={() => setActiveId(c.id)}
-            role="tab"
-            data-screen-label={`Cluster: ${c.name}`}
-          >
-            <span className="tab-name">{c.name}</span>
-            <span className="tab-meta">
-              <span><span className="pct">{c.pct}%</span></span>
-              <span>n={c.sample.toLocaleString()}</span>
-            </span>
-            <span className="tab-bar"><span className="tab-bar-fill" style={{width: `${c.pct}%`}}></span></span>
-          </button>
-        ))}
+        {clusters.map(c => {
+          const label = clusterLabel(c, customLabels);
+          const hasCustom = !!customLabels[c.rank];
+          return (
+            <button
+              key={c.rank}
+              className={`tab ${c.rank === activeRank ? 'active' : ''}`}
+              onClick={() => setActiveRank(c.rank)}
+              role="tab"
+              data-screen-label={`Cluster #${c.rank}`}
+            >
+              <span className="tab-rank">#{c.rank}</span>
+              <span className="tab-name">{hasCustom ? label : <span style={{color:'var(--text-2)',fontWeight:500}}>{label}</span>}</span>
+              <span className="tab-meta">
+                <span><span className="pct">{c.pct}%</span></span>
+                <span>n={c.count}</span>
+              </span>
+              <span className="tab-bar"><span className="tab-bar-fill" style={{width: `${Math.min(100, c.pct * 4)}%`}}></span></span>
+            </button>
+          );
+        })}
       </nav>
 
       <main className="main">
@@ -119,17 +172,17 @@ function App() {
                   <div className="tree-header">
                     <h3>{tree.label}</h3>
                     <div className="stat">
-                      <span className="num">{tree.nodes.reduce((s, tn) => {
-                        const st = cluster.nodes[tn.id];
-                        return s + (st ? (st.rankDist ? window.modalRank(st) : st.pts) : 0);
-                      }, 0)}</span> pts
+                      <span className="num">{tree.nodes.reduce((s, tn) =>
+                        s + (nodeMap[tn.id] ? (nodeMap[tn.id].pts || 1) : 0), 0
+                      )}</span> pts
                     </div>
                   </div>
                   <TalentTree
                     tree={tree}
-                    cluster={cluster}
+                    cluster={clusterForRenderer}
                     flexStyle={tweaks.flexStyle}
                     heatmap={tweaks.heatmap}
+                    showSignature={tweaks.showSignature}
                     onHover={setTip}
                     onLeave={() => setTip(null)}
                   />
@@ -137,11 +190,16 @@ function App() {
               ))}
             </div>
 
-            <PvpPanel cluster={cluster} onHover={setTip} onLeave={() => setTip(null)} />
+            <GlobalPvpPanel group={group} onHover={setTip} onLeave={() => setTip(null)} />
           </div>
         </section>
 
-        <Sidebar cluster={cluster} onCopy={onCopy} heatmap={tweaks.heatmap} />
+        <Sidebar
+          cluster={cluster}
+          group={group}
+          onCopy={onCopy}
+          heatmap={tweaks.heatmap}
+        />
       </main>
 
       {tip && <Tooltip {...tip} />}
@@ -149,88 +207,72 @@ function App() {
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Flex highlight">
-          <TweakSelect
-            label="Style"
-            value={tweaks.flexStyle}
-            onChange={(v) => setTweak('flexStyle', v)}
-            options={FLEX_STYLES}
-          />
+          <TweakSelect label="Style" value={tweaks.flexStyle}
+            onChange={(v) => setTweak('flexStyle', v)} options={FLEX_STYLES} />
         </TweakSection>
         <TweakSection label="Pick-rate heatmap">
-          <TweakToggle
-            label="Color by pick rate"
-            value={tweaks.heatmap}
-            onChange={(v) => setTweak('heatmap', v)}
-          />
+          <TweakToggle label="Color by pick rate" value={tweaks.heatmap}
+            onChange={(v) => setTweak('heatmap', v)} />
+        </TweakSection>
+        <TweakSection label="Cluster signature">
+          <TweakToggle label="Mark contested takes" value={tweaks.showSignature}
+            onChange={(v) => setTweak('showSignature', v)} />
         </TweakSection>
       </TweaksPanel>
     </div>
   );
 }
 
-function PvpPanel({ cluster, onHover, onLeave }) {
-  if (!cluster.pvp) return null;
-  const modal = cluster.pvp.modal;
-  const dist = cluster.pvp.dist || {};
-  const alts = Object.entries(dist)
-    .filter(([id]) => !modal.includes(id))
-    .sort((a, b) => b[1] - a[1]);
+function GlobalPvpPanel({ group, onHover, onLeave }) {
+  const all = group.pvp_talents || [];
+  if (all.length === 0) return null;
+  const modal = all.slice(0, 3);
+  const alts = all.slice(3);
 
-  const onHoverPvp = (e, id) => {
-    const meta = PVP_BY_ID[id];
-    if (!meta) return;
-    // Build a synthetic node-like object so the existing Tooltip can render it.
-    const fakeNode = { name: meta.name, desc: meta.desc, maxPoints: 1 };
-    const pickRate = dist[id] || 0;
+  const onHoverPvp = (e, p) => {
     onHover({
-      node: fakeNode,
-      state: { role: modal.includes(id) ? 'core' : 'flex', pts: 1, pickRate },
+      node: { name: p.name, desc: `PvP talent · placeholder description for ${p.name}.`, maxPoints: 1 },
+      state: { role: 'core', pts: 1, pickRate: p.pct },
       x: e.clientX, y: e.clientY,
     });
   };
 
   return (
-    <div className="pvp-panel" data-screen-label="PvP talents">
+    <div className="pvp-panel" data-screen-label="PvP talents (global)">
       <div className="pvp-head">
         <h3>PvP Talents</h3>
         <div className="stat">
-          <span className="num">3</span> slots · top picks for this cluster
+          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>GLOBAL</span>
+          <span>same across all clusters · n={group.sample_size.toLocaleString()}</span>
         </div>
       </div>
       <div className="pvp-grid">
-        {modal.map((id, i) => {
-          const meta = PVP_BY_ID[id];
-          const pct = dist[id] || 0;
-          return (
-            <div className="pvp-slot" key={id}
-                 onMouseEnter={(e) => onHoverPvp(e, id)}
-                 onMouseMove={(e) => onHoverPvp(e, id)}
-                 onMouseLeave={onLeave}>
-              <span className="pvp-slot-tag">SLOT {i + 1}</span>
-              <div className="pvp-slot-pos">Modal pick</div>
-              <div className="pvp-slot-name">{meta ? meta.name : id}</div>
-              <div className="pvp-slot-pct">{pct}<span className="unit">%</span></div>
-            </div>
-          );
-        })}
+        {modal.map((p, i) => (
+          <div className="pvp-slot" key={p.id}
+               onMouseEnter={(e) => onHoverPvp(e, p)}
+               onMouseMove={(e) => onHoverPvp(e, p)}
+               onMouseLeave={onLeave}>
+            <span className="pvp-slot-tag">SLOT {i + 1}</span>
+            <div className="pvp-slot-pos">Modal pick</div>
+            <div className="pvp-slot-name">{p.name}</div>
+            <div className="pvp-slot-pct">{p.pct}<span className="unit">%</span></div>
+          </div>
+        ))}
         <div className="pvp-alts">
           <div className="pvp-alts-head">Alternatives · {alts.length}</div>
           <div className="pvp-alts-list">
-            {alts.map(([id, pct]) => {
-              const meta = PVP_BY_ID[id];
-              return (
-                <div className="pvp-alt-row" key={id}
-                     onMouseEnter={(e) => onHoverPvp(e, id)}
-                     onMouseMove={(e) => onHoverPvp(e, id)}
-                     onMouseLeave={onLeave}>
-                  <span className="pvp-alt-name">{meta ? meta.name : id}</span>
-                  <span className="pvp-alt-bar">
-                    <span className="pvp-alt-bar-fill" style={{width: `${pct}%`}}></span>
-                  </span>
-                  <span className="pvp-alt-pct">{pct}%</span>
-                </div>
-              );
-            })}
+            {alts.map(p => (
+              <div className="pvp-alt-row" key={p.id}
+                   onMouseEnter={(e) => onHoverPvp(e, p)}
+                   onMouseMove={(e) => onHoverPvp(e, p)}
+                   onMouseLeave={onLeave}>
+                <span className="pvp-alt-name">{p.name}</span>
+                <span className="pvp-alt-bar">
+                  <span className="pvp-alt-bar-fill" style={{width: `${p.pct}%`}}></span>
+                </span>
+                <span className="pvp-alt-pct">{p.pct}%</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -240,6 +282,7 @@ function PvpPanel({ cluster, onHover, onLeave }) {
 
 function Tooltip({ node, state, x, y }) {
   const role = state ? state.role : 'skip';
+  const isContested = state && state.contested;
   const tooltipStyle = {
     left: Math.min(x, window.innerWidth - 300),
     top: Math.min(y, window.innerHeight - 240),
@@ -248,19 +291,22 @@ function Tooltip({ node, state, x, y }) {
   const rankDist = state && state.rankDist;
   const displayRank = state ? (rankDist ? window.modalRank(state) : state.pts) : 0;
   const rankFlex = state && window.isRankFlex(node, state);
+
+  let tag = 'SKIP';
+  if (role === 'core') tag = rankFlex ? 'CORE · RANK-FLEX' : (isContested ? 'CLUSTER TAKE' : 'CORE');
+  else if (role === 'flex') tag = 'FLEX';
+
   return (
     <div className="tooltip" style={tooltipStyle}>
       <div className="tooltip-head">
         <span className="tooltip-name">{node.name}</span>
-        <span className={`tooltip-tag ${role}`}>
-          {role === 'core' ? (rankFlex ? 'CORE · RANK-FLEX' : 'CORE') : role === 'flex' ? 'FLEX' : 'SKIP'}
-        </span>
+        <span className={`tooltip-tag ${role} ${isContested ? 'contested' : ''}`}>{tag}</span>
       </div>
       <div className="tooltip-desc">{node.desc}</div>
       {state ? (
         <>
           <div className="tooltip-stat">
-            <span>Pick rate</span>
+            <span>Pick rate {isContested ? '(overall)' : ''}</span>
             <span className="v">{state.pickRate}%</span>
           </div>
           <div className="tooltip-bar">
@@ -281,7 +327,6 @@ function Tooltip({ node, state, x, y }) {
                   </div>
                 );
               })}
-              {/* Skip share, if any */}
               {(() => {
                 const skipPct = Math.max(0, 100 - rankDist.reduce((s,v) => s+v, 0));
                 if (skipPct < 0.5) return null;
@@ -296,12 +341,7 @@ function Tooltip({ node, state, x, y }) {
                 );
               })()}
             </>
-          ) : (
-            <div className="tooltip-stat" style={{marginTop:4, borderTop:'none', paddingTop:0}}>
-              <span>Points</span>
-              <span className="v">{displayRank || state.pts}{isMulti ? ` / ${node.maxPoints}` : ''}</span>
-            </div>
-          )}
+          ) : null}
         </>
       ) : (
         <div className="tooltip-stat">
