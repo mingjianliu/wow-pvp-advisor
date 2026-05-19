@@ -5,7 +5,11 @@ Entry point: build_page(spec, bracket, region) -> {"path": str, "url": str}
 """
 
 import json
+import platform
 import re
+import socket
+import subprocess
+import time
 from pathlib import Path
 
 from wow_advisor.normalize import normalize_spec, normalize_bracket
@@ -178,6 +182,37 @@ def _bundle_html(cluster_data: dict, tree: dict) -> str:
     return html
 
 
+def _ensure_server(port: int = 8080) -> None:
+    """Start the frontend HTTP server on *port* if it is not already listening."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(("localhost", port)) == 0:
+            return  # already up
+    subprocess.Popen(
+        ["python3", "-m", "http.server", str(port)],
+        cwd=str(_FRONTEND_DIR),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    # Wait up to 3 s for the server to accept connections
+    deadline = time.time() + 3
+    while time.time() < deadline:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("localhost", port)) == 0:
+                return
+        time.sleep(0.1)
+
+
+def _open_browser(url: str) -> None:
+    """Open *url* in the default browser (cross-platform)."""
+    system = platform.system()
+    if system == "Darwin":
+        subprocess.Popen(["open", url])
+    elif system == "Windows":
+        subprocess.Popen(["start", url], shell=True)
+    else:
+        subprocess.Popen(["xdg-open", url])
+
+
 def build_page(spec: str, bracket: str, region: str = "us") -> dict:
     """Build a self-contained HTML page for a spec+bracket.
 
@@ -208,9 +243,13 @@ def build_page(spec: str, bracket: str, region: str = "us") -> dict:
     out_path = _PAGES_DIR / filename
     out_path.write_text(html)
 
+    url = f"{_SERVER_BASE}/pages/{filename}"
+    _ensure_server()
+    _open_browser(url)
+
     return {
         "path": str(out_path),
-        "url": f"{_SERVER_BASE}/pages/{filename}",
+        "url": url,
         "spec": spec,
         "bracket": bracket,
         "sample_size": raw["sample_size"],
