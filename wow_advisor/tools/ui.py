@@ -90,11 +90,31 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
         return [
             {"id": t["id"], "name": t.get("name") or id_to_name.get(t["id"]), "pct": t["pct"]}
             for t in talent_list
-            if t.get("name") or id_to_name.get(t["id"])
+            if (t.get("name") or id_to_name.get(t["id"])) and t["id"] not in hero_ids
         ]
 
     def strip_hero(lst: list[dict]) -> list[dict]:
         return [t for t in lst if t["id"] not in hero_ids]
+
+    def _hero_core_nodes() -> list[dict]:
+        """Return the dominant hero tree's nodes as core entries.
+
+        Hero talents are all-or-nothing tree selections, not individual choices.
+        We classify the higher-pick-rate tree as core so the frontend can render
+        its nodes green and selectHeroTree() can identify it via overlap.
+        """
+        all_raw = raw["talents"]["core"] + raw["talents"]["flex"] + raw["talents"]["contested"]
+        rate: dict[int, float] = {t["id"]: t["pct"] for t in all_raw if t["id"] in hero_ids}
+        left_ids  = {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
+        right_ids = {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
+        left_avg  = sum(rate.get(i, 0) for i in left_ids)  / max(len(left_ids), 1)
+        right_avg = sum(rate.get(i, 0) for i in right_ids) / max(len(right_ids), 1)
+        dominant  = left_ids if left_avg >= right_avg else right_ids
+        return [
+            {"id": hid, "name": id_to_name[hid], "pct": rate.get(hid, 0)}
+            for hid in dominant
+            if hid in id_to_name
+        ]
 
     clusters = []
     for c in raw["talents"]["clusters"]:
@@ -132,6 +152,8 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
             entry["enchant"] = {"name": ename, "pct": enc_list[0]["pct"]}
         gear_slots.append(entry)
 
+    hero_core = _hero_core_nodes()
+
     return {
         "spec": spec,
         "specLabel": _SPEC_LABELS.get(spec, {"class": "", "spec": spec}),
@@ -143,7 +165,7 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
             for i, p in enumerate(raw["pvp_talents"])
         ],
         "talents": {
-            "core": enrich(raw["talents"]["core"]),
+            "core": enrich(raw["talents"]["core"]) + hero_core,
             "flex": enrich(raw["talents"]["flex"]),
             "contested": enrich(raw["talents"]["contested"]),
         },
