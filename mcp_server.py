@@ -7,6 +7,8 @@ from wow_advisor.tools.fetch import fetch_top_players
 from wow_advisor.tools.talents import get_talent_distribution
 from wow_advisor.tools.gear import get_gear_summary, get_player_details
 from wow_advisor.tools.summary import get_full_summary
+from wow_advisor.tools.ui import build_page
+from wow_advisor.talent_tree import get_tree_structure
 
 mcp = FastMCP("wow-pvp-advisor")
 
@@ -71,6 +73,39 @@ def get_full_summary_tool(spec: str, bracket: str, region: str = "us") -> dict:
 
 
 @mcp.tool()
+def get_tree_structure_tool(spec: str) -> dict:
+    """Return the talent tree layout (nodes, positions, edges) for a spec.
+
+    Node IDs match what get_full_summary_tool returns in talents.core/flex/contested,
+    so the frontend can color the tree based on cluster data. Hero trees are correctly
+    split using the Blizzard API's hero_talent_nodes — works for all 39 specs.
+
+    Args:
+        spec: Spec name, e.g. 'restoration shaman', 'rsham'
+    """
+    return get_tree_structure(spec=spec)
+
+
+@mcp.tool()
+def build_page_tool(spec: str, bracket: str, region: str = "us") -> dict:
+    """Build a self-contained HTML page for a spec+bracket and return its URL.
+
+    Fetches the full summary, builds the talent tree layout, and writes a
+    standalone HTML file to frontend/pages/{spec}_{bracket}.html.
+    The page is immediately accessible at the returned URL (requires the
+    local HTTP server to be running on port 8080).
+
+    Call this as the final step after fetching data to produce a visual output.
+
+    Args:
+        spec: Spec name, e.g. 'restoration shaman', 'rsham', 'arms warrior'
+        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle'
+        region: 'us' or 'eu' (default: 'us')
+    """
+    return build_page(spec=spec, bracket=bracket, region=region)
+
+
+@mcp.tool()
 def get_player_details_tool(name: str, realm: str, region: str = "us") -> dict:
     """Get full gear and talent details for a specific player from the local cache.
 
@@ -83,25 +118,6 @@ def get_player_details_tool(name: str, realm: str, region: str = "us") -> dict:
     """
     return get_player_details(name=name, realm=realm, region=region)
 
-
-if __name__ == "__main__":
-    mcp.run()
-
-# Re-register with the new import before the if __name__ guard
-from wow_advisor.talent_tree import get_tree_structure as _get_tree_structure
-
-@mcp.tool()
-def get_tree_structure_tool(spec: str) -> dict:
-    """Return the talent tree layout (nodes, positions, edges) for a spec.
-
-    The node IDs match what get_full_summary_tool returns in talents.core/flex/contested,
-    so the frontend can color the tree based on cluster data automatically.
-    Use this to populate CLUSTER_DATA.tree in the frontend data.js.
-
-    Args:
-        spec: Spec name, e.g. 'restoration shaman', 'rsham'
-    """
-    return _get_tree_structure(spec=spec)
 
 if __name__ == "__main__":
     mcp.run()

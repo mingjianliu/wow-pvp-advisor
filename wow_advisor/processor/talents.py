@@ -80,6 +80,14 @@ def summarize_talent_clusters(
     else:
         decision_nodes = analysis.contested_nodes
         method = "variance+hamming"
+        # Auto-limit to the 8 most contested nodes (closest to 50% pick rate).
+        # With small samples, 10+ contested nodes fragment into dozens of 1-player clusters.
+        MAX_DECISION = 8
+        if len(decision_nodes) > MAX_DECISION:
+            decision_nodes = set(sorted(
+                decision_nodes,
+                key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
+            )[:MAX_DECISION])
 
     contested_pairs = [(node_sets[i] & decision_nodes, i) for i in range(n)]
     clusters = cluster_talents(contested_pairs, threshold=1)

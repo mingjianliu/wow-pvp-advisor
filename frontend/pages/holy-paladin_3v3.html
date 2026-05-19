@@ -185,6 +185,19 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   height: 2px; background: var(--bg-3);
 }
 .tab-bar-fill { height: 100%; background: var(--text-3); }
+.tab-minor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  font-size: 10px;
+  color: var(--text-3);
+  cursor: default;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  border-left: 1px solid var(--border);
+}
+
 .tab.active .tab-bar-fill { background: var(--accent); }
 
 /* Main grid */
@@ -1003,952 +1016,2308 @@ a.gear-card-item.q4, a.gear-card-item.q5 { color: inherit; }
   <div id="root"></div>
 
   <script>
-// Placeholder talent tree shape — two side-by-side trees (Class + Spec).
-// Replace `name`/`desc` strings and add nodes when you wire real data in.
-//
-// Each node: { id, name, desc, type: 'circle'|'diamond'|'capstone', maxPoints, col, row }
-// `diamond` nodes are choice nodes (the player picks one of two effects).
-// `capstone` nodes render as large diamonds.
-
-window.TREE = (function () {
-  const placeholderDesc = (n) =>
-    `Placeholder description for ${n}. Replace with the talent's tooltip text from your data source.`;
-
-  function n(id, name, opts = {}) {
-    return {
-      id,
-      name,
-      desc: opts.desc || placeholderDesc(name),
-      type: opts.type || 'circle',
-      maxPoints: opts.maxPoints || 1,
-      col: opts.col,
-      row: opts.row,
-    };
-  }
-
-  // Class tree (left)
-  const classNodes = [
-    n('c01', 'Elemental Focus',     { col: 2, row: 0 }),
-    n('c02', 'Wind Rush',           { col: 1, row: 1 }),
-    n('c03', 'Ancestral Vigor',     { col: 3, row: 1 }),
-    n('c04', 'Spirit Walk',         { col: 0, row: 2 }),
-    n('c05', 'Totemic Resonance',   { col: 2, row: 2, type: 'diamond' }),
-    n('c06', 'Static Charge',       { col: 4, row: 2 }),
-    n('c07', 'Stoneskin',           { col: 1, row: 3, maxPoints: 2 }),
-    n('c08', 'Earthbind',           { col: 3, row: 3, maxPoints: 2 }),
-    n('c09', 'Hex Mastery',         { col: 0, row: 4 }),
-    n('c10', 'Lava Surge',          { col: 2, row: 4, type: 'diamond' }),
-    n('c11', 'Cleansing Tides',     { col: 4, row: 4 }),
-    n('c12', 'Astral Shift',        { col: 1, row: 5 }),
-    n('c13', 'Capacitor Totem',     { col: 3, row: 5 }),
-    n('c14', 'Ascendance',          { col: 2, row: 6, type: 'capstone' }),
-    n('c15', 'Primal Elementalist', { col: 1, row: 7 }),
-    n('c16', 'Stormkeeper',         { col: 3, row: 7 }),
-  ];
-
-  const classEdges = [
-    ['c01','c02'], ['c01','c03'],
-    ['c02','c04'], ['c02','c05'],
-    ['c03','c05'], ['c03','c06'],
-    ['c04','c07'], ['c05','c07'], ['c05','c08'], ['c06','c08'],
-    ['c07','c09'], ['c07','c10'], ['c08','c10'], ['c08','c11'],
-    ['c09','c12'], ['c10','c12'], ['c10','c13'], ['c11','c13'],
-    ['c12','c14'], ['c13','c14'],
-    ['c14','c15'], ['c14','c16'],
-  ];
-
-  // Spec tree (right)
-  const specNodes = [
-    n('s01', 'Healing Surge',       { col: 2, row: 0 }),
-    n('s02', 'Riptide',             { col: 1, row: 1 }),
-    n('s03', 'Chain Heal',          { col: 3, row: 1 }),
-    n('s04', 'Tidal Waves',         { col: 0, row: 2, maxPoints: 2 }),
-    n('s05', 'Earthliving',         { col: 2, row: 2, type: 'diamond' }),
-    n('s06', 'Resurgence',          { col: 4, row: 2 }),
-    n('s07', 'Healing Stream',      { col: 1, row: 3 }),
-    n('s08', 'Spirit Link',         { col: 3, row: 3 }),
-    n('s09', 'Mana Tide',           { col: 0, row: 4 }),
-    n('s10', 'Cloudburst',          { col: 2, row: 4, type: 'diamond' }),
-    n('s11', 'Healing Tide',        { col: 4, row: 4 }),
-    n('s12', 'Wellspring',          { col: 1, row: 5, maxPoints: 2 }),
-    n('s13', 'Downpour',            { col: 3, row: 5, maxPoints: 2 }),
-    n('s14', 'Ancestral Guidance',  { col: 2, row: 6, type: 'capstone' }),
-    n('s15', 'Deluge',              { col: 1, row: 7 }),
-    n('s16', 'Unleash Life',        { col: 3, row: 7 }),
-  ];
-
-  const specEdges = [
-    ['s01','s02'], ['s01','s03'],
-    ['s02','s04'], ['s02','s05'],
-    ['s03','s05'], ['s03','s06'],
-    ['s04','s07'], ['s05','s07'], ['s05','s08'], ['s06','s08'],
-    ['s07','s09'], ['s07','s10'], ['s08','s10'], ['s08','s11'],
-    ['s09','s12'], ['s10','s12'], ['s10','s13'], ['s11','s13'],
-    ['s12','s14'], ['s13','s14'],
-    ['s14','s15'], ['s14','s16'],
-  ];
-
-  // Hero tree (middle) — placeholder Farseer layout (~10 nodes, narrower).
-  // Swap label per cluster (e.g. "Hero · Totemic") when backend wires hero choice.
-  const heroNodes = [
-    n('h01', 'Call of the Ancestors', { col: 1, row: 0 }),
-    n('h02', 'Latent Wisdom',         { col: 0, row: 1 }),
-    n('h03', 'Ancient Fellowship',    { col: 2, row: 1 }),
-    n('h04', 'Routine Communion',     { col: 1, row: 2, type: 'diamond' }),
-    n('h05', 'Heed My Call',          { col: 0, row: 3 }),
-    n('h06', 'Offering from Beyond',  { col: 2, row: 3 }),
-    n('h07', 'Primordial Capacity',   { col: 1, row: 4 }),
-    n('h08', 'Maelstrom Supremacy',   { col: 0, row: 5 }),
-    n('h09', 'Final Calling',         { col: 1, row: 6, type: 'capstone' }),
-    n('h10', 'Earthen Communion',     { col: 2, row: 5 }),
-  ];
-
-  const heroEdges = [
-    ['h01','h02'], ['h01','h03'],
-    ['h02','h04'], ['h03','h04'],
-    ['h04','h05'], ['h04','h06'],
-    ['h05','h07'], ['h06','h07'],
-    ['h07','h08'], ['h07','h10'],
-    ['h08','h09'], ['h10','h09'],
-  ];
-
-  const byId = {};
-  [...classNodes, ...specNodes, ...heroNodes].forEach(node => { byId[node.id] = node; });
-
-  return {
-    trees: [
-      { id: 'class', label: 'Class Tree',     nodes: classNodes, edges: classEdges },
-      { id: 'hero',  label: 'Hero · Farseer', nodes: heroNodes,  edges: heroEdges },
-      { id: 'spec',  label: 'Spec Tree',      nodes: specNodes,  edges: specEdges },
-    ],
-    byId,
-  };
-})();
-
-</script>
-  <script>
-// Auto-generated — Restoration Shaman 3v3 US, n=50
+// Auto-generated by build_page — do not edit manually
 
 window.CLUSTER_DATA = {
-  spec: 'restoration-shaman',
-  specLabel: { class: 'Shaman', spec: 'Restoration' },
-  bracket: '3v3',
-  sample_size: 50,
-  avg_ilvl: 248,
-
-  pvp_talents: [
-    { id: 'p1', name: "Grounding Totem", pct: 92 },
-    { id: 'p2', name: "Rain Dance", pct: 80 },
-    { id: 'p3', name: "Static Field Totem", pct: 40 },
-    { id: 'p4', name: "Storm Conduit", pct: 38 },
-    { id: 'p5', name: "Lightning Lasso", pct: 38 },
-    { id: 'p6', name: "Burrow", pct: 4 },
-    { id: 'p7', name: "Master of the Elements", pct: 4 },
-    { id: 'p8', name: "Counterstrike Totem", pct: 4 },
-  ],
-
-  talents: {
-    core: [
-      { id: 81018, name: "Living Stream", pct: 100 },
-      { id: 81021, name: "Water Totem Mastery", pct: 100 },
-      { id: 81022, name: "Healing Stream Totem", pct: 100 },
-      { id: 81027, name: "Riptide", pct: 100 },
-      { id: 81037, name: "Deluge", pct: 100 },
-      { id: 81040, name: "Healing Rain", pct: 92 },
-      { id: 81041, name: "Spirit Link Totem", pct: 100 },
-      { id: 81044, name: "Tidal Waves", pct: 98 },
-      { id: 81047, name: "White Water", pct: 100 },
-      { id: 81048, name: "Quickstream", pct: 100 },
-      { id: 81049, name: "Earthliving Weapon", pct: 100 },
-      { id: 81051, name: "Deeply Rooted Elements", pct: 100 },
-      { id: 81052, name: "Undercurrent", pct: 96 },
-      { id: 81055, name: "Echo of the Elements", pct: 100 },
-      { id: 92675, name: "Unleash Life", pct: 100 },
-      { id: 103429, name: "Ancestral Vigor", pct: 94 },
-      { id: 103430, name: "Earthen Harmony", pct: 98 },
-      { id: 103432, name: "Torrent", pct: 98 },
-      { id: 103579, name: "Capacitor Totem", pct: 100 },
-      { id: 103584, name: "Spiritwalker's Grace", pct: 100 },
-      { id: 103586, name: "Elemental Warding", pct: 100 },
-      { id: 103588, name: "Chain Heal", pct: 100 },
-      { id: 103596, name: "Earth Shield", pct: 100 },
-      { id: 103598, name: "Lava Burst", pct: 96 },
-      { id: 103602, name: "Elemental Orbit", pct: 100 },
-      { id: 103606, name: "Enhanced Imbues", pct: 98 },
-      { id: 103613, name: "Nature's Guardian", pct: 100 },
-      { id: 103615, name: "Wind Shear", pct: 100 },
-      { id: 103616, name: "Astral Shift", pct: 100 },
-      { id: 103617, name: "Nature's Fury", pct: 96 },
-      { id: 103620, name: "Nature's Swiftness", pct: 100 },
-      { id: 103622, name: "Earthgrab Totem", pct: 94 },
-      { id: 103623, name: "Hex", pct: 94 },
-      { id: 103625, name: "Totemic Focus", pct: 100 },
-      { id: 109386, name: "Totemic Projection", pct: 100 },
-      { id: 109387, name: "Instinctive Imbuements", pct: 100 },
-      { id: 109388, name: "Totemic Surge", pct: 100 },
-      { id: 110083, name: "Earthen Accord", pct: 94 },
-      { id: 110085, name: "Spiritual Awakening", pct: 98 },
-      { id: 110403, name: "Stormstream Totem", pct: 100 },
-    ],
-    flex: [
-      { id: 92677, name: "Overflowing Shores", pct: 18 },
-      { id: 109301, name: "Rip Current", pct: 14 },
-      { id: 103583, name: "Chain Lightning", pct: 8 },
-      { id: 103427, name: "Wavespeaker's Blessing", pct: 4 },
-      { id: 103915, name: "Spouting Spirits", pct: 4 },
-      { id: 81019, name: "Calm Waters", pct: 2 },
-      { id: 103610, name: "Ancestral Wolf Affinity", pct: 2 },
-    ],
-    contested: [
-      { id: 81024, name: "Resurgence", pct: 34 },
-      { id: 81038, name: "Current Control", pct: 28 },
-      { id: 81039, name: "Acid Rain", pct: 66 },
-      { id: 81043, name: "Ancestral Awakening", pct: 32 },
-      { id: 103428, name: "Soothing Rain", pct: 58 },
-      { id: 103582, name: "Brimming with Life", pct: 76 },
-      { id: 103585, name: "Earth Elemental", pct: 26 },
-      { id: 103587, name: "Mana Spring", pct: 22 },
-      { id: 103594, name: "Refreshing Waters", pct: 42 },
-      { id: 103600, name: "Voodoo Mastery", pct: 42 },
-      { id: 103618, name: "Static Charge", pct: 28 },
-      { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      { id: 103628, name: "Windveil", pct: 74 },
-    ],
+  "spec": "holy-paladin",
+  "specLabel": {
+    "class": "Paladin",
+    "spec": "Holy"
   },
-
-  clusters: [
+  "bracket": "3v3",
+  "sample_size": 50,
+  "avg_ilvl": 244,
+  "pvp_talents": [
     {
-      rank: 1, pct: 10, count: 5,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtxY0stYmlZGDWMmZMzsNbGAAAYmBzMAMGM",
-      takes: [
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      ],
+      "id": "p1",
+      "name": "Divine Vision",
+      "pct": 86.0
     },
     {
-      rank: 2, pct: 8, count: 4,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMzMzMzMzYstMziNGzYZasNzCTmhxCmZwsxY0ssYmlZGDWMzMjZmlZzAAAAzMYmBzMMGM",
-      takes: [
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      ],
+      "id": "p2",
+      "name": "Blessing of Spellwarding",
+      "pct": 80.0
     },
     {
-      rank: 3, pct: 6, count: 3,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZmxMzMzMzYssMWsxYGLasNzCTmhxGzMDmtxY0ssYmFzYwixMzDMzsNbGAAAYmBzMYmhxgB",
-      takes: [
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      ],
+      "id": "p3",
+      "name": "Searing Glare",
+      "pct": 32.0
     },
     {
-      rank: 4, pct: 4, count: 2,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtHwYmmtlZmFzYwixMjZmtZzAAAAzMYmBgxgB",
-      takes: [
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      ],
+      "id": "p4",
+      "name": "Darkest before the Dawn",
+      "pct": 28.0
     },
     {
-      rank: 5, pct: 4, count: 2,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMzYmZGzYssMziFGzYZasNzCTmhxGzMDmtZGjmllZmNzY2YxYmxwysMAAYAMzgZGMzADG",
-      takes: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-      ],
-      skips: [
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
+      "id": "p5",
+      "name": "Cleanse the Weak",
+      "pct": 28.0
     },
     {
-      rank: 6, pct: 4, count: 2,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMmZmZmZGjtlZWsxYGLTjtZ2YyMM2wMDmtxMjmlFzsYGDWmxMjZmtZDAAAYmBzMYmhxgB",
-      takes: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-      ],
-      skips: [
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
+      "id": "p6",
+      "name": "Spreading the Word",
+      "pct": 22.0
     },
     {
-      rank: 7, pct: 4, count: 2,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZM2WmhxMzMzMzMGLLzsYjxMWmGbzswkZYsgZGMLjZmpZbxMLmxgNjZGzMbzGAAAYmZwMDmZYmBD",
-      takes: [
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
+      "id": "p7",
+      "name": "Divine Plea",
+      "pct": 20.0
     },
     {
-      rank: 8, pct: 4, count: 2,
-      canonical_code: "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZm5BmZmZmZYstMziNGzYZasNzGTmhxGmZwsxY0stMzsMzY2YxYmxMz2sNDAAAMzgZGAGDG",
-      takes: [
-        { id: 81039, name: "Acid Rain", pct: 66 },
-        { id: 81043, name: "Ancestral Awakening", pct: 32 },
-        { id: 103594, name: "Refreshing Waters", pct: 42 },
-        { id: 103600, name: "Voodoo Mastery", pct: 42 },
-        { id: 103627, name: "Wind Rush Totem", pct: 26 },
-        { id: 103628, name: "Windveil", pct: 74 },
-      ],
-      skips: [
-        { id: 81024, name: "Resurgence", pct: 34 },
-        { id: 81038, name: "Current Control", pct: 28 },
-        { id: 103428, name: "Soothing Rain", pct: 58 },
-        { id: 103582, name: "Brimming with Life", pct: 76 },
-        { id: 103585, name: "Earth Elemental", pct: 26 },
-        { id: 103587, name: "Mana Spring", pct: 22 },
-        { id: 103618, name: "Static Charge", pct: 28 },
-      ],
-    },
+      "id": "p8",
+      "name": "Denounce",
+      "pct": 4.0
+    }
   ],
-
-  gear: {
-    avg_ilvl: 248,
-    slots: [
-      { slot: "Head", item: { id: 249979, name: "Locus of the Primal Core", pct: 90 }, enchant: { name: "Empowered Blessing of Speed", pct: 52 } },
-      { slot: "Neck", item: { id: 240952, name: "Thalassian Competitor's Amulet", pct: 78 } },
-      { slot: "Shoulder", item: { id: 249977, name: "Tempests of the Primal Core", pct: 46 }, enchant: { name: "Akil'zon's Swiftness", pct: 70 } },
-      { slot: "Back", item: { id: 255548, name: "Galactic Gladiator's Shawl", pct: 60 }, enchant: { name: "Chant of Winged Grace", pct: 60 } },
-      { slot: "Chest", item: { id: 249982, name: "Embrace of the Primal Core", pct: 94 }, enchant: { name: "Mark of the Magister", pct: 90 } },
-      { slot: "Wrist", item: { id: 255544, name: "Galactic Gladiator's Chain Wristguards", pct: 52 }, enchant: { name: "Chant of Armored Avoidance", pct: 54 } },
-      { slot: "Hands", item: { id: 249980, name: "Earthgrips of the Primal Core", pct: 92 } },
-      { slot: "Waist", item: { id: 244565, name: "Thalassian Competitor's Chain Girdle", pct: 78 } },
-      { slot: "Legs", item: { id: 249978, name: "Leggings of the Primal Core", pct: 64 }, enchant: { name: "+41 Intellect & +4% Mana", pct: 88 } },
-      { slot: "Feet", item: { id: 255533, name: "Galactic Gladiator's Chain Boots", pct: 54 }, enchant: { name: "Farstrider's Hunt", pct: 76 } },
-      { slot: "Ring 1", item: { id: 240951, name: "Thalassian Competitor's Signet", pct: 82 }, enchant: { name: "Zul'jin's Mastery", pct: 70 } },
-      { slot: "Ring 2", item: { id: 240951, name: "Thalassian Competitor's Signet", pct: 76 }, enchant: { name: "Zul'jin's Mastery", pct: 74 } },
-      { slot: "Trinket 1", item: { id: 255614, name: "Galactic Gladiator's Insignia of Alacrity", pct: 54 } },
-      { slot: "Trinket 2", item: { id: 255616, name: "Galactic Gladiator's Medallion", pct: 56 } },
-      { slot: "Weapon", item: { id: 255624, name: "Galactic Gladiator's Scepter", pct: 86 }, enchant: { name: "Acuity of the Ren'dorei", pct: 92 } },
-      { slot: "Off-hand", item: { id: 255632, name: "Galactic Gladiator's Bulwark", pct: 86 }, enchant: { name: "Tidecaller's Guard", pct: 76 } },
+  "talents": {
+    "core": [
+      {
+        "id": 81496,
+        "name": "Divine Toll",
+        "pct": 100.0
+      },
+      {
+        "id": 81508,
+        "name": "Improved Cleanse",
+        "pct": 98.0
+      },
+      {
+        "id": 81510,
+        "name": "Hammer of Wrath",
+        "pct": 92.0
+      },
+      {
+        "id": 81543,
+        "name": "Consecrated Ground",
+        "pct": 88.0
+      },
+      {
+        "id": 81554,
+        "name": "Beacon of Faith",
+        "pct": 100.0
+      },
+      {
+        "id": 81555,
+        "name": "Holy Shock",
+        "pct": 100.0
+      },
+      {
+        "id": 81558,
+        "name": "Reclamation",
+        "pct": 100.0
+      },
+      {
+        "id": 81564,
+        "name": "Awestruck",
+        "pct": 98.0
+      },
+      {
+        "id": 81565,
+        "name": "Light of Dawn",
+        "pct": 100.0
+      },
+      {
+        "id": 81566,
+        "name": "Unwavering Spirit",
+        "pct": 96.0
+      },
+      {
+        "id": 81567,
+        "name": "Aura Mastery",
+        "pct": 100.0
+      },
+      {
+        "id": 81568,
+        "name": "Beacon of the Lightbringer",
+        "pct": 100.0
+      },
+      {
+        "id": 81569,
+        "name": "Infusion of Light",
+        "pct": 100.0
+      },
+      {
+        "id": 81571,
+        "name": "Moment of Compassion",
+        "pct": 100.0
+      },
+      {
+        "id": 81574,
+        "name": "Saved by the Light",
+        "pct": 94.0
+      },
+      {
+        "id": 81578,
+        "name": "Divine Revelations",
+        "pct": 100.0
+      },
+      {
+        "id": 81580,
+        "name": "Commanding Light",
+        "pct": 100.0
+      },
+      {
+        "id": 81584,
+        "name": "Avenging Wrath",
+        "pct": 100.0
+      },
+      {
+        "id": 81585,
+        "name": "Divine Glimpse",
+        "pct": 92.0
+      },
+      {
+        "id": 81588,
+        "name": "Tyr's Deliverance",
+        "pct": 100.0
+      },
+      {
+        "id": 81590,
+        "name": "Extrication",
+        "pct": 100.0
+      },
+      {
+        "id": 81591,
+        "name": "Inflorescence of the Sunwell",
+        "pct": 100.0
+      },
+      {
+        "id": 81592,
+        "name": "Sanctified Wrath",
+        "pct": 98.0
+      },
+      {
+        "id": 81594,
+        "name": "Seek Deliverance",
+        "pct": 92.0
+      },
+      {
+        "id": 81595,
+        "name": "Rising Sunlight",
+        "pct": 96.0
+      },
+      {
+        "id": 81597,
+        "name": "Lay on Hands",
+        "pct": 100.0
+      },
+      {
+        "id": 81598,
+        "name": "Blinding Light",
+        "pct": 100.0
+      },
+      {
+        "id": 81600,
+        "name": "Auras of the Resolute",
+        "pct": 100.0
+      },
+      {
+        "id": 81605,
+        "name": "Cavalier",
+        "pct": 100.0
+      },
+      {
+        "id": 81607,
+        "name": "Sacrifice of the Just",
+        "pct": 96.0
+      },
+      {
+        "id": 81608,
+        "name": "Light's Revocation",
+        "pct": 96.0
+      },
+      {
+        "id": 81609,
+        "name": "Holy Aegis",
+        "pct": 100.0
+      },
+      {
+        "id": 81614,
+        "name": "Blessing of Sacrifice",
+        "pct": 100.0
+      },
+      {
+        "id": 81615,
+        "name": "Unbreakable Spirit",
+        "pct": 98.0
+      },
+      {
+        "id": 81621,
+        "name": "Seal of Might",
+        "pct": 100.0
+      },
+      {
+        "id": 81631,
+        "name": "Steed of Liberty",
+        "pct": 100.0
+      },
+      {
+        "id": 81632,
+        "name": "Divine Steed",
+        "pct": 100.0
+      },
+      {
+        "id": 92220,
+        "name": "Greater Judgment",
+        "pct": 96.0
+      },
+      {
+        "id": 93009,
+        "name": "Sanctified Plates",
+        "pct": 100.0
+      },
+      {
+        "id": 93180,
+        "name": "Divine Resonance",
+        "pct": 100.0
+      },
+      {
+        "id": 93191,
+        "name": "Sacred Strength",
+        "pct": 100.0
+      },
+      {
+        "id": 93357,
+        "name": "Blessing of Dawn",
+        "pct": 82.0
+      },
+      {
+        "id": 93520,
+        "name": "Echoing Blessings",
+        "pct": 100.0
+      },
+      {
+        "id": 93522,
+        "name": "Light's Protection",
+        "pct": 100.0
+      },
+      {
+        "id": 93523,
+        "name": "Righteous Judgment",
+        "pct": 90.0
+      },
+      {
+        "id": 93927,
+        "name": "Light's Conviction",
+        "pct": 100.0
+      },
+      {
+        "id": 102502,
+        "name": "Liberation",
+        "pct": 90.0
+      },
+      {
+        "id": 103856,
+        "name": "Golden Path",
+        "pct": 100.0
+      },
+      {
+        "id": 103858,
+        "name": "A Just Reward",
+        "pct": 94.0
+      },
+      {
+        "id": 103859,
+        "name": "Empyreal Ward",
+        "pct": 96.0
+      },
+      {
+        "id": 103862,
+        "name": "Stoicism",
+        "pct": 86.0
+      },
+      {
+        "id": 103863,
+        "name": "Blessing of Dusk",
+        "pct": 98.0
+      },
+      {
+        "id": 103867,
+        "name": "Lead the Charge",
+        "pct": 94.0
+      },
+      {
+        "id": 108099,
+        "name": "Ringing of the Heavens",
+        "pct": 80.0
+      },
+      {
+        "id": 109999,
+        "name": "Fist of Justice",
+        "pct": 98.0
+      },
+      {
+        "id": 110417,
+        "name": "Beacon of the Savior",
+        "pct": 100.0
+      }
     ],
+    "flex": [
+      {
+        "id": 81495,
+        "name": "Faith's Armor",
+        "pct": 16.0
+      },
+      {
+        "id": 81556,
+        "name": "Overflowing Light",
+        "pct": 2.0
+      },
+      {
+        "id": 81557,
+        "name": "Imbued Infusions",
+        "pct": 10.0
+      },
+      {
+        "id": 81562,
+        "name": "Shining Righteousness",
+        "pct": 6.0
+      },
+      {
+        "id": 81575,
+        "name": "Unending Light",
+        "pct": 10.0
+      },
+      {
+        "id": 81583,
+        "name": "Breaking Dawn",
+        "pct": 4.0
+      },
+      {
+        "id": 81587,
+        "name": "Call of the Righteous",
+        "pct": 2.0
+      },
+      {
+        "id": 81593,
+        "name": "Seraphic Barrier",
+        "pct": 6.0
+      },
+      {
+        "id": 81613,
+        "name": "Afterimage",
+        "pct": 12.0
+      },
+      {
+        "id": 81617,
+        "name": "Improved Blessing of Protection",
+        "pct": 10.0
+      },
+      {
+        "id": 81630,
+        "name": "Obduracy",
+        "pct": 16.0
+      },
+      {
+        "id": 93010,
+        "name": "Turn Evil",
+        "pct": 2.0
+      },
+      {
+        "id": 103852,
+        "name": "Lightforged Blessing",
+        "pct": 4.0
+      },
+      {
+        "id": 103855,
+        "name": "Wrench Evil",
+        "pct": 2.0
+      },
+      {
+        "id": 103857,
+        "name": "Divine Spurs",
+        "pct": 2.0
+      },
+      {
+        "id": 103860,
+        "name": "Holy Reprieve",
+        "pct": 12.0
+      },
+      {
+        "id": 103865,
+        "name": "Worthy Sacrifice",
+        "pct": 6.0
+      },
+      {
+        "id": 103868,
+        "name": "Blessed Calling",
+        "pct": 8.0
+      },
+      {
+        "id": 109998,
+        "name": "Brought to Light",
+        "pct": 6.0
+      },
+      {
+        "id": 110012,
+        "name": "Guided Prayer",
+        "pct": 18.0
+      }
+    ],
+    "contested": [
+      {
+        "id": 81561,
+        "name": "Light of the Martyr",
+        "pct": 34.0
+      },
+      {
+        "id": 81573,
+        "name": "Tirion's Devotion",
+        "pct": 62.0
+      },
+      {
+        "id": 81581,
+        "name": "Veneration",
+        "pct": 38.0
+      },
+      {
+        "id": 81589,
+        "name": "Divine Overload",
+        "pct": 58.0
+      },
+      {
+        "id": 103831,
+        "name": "Empyrean Legacy",
+        "pct": 32.0
+      },
+      {
+        "id": 103864,
+        "name": "Inspired Guard",
+        "pct": 62.0
+      },
+      {
+        "id": 108034,
+        "name": "Truth Prevails",
+        "pct": 48.0
+      },
+      {
+        "id": 110092,
+        "name": "Armory of Light",
+        "pct": 36.0
+      }
+    ]
   },
+  "clusters": [
+    {
+      "rank": 1,
+      "pct": 22.0,
+      "count": 11,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYGbjNzsYmmYWmhZGGslBgBgNwmZzMDACAYmZZbxyMDbsxwYzMMDzwMAmZAwAaA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "pct": 18.0,
+      "count": 9,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYYbsNzsYmmYWmhZGGslBgBgNwmZzMzsMLzMzSDAYmZZbxyMDbsNGYbmBzwMMAmZwMDGQD",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "pct": 10.0,
+      "count": 5,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAAsMMzMzsMzYxMGjZhtZmFz0EjZMzMMMbZAYAYDsxixMLz2Mzs0AAmZW2WsNzwCLMD2YwMGAgZGMzwMGjGA",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "pct": 10.0,
+      "count": 5,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhZGzsNzYZGGDbjNzsYmmYWmxMzwgtMAMAsB2YbmZAQAAzMLbL2mZYjFwYzMMzYGGAmZAwYQD",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "pct": 8.0,
+      "count": 4,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAMLAgBAwglhZGzsMzMLzwYYhtZmFz0EzyMMzMGslBgBgNwmZbmZmlZZmZ2aAAzMbLL2mZYhFwYzMMzYGAAwMjBQD",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAMLAgZAAGsMMYmlZmZxYGDbjtZmNz0EzyMMDGslBgBgNwGLmZAQAAzMLbL2mZYjtxwYzMMzwgBwMDAGMaA",
+      "takes": [
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYYZsNzsYmmYWmhZGGslBgBgNwmZxMzsMLzMzSDAAAwCLMwmZwMmhZAAMzgBjGA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        }
+      ]
+    },
+    {
+      "rank": 8,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsNzYZGzYGbjNzsYmmYWmhZwgtMAMAsB2MbmZAQAAzMLbL2mZYjNeAGbmhZGzwMAmZAwgRD",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhxYmlZGLGzYGbjNzsYmmYWmhZGGegtMAMAsB2MbmZmlZZmZWaAAzMLbL2mZYjNGYjhZYGmBwMDmZMGMaA",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBmlZGLzMzYGbjtZmFz0EzyMMDGegtMAMAsB2MbmZAQAAzMLbLWmZYjNGGbmhZGGMAmZAwAaA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 11,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYYbsNzsYmmYWmhZwgtMAMAsB2MbmZAQAAzMLbL2mZYjNGYzMMDzwMAmZAMGDaA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 12,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzMLGzYYbsNzsYmmYWmhZGGskBgBgNwmZxMzsNLzMzSDAYmZZbx2MDLsNGGbmBjtZwAYmBzMYANA",
+      "takes": [
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 13,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhxYmlZGLmZGzYbsNzsM0EzyMMzMeAslBgBgNwmZbmZAQAAzMLbLWmZYjtxAbmhZGGMAmZAwgRXA",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ]
+    },
+    {
+      "rank": 14,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYGbjtZmFmmYWmhZGGslBgBgNwmZzMDACAYmZZbx2MDbsNGGbmhZYGMAmZAwAaA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 15,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhZGzsMzMLGGDLjtZmFz0EzyMMzwgtMAMAsB2MbzYmlZZmZWaAAzMbbL2mZYhNGGbmhZYGMAmZwMDGQD",
+      "takes": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 16,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CEEAVg1HmQqr1Dwlv86ljju8vCAAAYBAMDAwglhBzsMzYZGzYYbsZmFz0EzyMMzwgtMAMAsB2YzMDACAYmZZbx2MDbsNGGbmhZGzwMAmZAwAaA",
+      "takes": [
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "pct": 62.0
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "pct": 32.0
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
+          "pct": 62.0
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "pct": 48.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 81561,
+          "name": "Light of the Martyr",
+          "pct": 34.0
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "pct": 38.0
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "pct": 58.0
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "pct": 36.0
+        }
+      ]
+    }
+  ],
+  "gear": {
+    "avg_ilvl": 244,
+    "slots": [
+      {
+        "slot": "Head",
+        "item": {
+          "id": 244738,
+          "name": "Thalassian Competitor's Plate Guard",
+          "pct": 50.0
+        },
+        "enchant": {
+          "name": "Empowered Hex of Leeching",
+          "pct": 26.0
+        }
+      },
+      {
+        "slot": "Neck",
+        "item": {
+          "id": 240952,
+          "name": "Thalassian Competitor's Amulet",
+          "pct": 80.0
+        }
+      },
+      {
+        "slot": "Shoulder",
+        "item": {
+          "id": 237906,
+          "name": "Thalassian Competitor's Plate Pauldrons",
+          "pct": 42.0
+        },
+        "enchant": {
+          "name": "Silvermoon's Mending",
+          "pct": 38.0
+        }
+      },
+      {
+        "slot": "Back",
+        "item": {
+          "id": 255587,
+          "name": "Galactic Gladiator's Shawl",
+          "pct": 46.0
+        }
+      },
+      {
+        "slot": "Chest",
+        "item": {
+          "id": 255569,
+          "name": "Galactic Gladiator's Chestplate",
+          "pct": 40.0
+        },
+        "enchant": {
+          "name": "Mark of the Magister",
+          "pct": 74.0
+        }
+      },
+      {
+        "slot": "Wrist",
+        "item": {
+          "id": 255583,
+          "name": "Galactic Gladiator's Plate Wristguards",
+          "pct": 40.0
+        }
+      },
+      {
+        "slot": "Hands",
+        "item": {
+          "id": 255573,
+          "name": "Galactic Gladiator's Plate Handguards",
+          "pct": 40.0
+        }
+      },
+      {
+        "slot": "Waist",
+        "item": {
+          "id": 255581,
+          "name": "Galactic Gladiator's Plate Girdle",
+          "pct": 58.0
+        }
+      },
+      {
+        "slot": "Legs",
+        "item": {
+          "id": 255578,
+          "name": "Galactic Gladiator's Plate Tasses",
+          "pct": 66.0
+        },
+        "enchant": {
+          "name": "+41 Intellect & +4% Mana",
+          "pct": 84.0
+        }
+      },
+      {
+        "slot": "Feet",
+        "item": {
+          "id": 237902,
+          "name": "Thalassian Competitor's Plate Sabatons",
+          "pct": 50.0
+        },
+        "enchant": {
+          "name": "Shaladrassil's Roots",
+          "pct": 32.0
+        }
+      },
+      {
+        "slot": "Ring 1",
+        "item": {
+          "id": 240951,
+          "name": "Thalassian Competitor's Signet",
+          "pct": 88.0
+        },
+        "enchant": {
+          "name": "Zul'jin's Mastery",
+          "pct": 30.0
+        }
+      },
+      {
+        "slot": "Ring 2",
+        "item": {
+          "id": 240951,
+          "name": "Thalassian Competitor's Signet",
+          "pct": 86.0
+        },
+        "enchant": {
+          "name": "Silvermoon's Tenacity",
+          "pct": 32.0
+        }
+      },
+      {
+        "slot": "Trinket 1",
+        "item": {
+          "id": 255614,
+          "name": "Galactic Gladiator's Insignia of Alacrity",
+          "pct": 46.0
+        }
+      },
+      {
+        "slot": "Trinket 2",
+        "item": {
+          "id": 255616,
+          "name": "Galactic Gladiator's Medallion",
+          "pct": 40.0
+        }
+      },
+      {
+        "slot": "Weapon",
+        "item": {
+          "id": 255624,
+          "name": "Galactic Gladiator's Scepter",
+          "pct": 86.0
+        },
+        "enchant": {
+          "name": "Acuity of the Ren'dorei",
+          "pct": 56.0
+        }
+      },
+      {
+        "slot": "Off-hand",
+        "item": {
+          "id": 255632,
+          "name": "Galactic Gladiator's Bulwark",
+          "pct": 88.0
+        }
+      }
+    ]
+  }
+};
 
-  // Real talent tree from Blizzard API.
-  // heroTrees.left = Farseer, heroTrees.right = Totemic.
-  // The frontend picks the active hero tree per cluster by checking which
-  // heroTrees.*.nodeIds overlap with the cluster's core+takes node IDs.
-  tree: {
+window.CLUSTER_DATA.tree = {
   "trees": [
     {
       "id": "class",
       "label": "Class Tree",
       "nodes": [
         {
-          "id": 103588,
-          "name": "Chain Heal",
+          "id": 81597,
+          "name": "Lay on Hands",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
           "row": 0,
-          "spellId": 1064
+          "spellId": 633
         },
         {
-          "id": 103598,
-          "name": "Lava Burst",
+          "id": 81600,
+          "name": "Auras of the Resolute",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
           "row": 0,
-          "spellId": 51505
+          "spellId": 385633
         },
         {
-          "id": 103583,
-          "name": "Chain Lightning",
+          "id": 81510,
+          "name": "Hammer of Wrath",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
           "row": 0,
-          "spellId": 188443
+          "spellId": 1241288
         },
         {
-          "id": 103596,
-          "name": "Earth Shield",
+          "id": 81508,
+          "name": "Improved Cleanse",
           "type": "circle",
           "maxPoints": 1,
           "col": 0,
           "row": 1,
-          "spellId": 974
+          "spellId": 393024
         },
         {
-          "id": 103610,
-          "name": "Ancestral Wolf Affinity",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 382197
-        },
-        {
-          "id": 103605,
-          "name": "Fire and Ice",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 382886
-        },
-        {
-          "id": 109492,
-          "name": "Frost Shock",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 1,
-          "spellId": 196840
-        },
-        {
-          "id": 103602,
-          "name": "Elemental Orbit",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 2,
-          "spellId": 383010
-        },
-        {
-          "id": 103616,
-          "name": "Astral Shift",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 108271
-        },
-        {
-          "id": 103613,
-          "name": "Nature's Guardian",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 2,
-          "spellId": 30884
-        },
-        {
-          "id": 103590,
-          "name": "Healing Stream Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 5394
-        },
-        {
-          "id": 103614,
-          "name": "Winds of Al'Akir",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 2,
-          "row": 3,
-          "spellId": 382215
-        },
-        {
-          "id": 103582,
-          "name": "Brimming with Life",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 4,
-          "row": 3,
-          "spellId": 381689
-        },
-        {
-          "id": 103615,
-          "name": "Wind Shear",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 3,
-          "spellId": 57994
-        },
-        {
-          "id": 103601,
-          "name": "Elemental Resistance",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 4,
-          "spellId": 462368
-        },
-        {
-          "id": 103622,
-          "name": "Earthgrab Totem",
+          "id": 103859,
+          "name": "Empyreal Ward",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
-          "row": 4,
-          "spellId": 51485
+          "row": 1,
+          "spellId": 387791
         },
         {
-          "id": 103579,
-          "name": "Capacitor Totem",
+          "id": 109999,
+          "name": "Fist of Justice",
           "type": "circle",
           "maxPoints": 1,
-          "col": 3,
-          "row": 4,
-          "spellId": 192058
+          "col": 2,
+          "row": 1,
+          "spellId": 234299
         },
         {
-          "id": 110085,
-          "name": "Spiritual Awakening",
+          "id": 81598,
+          "name": "Blinding Light",
           "type": "circle",
           "maxPoints": 1,
           "col": 4,
-          "row": 4,
-          "spellId": 1270375
+          "row": 1,
+          "spellId": 115750
         },
         {
-          "id": 103606,
-          "name": "Enhanced Imbues",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 4,
-          "spellId": 462796
-        },
-        {
-          "id": 103628,
-          "name": "Windveil",
+          "id": 93010,
+          "name": "Turn Evil",
           "type": "circle",
           "maxPoints": 1,
           "col": 6,
-          "row": 4,
-          "spellId": 355630
+          "row": 1,
+          "spellId": 10326
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
+          "id": 103858,
+          "name": "A Just Reward",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 0,
+          "row": 2,
+          "spellId": 469411
+        },
+        {
+          "id": 81613,
+          "name": "Afterimage",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 385414
+        },
+        {
+          "id": 110012,
+          "name": "Guided Prayer",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 404357
+        },
+        {
+          "id": 81632,
+          "name": "Divine Steed",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 190784
+        },
+        {
+          "id": 103854,
+          "name": "Light's Countenance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 2,
+          "spellId": 469325
+        },
+        {
+          "id": 92220,
+          "name": "Greater Judgment",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 2,
+          "spellId": 231644
+        },
+        {
+          "id": 103855,
+          "name": "Wrench Evil",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 2,
+          "spellId": 460720
+        },
+        {
+          "id": 103860,
+          "name": "Holy Reprieve",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 3,
+          "spellId": 469445
+        },
+        {
+          "id": 81605,
+          "name": "Cavalier",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 3,
+          "spellId": 230332
+        },
+        {
+          "id": 103857,
+          "name": "Divine Spurs",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 469409
+        },
+        {
+          "id": 81631,
+          "name": "Steed of Liberty",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 3,
+          "spellId": 469304
+        },
+        {
+          "id": 110092,
+          "name": "Armory of Light",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 3,
+          "spellId": 1277443
+        },
+        {
+          "id": 81630,
+          "name": "Obduracy",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 1,
+          "row": 4,
+          "spellId": 385427
+        },
+        {
+          "id": 81496,
+          "name": "Divine Toll",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 4,
+          "spellId": 375576
+        },
+        {
+          "id": 93520,
+          "name": "Echoing Blessings",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 4,
+          "spellId": 387801
+        },
+        {
+          "id": 93009,
+          "name": "Sanctified Plates",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 5,
+          "row": 4,
+          "spellId": 402964
+        },
+        {
+          "id": 93168,
+          "name": "Divine Reach",
           "type": "circle",
           "maxPoints": 1,
           "col": 0,
           "row": 5,
-          "spellId": 378211
+          "spellId": 469476
         },
         {
-          "id": 81073,
-          "name": "Improved Purify Spirit",
+          "id": 109998,
+          "name": "Brought to Light",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 5,
+          "spellId": 1265549
+        },
+        {
+          "id": 81614,
+          "name": "Blessing of Sacrifice",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
           "row": 5,
-          "spellId": 383016
+          "spellId": 6940
         },
         {
-          "id": 103618,
-          "name": "Static Charge",
-          "type": "circle",
-          "maxPoints": 2,
+          "id": 93180,
+          "name": "Divine Resonance",
+          "type": "diamond",
+          "maxPoints": 1,
           "col": 3,
           "row": 5,
-          "spellId": 265046
+          "spellId": 386738
         },
         {
-          "id": 103627,
-          "name": "Wind Rush Totem",
+          "id": 81616,
+          "name": "Blessing of Protection",
           "type": "circle",
           "maxPoints": 1,
           "col": 4,
           "row": 5,
-          "spellId": 192077
+          "spellId": 1022
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
+          "id": 109997,
+          "name": "Fear No Evil",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
           "row": 5,
-          "spellId": 198103
+          "spellId": 1265541
         },
         {
-          "id": 103617,
-          "name": "Nature's Fury",
+          "id": 81543,
+          "name": "Consecrated Ground",
           "type": "circle",
-          "maxPoints": 2,
+          "maxPoints": 1,
+          "col": 6,
+          "row": 5,
+          "spellId": 204054
+        },
+        {
+          "id": 81609,
+          "name": "Holy Aegis",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 6,
+          "spellId": 385515
+        },
+        {
+          "id": 81607,
+          "name": "Sacrifice of the Just",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 6,
+          "spellId": 384820
+        },
+        {
+          "id": 93191,
+          "name": "Sacred Strength",
+          "type": "diamond",
+          "maxPoints": 1,
           "col": 3,
           "row": 6,
-          "spellId": 381655
+          "spellId": 469337
         },
         {
-          "id": 103612,
-          "name": "Primordial Bond",
+          "id": 81617,
+          "name": "Improved Blessing of Protection",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 6,
+          "spellId": 384909
+        },
+        {
+          "id": 81615,
+          "name": "Unbreakable Spirit",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
           "row": 6,
-          "spellId": 1279819
+          "spellId": 114154
         },
         {
-          "id": 103623,
-          "name": "Hex",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 6,
-          "spellId": 51514
-        },
-        {
-          "id": 103584,
-          "name": "Spiritwalker's Grace",
+          "id": 103852,
+          "name": "Lightforged Blessing",
           "type": "circle",
           "maxPoints": 1,
           "col": 0,
           "row": 7,
-          "spellId": 79206
+          "spellId": 406468
         },
         {
-          "id": 109386,
-          "name": "Totemic Projection",
+          "id": 103853,
+          "name": "Lightforged Blessing",
           "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 7,
+          "spellId": 406468
+        },
+        {
+          "id": 103867,
+          "name": "Lead the Charge",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 7,
+          "spellId": 469780
+        },
+        {
+          "id": 103865,
+          "name": "Worthy Sacrifice",
+          "type": "diamond",
           "maxPoints": 1,
           "col": 2,
           "row": 7,
-          "spellId": 108287
+          "spellId": 469279
         },
         {
-          "id": 103586,
-          "name": "Elemental Warding",
+          "id": 103866,
+          "name": "Holy Ritual",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
           "row": 7,
-          "spellId": 381650
+          "spellId": 199422
         },
         {
-          "id": 103625,
-          "name": "Totemic Focus",
+          "id": 103868,
+          "name": "Blessed Calling",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 7,
+          "spellId": 469770
+        },
+        {
+          "id": 103864,
+          "name": "Inspired Guard",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
           "row": 7,
-          "spellId": 382201
+          "spellId": 469439
         },
         {
-          "id": 103587,
-          "name": "Mana Spring",
+          "id": 81608,
+          "name": "Light's Revocation",
           "type": "circle",
           "maxPoints": 1,
+          "col": 6,
+          "row": 7,
+          "spellId": 146956
+        },
+        {
+          "id": 81495,
+          "name": "Faith's Armor",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 8,
+          "spellId": 406101
+        },
+        {
+          "id": 103862,
+          "name": "Stoicism",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 8,
+          "spellId": 469316
+        },
+        {
+          "id": 81621,
+          "name": "Seal of Might",
+          "type": "circle",
+          "maxPoints": 2,
           "col": 2,
           "row": 8,
-          "spellId": 381930
+          "spellId": 385450
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
+          "id": 103851,
+          "name": "Vengeful Wrath",
           "type": "circle",
+          "maxPoints": 2,
+          "col": 4,
+          "row": 8,
+          "spellId": 1241958
+        },
+        {
+          "id": 81628,
+          "name": "Eye for an Eye",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 8,
+          "spellId": 469309
+        },
+        {
+          "id": 103856,
+          "name": "Golden Path",
+          "type": "diamond",
           "maxPoints": 1,
           "col": 6,
           "row": 8,
-          "spellId": 204268
+          "spellId": 377128
         },
         {
-          "id": 103620,
-          "name": "Nature's Swiftness",
+          "id": 93357,
+          "name": "Blessing of Dawn",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
           "row": 9,
-          "spellId": 378081
+          "spellId": 183416
         },
         {
-          "id": 109388,
-          "name": "Totemic Surge",
+          "id": 103861,
+          "name": "Lightbearer",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
           "row": 9,
-          "spellId": 381867
+          "spellId": 469416
         },
         {
-          "id": 109387,
-          "name": "Instinctive Imbuements",
+          "id": 103863,
+          "name": "Blessing of Dusk",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
           "row": 9,
-          "spellId": 1270350
+          "spellId": 1241945
         }
       ],
       "edges": [
         [
-          103588,
-          103610
+          81597,
+          109999
         ],
         [
-          103588,
-          103596
+          81597,
+          103859
         ],
         [
-          103598,
-          103605
+          81597,
+          81508
         ],
         [
-          103598,
-          103610
+          81600,
+          109999
         ],
         [
-          103583,
-          109492
+          81600,
+          81598
         ],
         [
-          103596,
-          103602
+          81600,
+          81632
         ],
         [
-          103610,
-          103616
+          81510,
+          92220
         ],
         [
-          103605,
-          103616
+          81510,
+          93010
         ],
         [
-          109492,
-          103613
+          81510,
+          81598
         ],
         [
-          103602,
-          103590
+          81508,
+          81613
         ],
         [
-          103616,
-          103614
+          81508,
+          103858
         ],
         [
-          103616,
-          103582
+          103859,
+          81613
         ],
         [
-          103613,
-          103582
+          109999,
+          110012
         ],
         [
-          103613,
-          103615
+          109999,
+          81632
         ],
         [
-          103590,
-          103622
+          109999,
+          81613
         ],
         [
-          103590,
-          103601
+          81598,
+          92220
         ],
         [
-          103614,
-          103579
+          81598,
+          103854
         ],
         [
-          103614,
-          103622
+          81598,
+          81632
         ],
         [
-          103582,
-          110085
+          93010,
+          103855
         ],
         [
-          103582,
-          103606
+          103858,
+          103860
         ],
         [
-          103615,
-          103628
+          81613,
+          103860
         ],
         [
-          103615,
-          103606
+          81632,
+          81605
         ],
         [
-          103601,
-          103594
+          81632,
+          81631
         ],
         [
-          103622,
-          81073
+          81632,
+          103857
         ],
         [
-          103622,
-          103594
+          92220,
+          93009
         ],
         [
-          103579,
-          81073
+          92220,
+          110092
         ],
         [
-          103579,
-          103627
+          103855,
+          110092
         ],
         [
-          103579,
-          103618
+          103860,
+          81630
         ],
         [
-          110085,
-          103627
+          103860,
+          93168
         ],
         [
-          110085,
-          103585
+          81605,
+          81630
         ],
         [
-          103606,
-          103585
+          81605,
+          81614
         ],
         [
-          103628,
-          103623
+          81605,
+          81496
         ],
         [
-          103594,
-          103584
+          81631,
+          93009
         ],
         [
-          81073,
-          103617
+          81631,
+          93520
         ],
         [
-          103618,
-          103617
+          81631,
+          81496
         ],
         [
-          103627,
-          103617
+          110092,
+          93009
         ],
         [
-          103585,
-          103623
+          81630,
+          109998
         ],
         [
-          103585,
-          103612
+          81630,
+          81614
         ],
         [
-          103617,
-          109386
+          81630,
+          93168
         ],
         [
-          103617,
-          103586
+          81496,
+          81616
         ],
         [
-          103612,
-          103625
+          81496,
+          81614
         ],
         [
-          103623,
-          103625
+          81496,
+          93180
         ],
         [
-          103623,
-          103600
+          93520,
+          81616
         ],
         [
-          109386,
-          103587
+          93009,
+          109997
         ],
         [
-          103586,
-          103587
+          93009,
+          81543
         ],
         [
-          103625,
-          109387
+          93009,
+          81616
         ],
         [
-          103587,
-          109388
+          93168,
+          103852
         ],
         [
-          103587,
-          103620
+          93168,
+          81609
         ],
         [
-          103600,
-          109387
+          93168,
+          103853
+        ],
+        [
+          109998,
+          81609
+        ],
+        [
+          81614,
+          81607
+        ],
+        [
+          81614,
+          93191
+        ],
+        [
+          81614,
+          81609
+        ],
+        [
+          81616,
+          81617
+        ],
+        [
+          81616,
+          81615
+        ],
+        [
+          81616,
+          93191
+        ],
+        [
+          109997,
+          81615
+        ],
+        [
+          81543,
+          81615
+        ],
+        [
+          81543,
+          81608
+        ],
+        [
+          81609,
+          103852
+        ],
+        [
+          81609,
+          103853
+        ],
+        [
+          81609,
+          103867
+        ],
+        [
+          81607,
+          103865
+        ],
+        [
+          81607,
+          103866
+        ],
+        [
+          81607,
+          103867
+        ],
+        [
+          93191,
+          103866
+        ],
+        [
+          93191,
+          103868
+        ],
+        [
+          81617,
+          103864
+        ],
+        [
+          81617,
+          103868
+        ],
+        [
+          81615,
+          103864
+        ],
+        [
+          81615,
+          81608
+        ],
+        [
+          103852,
+          81495
+        ],
+        [
+          103853,
+          81495
+        ],
+        [
+          103867,
+          81495
+        ],
+        [
+          103867,
+          103862
+        ],
+        [
+          103867,
+          81621
+        ],
+        [
+          103865,
+          81621
+        ],
+        [
+          103866,
+          103851
+        ],
+        [
+          103866,
+          81621
+        ],
+        [
+          103868,
+          103851
+        ],
+        [
+          103864,
+          81628
+        ],
+        [
+          103864,
+          103851
+        ],
+        [
+          103864,
+          103856
+        ],
+        [
+          81608,
+          103856
+        ],
+        [
+          81495,
+          93357
+        ],
+        [
+          103862,
+          93357
+        ],
+        [
+          81621,
+          103861
+        ],
+        [
+          81621,
+          93357
+        ],
+        [
+          103851,
+          103863
+        ],
+        [
+          103851,
+          103861
+        ],
+        [
+          81628,
+          103863
+        ],
+        [
+          103856,
+          103863
         ]
       ]
     },
@@ -1957,601 +3326,703 @@ window.CLUSTER_DATA = {
       "label": "Spec Tree",
       "nodes": [
         {
-          "id": 81027,
-          "name": "Riptide",
+          "id": 81555,
+          "name": "Holy Shock",
           "type": "circle",
           "maxPoints": 1,
-          "col": 3,
+          "col": 4,
           "row": 0,
-          "spellId": 61295
+          "spellId": 20473
         },
         {
-          "id": 81040,
-          "name": "Healing Rain",
+          "id": 81569,
+          "name": "Infusion of Light",
           "type": "circle",
           "maxPoints": 1,
-          "col": 2,
+          "col": 3,
           "row": 1,
-          "spellId": 73920
+          "spellId": 53576
         },
         {
-          "id": 81022,
-          "name": "Healing Stream Totem",
+          "id": 81565,
+          "name": "Light of Dawn",
           "type": "circle",
           "maxPoints": 1,
-          "col": 4,
+          "col": 5,
           "row": 1,
-          "spellId": 5394
+          "spellId": 85222
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 1252874
-        },
-        {
-          "id": 81039,
-          "name": "Acid Rain",
+          "id": 93927,
+          "name": "Light's Conviction",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
           "row": 2,
-          "spellId": 378443
+          "spellId": 414073
         },
         {
-          "id": 81021,
-          "name": "Water Totem Mastery",
+          "id": 81567,
+          "name": "Aura Mastery",
           "type": "circle",
           "maxPoints": 1,
-          "col": 5,
+          "col": 4,
           "row": 2,
-          "spellId": 382030
+          "spellId": 31821
         },
         {
-          "id": 92677,
-          "name": "Overflowing Shores",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 383222
-        },
-        {
-          "id": 103429,
-          "name": "Ancestral Vigor",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 2,
-          "row": 3,
-          "spellId": 207401
-        },
-        {
-          "id": 81024,
-          "name": "Resurgence",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 3,
-          "spellId": 16196
-        },
-        {
-          "id": 81018,
-          "name": "Living Stream",
+          "id": 81568,
+          "name": "Beacon of the Lightbringer",
           "type": "circle",
           "maxPoints": 1,
           "col": 6,
-          "row": 3,
-          "spellId": 382482
+          "row": 2,
+          "spellId": 197446
         },
         {
-          "id": 81038,
-          "name": "Current Control",
+          "id": 81590,
+          "name": "Extrication",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
-          "row": 4,
-          "spellId": 1253093
+          "row": 3,
+          "spellId": 461278
         },
         {
-          "id": 81047,
-          "name": "White Water",
+          "id": 108099,
+          "name": "Ringing of the Heavens",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
-          "row": 4,
-          "spellId": 462587
+          "row": 3,
+          "spellId": 1241542
         },
         {
-          "id": 81019,
-          "name": "Calm Waters",
+          "id": 81575,
+          "name": "Unending Light",
           "type": "circle",
           "maxPoints": 1,
           "col": 5,
+          "row": 3,
+          "spellId": 1271221
+        },
+        {
+          "id": 81564,
+          "name": "Awestruck",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 3,
+          "spellId": 417855
+        },
+        {
+          "id": 81571,
+          "name": "Moment of Compassion",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
           "row": 4,
-          "spellId": 1252841
+          "spellId": 387786
         },
         {
-          "id": 81048,
-          "name": "Quickstream",
+          "id": 81570,
+          "name": "Divine Favor",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 4,
+          "spellId": 1270916
+        },
+        {
+          "id": 81566,
+          "name": "Unwavering Spirit",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 4,
+          "spellId": 392911
+        },
+        {
+          "id": 81557,
+          "name": "Imbued Infusions",
           "type": "circle",
           "maxPoints": 1,
           "col": 6,
           "row": 4,
-          "spellId": 1253099
+          "spellId": 392961
         },
         {
-          "id": 109301,
-          "name": "Rip Current",
+          "id": 81561,
+          "name": "Light of the Martyr",
           "type": "circle",
           "maxPoints": 1,
-          "col": 0,
-          "row": 5,
-          "spellId": 1254251
+          "col": 8,
+          "row": 4,
+          "spellId": 447985
         },
         {
-          "id": 110084,
-          "name": "Crashing Waves",
+          "id": 93523,
+          "name": "Righteous Judgment",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
           "row": 5,
-          "spellId": 1253090
+          "spellId": 414113
         },
         {
-          "id": 92675,
-          "name": "Unleash Life",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 5,
-          "spellId": 73685
-        },
-        {
-          "id": 103432,
-          "name": "Torrent",
+          "id": 81574,
+          "name": "Saved by the Light",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
           "row": 5,
-          "spellId": 200072
+          "spellId": 157047
         },
         {
-          "id": 81049,
-          "name": "Earthliving Weapon",
+          "id": 93522,
+          "name": "Light's Protection",
           "type": "circle",
           "maxPoints": 1,
-          "col": 4,
-          "row": 5,
-          "spellId": 382021
-        },
-        {
-          "id": 81046,
-          "name": "Earthweaver",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 5,
-          "spellId": 1254210
-        },
-        {
-          "id": 81037,
-          "name": "Deluge",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 6,
-          "spellId": 200076
-        },
-        {
-          "id": 110083,
-          "name": "Earthen Accord",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 6,
-          "spellId": 1271104
-        },
-        {
-          "id": 81044,
-          "name": "Tidal Waves",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 6,
-          "spellId": 51564
-        },
-        {
-          "id": 81050,
-          "name": "Improved Earthliving Weapon",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 6,
-          "spellId": 382315
-        },
-        {
-          "id": 103436,
-          "name": "Downpour",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 7,
-          "spellId": 462486
-        },
-        {
-          "id": 81055,
-          "name": "Echo of the Elements",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 7,
-          "spellId": 333919
-        },
-        {
-          "id": 81041,
-          "name": "Spirit Link Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 7,
-          "spellId": 98008
-        },
-        {
-          "id": 103430,
-          "name": "Earthen Harmony",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 7,
-          "spellId": 382020
-        },
-        {
-          "id": 103434,
-          "name": "Water Expulsion",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 8,
-          "spellId": 1253014
-        },
-        {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 1,
-          "row": 8,
-          "spellId": 382309
-        },
-        {
-          "id": 103433,
-          "name": "Tidewaters",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 8,
-          "spellId": 462424
-        },
-        {
-          "id": 81052,
-          "name": "Undercurrent",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 3,
-          "row": 8,
-          "spellId": 382194
-        },
-        {
-          "id": 103915,
-          "name": "Spouting Spirits",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 8,
-          "spellId": 462383
-        },
-        {
-          "id": 103427,
-          "name": "Wavespeaker's Blessing",
-          "type": "circle",
-          "maxPoints": 2,
           "col": 5,
-          "row": 8,
-          "spellId": 381946
+          "row": 5,
+          "spellId": 461243
         },
         {
-          "id": 104124,
-          "name": "Double Dip",
+          "id": 81556,
+          "name": "Overflowing Light",
           "type": "circle",
           "maxPoints": 1,
-          "col": 0,
-          "row": 9,
-          "spellId": 1252882
+          "col": 6,
+          "row": 5,
+          "spellId": 461244
         },
         {
-          "id": 80976,
-          "name": "Primal Tide Core",
+          "id": 81562,
+          "name": "Shining Righteousness",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 5,
+          "spellId": 414443
+        },
+        {
+          "id": 102502,
+          "name": "Liberation",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 6,
+          "spellId": 461287
+        },
+        {
+          "id": 81573,
+          "name": "Tirion's Devotion",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 6,
+          "spellId": 414720
+        },
+        {
+          "id": 81580,
+          "name": "Commanding Light",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
-          "row": 9,
-          "spellId": 382045
+          "row": 6,
+          "spellId": 387781
         },
         {
-          "id": 81042,
-          "name": "Coalescing Water",
+          "id": 81576,
+          "name": "Glistening Radiance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 6,
+          "spellId": 1241805
+        },
+        {
+          "id": 81583,
+          "name": "Breaking Dawn",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 4,
+          "row": 6,
+          "spellId": 387879
+        },
+        {
+          "id": 81578,
+          "name": "Divine Revelations",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 6,
+          "spellId": 387808
+        },
+        {
+          "id": 81585,
+          "name": "Divine Glimpse",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 6,
+          "spellId": 387805
+        },
+        {
+          "id": 81560,
+          "name": "Bestow Light",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 6,
+          "spellId": 448040
+        },
+        {
+          "id": 81554,
+          "name": "Beacon of Faith",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 7,
+          "spellId": 156910
+        },
+        {
+          "id": 103831,
+          "name": "Empyrean Legacy",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 7,
+          "spellId": 1241358
+        },
+        {
+          "id": 81581,
+          "name": "Veneration",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 7,
+          "spellId": 392938
+        },
+        {
+          "id": 81584,
+          "name": "Avenging Wrath",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 7,
+          "spellId": 31884
+        },
+        {
+          "id": 81558,
+          "name": "Reclamation",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 7,
+          "spellId": 415364
+        },
+        {
+          "id": 81579,
+          "name": "Pillars of Light",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 8,
+          "spellId": 1232616
+        },
+        {
+          "id": 81594,
+          "name": "Seek Deliverance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 8,
+          "spellId": 1271016
+        },
+        {
+          "id": 81592,
+          "name": "Sanctified Wrath",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 8,
+          "spellId": 53376
+        },
+        {
+          "id": 81587,
+          "name": "Call of the Righteous",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 6,
+          "row": 8,
+          "spellId": 1241511
+        },
+        {
+          "id": 108034,
+          "name": "Truth Prevails",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 8,
+          "spellId": 461273
+        },
+        {
+          "id": 81589,
+          "name": "Divine Overload",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 8,
+          "spellId": 1271077
+        },
+        {
+          "id": 81595,
+          "name": "Rising Sunlight",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 9,
+          "spellId": 1277651
+        },
+        {
+          "id": 93521,
+          "name": "Glorious Dawn",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 9,
+          "spellId": 461246
+        },
+        {
+          "id": 81593,
+          "name": "Seraphic Barrier",
           "type": "circle",
           "maxPoints": 1,
           "col": 4,
           "row": 9,
-          "spellId": 470076
+          "spellId": 1241714
         },
         {
-          "id": 81051,
-          "name": "Deeply Rooted Elements",
-          "type": "circle",
+          "id": 81588,
+          "name": "Tyr's Deliverance",
+          "type": "diamond",
           "maxPoints": 1,
-          "col": 6,
+          "col": 5,
           "row": 9,
-          "spellId": 378270
+          "spellId": 1241275
         },
         {
-          "id": 110403,
-          "name": "Stormstream Totem",
+          "id": 81591,
+          "name": "Inflorescence of the Sunwell",
           "type": "circle",
           "maxPoints": 1,
-          "col": 3,
+          "col": 7,
+          "row": 9,
+          "spellId": 392907
+        },
+        {
+          "id": 110417,
+          "name": "Beacon of the Savior",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
           "row": 10,
-          "spellId": 1267016
+          "spellId": 1244878
         }
       ],
       "edges": [
         [
-          81027,
-          81022
+          81555,
+          81569
         ],
         [
-          81027,
-          81040
+          81555,
+          81565
         ],
         [
-          81040,
-          103428
+          81569,
+          93927
         ],
         [
-          81040,
-          81039
+          81569,
+          81567
         ],
         [
-          81022,
-          81021
+          81565,
+          81568
         ],
         [
-          103428,
-          81038
+          81565,
+          81567
         ],
         [
-          103428,
-          103429
+          93927,
+          81570
         ],
         [
-          103428,
-          92677
+          93927,
+          81590
         ],
         [
-          81039,
-          103429
+          81567,
+          81575
         ],
         [
-          81021,
-          81018
+          81567,
+          108099
         ],
         [
-          81021,
-          81024
+          81567,
+          81566
         ],
         [
-          92677,
-          109301
+          81568,
+          81557
         ],
         [
-          103429,
-          81038
+          81568,
+          81564
         ],
         [
-          103429,
-          81047
+          81590,
+          93523
         ],
         [
-          81024,
-          81047
+          81590,
+          81571
         ],
         [
-          81024,
-          81019
+          108099,
+          81570
         ],
         [
-          81018,
-          81048
+          108099,
+          81574
         ],
         [
-          81018,
-          81019
+          81575,
+          81557
         ],
         [
-          81038,
-          110084
+          81564,
+          81562
         ],
         [
-          81038,
-          92675
+          81564,
+          81561
         ],
         [
-          81038,
-          109301
+          81571,
+          93523
         ],
         [
-          81047,
-          103432
+          81571,
+          102502
         ],
         [
-          81047,
-          92675
+          81570,
+          81580
         ],
         [
-          81047,
-          81049
+          81570,
+          81574
         ],
         [
-          81019,
-          81046
+          81570,
+          93523
         ],
         [
-          81019,
-          81049
+          81566,
+          81574
         ],
         [
-          81048,
-          81046
+          81566,
+          93522
         ],
         [
-          109301,
-          81037
+          81557,
+          81556
         ],
         [
-          109301,
-          103436
+          81557,
+          93522
         ],
         [
-          110084,
-          81037
+          81557,
+          81562
         ],
         [
-          92675,
-          110083
+          81561,
+          81560
         ],
         [
-          92675,
-          81044
+          93523,
+          81573
         ],
         [
-          92675,
-          81037
+          93523,
+          81580
         ],
         [
-          103432,
-          81044
+          93523,
+          102502
         ],
         [
-          81049,
-          81044
+          81574,
+          81580
         ],
         [
-          81049,
-          81050
+          81574,
+          81583
         ],
         [
-          81046,
-          103430
+          81574,
+          81576
         ],
         [
-          81037,
-          103436
+          93522,
+          81585
         ],
         [
-          81037,
-          81055
+          93522,
+          81583
         ],
         [
-          110083,
-          81055
+          93522,
+          81578
         ],
         [
-          81044,
-          81041
+          81556,
+          81585
         ],
         [
-          81044,
-          81055
+          81562,
+          81585
         ],
         [
-          81050,
-          81041
+          102502,
+          81554
         ],
         [
-          103436,
-          103434
+          81573,
+          81554
         ],
         [
-          103436,
-          81043
+          81580,
+          103831
         ],
         [
-          81055,
-          81052
+          81580,
+          81554
         ],
         [
-          81055,
-          103433
+          81580,
+          81581
         ],
         [
-          81055,
-          81043
+          81576,
+          81581
         ],
         [
-          81041,
-          81052
+          81583,
+          81581
         ],
         [
-          81041,
-          103915
+          81583,
+          81584
         ],
         [
-          81041,
-          103427
+          81578,
+          81584
         ],
         [
-          103430,
-          81051
+          81585,
+          81584
         ],
         [
-          103430,
-          103427
+          81585,
+          81558
         ],
         [
-          103434,
-          104124
+          81560,
+          81589
         ],
         [
-          81043,
-          80976
+          81560,
+          81558
         ],
         [
-          103433,
-          80976
+          81554,
+          81579
         ],
         [
-          81052,
-          81042
+          81554,
+          81595
         ],
         [
-          81052,
-          80976
+          81554,
+          81594
         ],
         [
-          103915,
-          81042
+          103831,
+          81594
         ],
         [
-          103427,
-          81051
+          81581,
+          81594
         ],
         [
-          103427,
-          81042
+          81584,
+          81588
+        ],
+        [
+          81584,
+          81587
+        ],
+        [
+          81584,
+          81592
+        ],
+        [
+          81558,
+          81589
+        ],
+        [
+          81558,
+          108034
+        ],
+        [
+          81594,
+          93521
+        ],
+        [
+          81592,
+          81588
+        ],
+        [
+          81592,
+          93521
+        ],
+        [
+          81592,
+          81593
+        ],
+        [
+          81587,
+          81588
+        ],
+        [
+          81587,
+          81591
+        ],
+        [
+          108034,
+          81591
+        ],
+        [
+          81589,
+          81591
         ]
       ]
     }
@@ -2559,310 +4030,461 @@ window.CLUSTER_DATA = {
   "heroTrees": {
     "left": {
       "id": "hero_left",
-      "label": "Hero · Farseer",
-      "heroName": "Farseer",
+      "label": "Hero \u00b7 Lightsmith",
+      "heroName": "Lightsmith",
       "nodeIds": [
-        94888,
-        94869,
-        109732,
-        94887,
-        94860,
-        94861,
-        109731,
-        94883,
-        94875,
-        109730,
-        94894
+        95228,
+        95229,
+        95230,
+        95231,
+        95232,
+        95233,
+        95234,
+        95235,
+        95236,
+        95237,
+        95238,
+        109742,
+        109743,
+        109744,
+        110257
       ],
       "nodes": [
         {
-          "id": 94888,
-          "name": "Call of the Ancestors",
+          "id": 95228,
+          "name": "Solidarity",
           "type": "circle",
           "maxPoints": 1,
           "col": 1,
-          "row": 0,
-          "spellId": 443450
+          "row": 1,
+          "spellId": 432802
         },
         {
-          "id": 94869,
-          "name": "Elemental Reverb",
+          "id": 95229,
+          "name": "Valiance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 3,
+          "spellId": 432919
+        },
+        {
+          "id": 95230,
+          "name": "Blessing of the Forge",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
-          "row": 1,
-          "spellId": 443418
+          "row": 4,
+          "spellId": 433011
         },
         {
-          "id": 109732,
-          "name": "Ancestral Influence",
+          "id": 95231,
+          "name": "Divine Inspiration",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 432964
+        },
+        {
+          "id": 95232,
+          "name": "Authoritative Rebuke",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 469886
+        },
+        {
+          "id": 95233,
+          "name": "Rite of Sanctification",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 1,
+          "spellId": 433568
+        },
+        {
+          "id": 95234,
+          "name": "Holy Bulwark",
           "type": "circle",
           "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 1270446
+          "col": 2,
+          "row": 0,
+          "spellId": 432459
         },
         {
-          "id": 94887,
-          "name": "Offering from Beyond",
+          "id": 95235,
+          "name": "Divine Guidance",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 1,
+          "spellId": 433106
+        },
+        {
+          "id": 95236,
+          "name": "Laying Down Arms",
           "type": "circle",
           "maxPoints": 1,
           "col": 0,
           "row": 2,
-          "spellId": 443451
+          "spellId": 432866
         },
         {
-          "id": 94860,
-          "name": "Primordial Capacity",
+          "id": 95237,
+          "name": "Shared Resolve",
           "type": "circle",
           "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 443448
-        },
-        {
-          "id": 94861,
-          "name": "Spiritwalker's Momentum",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 2,
-          "spellId": 443425
-        },
-        {
-          "id": 109731,
-          "name": "Windspeaker",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 1270447
-        },
-        {
-          "id": 94883,
-          "name": "Maelstrom Supremacy",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
+          "col": 0,
           "row": 3,
-          "spellId": 443447
+          "spellId": 432821
         },
         {
-          "id": 94875,
-          "name": "Final Calling",
+          "id": 95238,
+          "name": "Reflection of Radiance",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
           "row": 3,
-          "spellId": 443446
+          "spellId": 1271466
         },
         {
-          "id": 109730,
-          "name": "Mystic Knowledge",
+          "id": 109742,
+          "name": "Masterwork",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 1,
+          "spellId": 1271387
+        },
+        {
+          "id": 109743,
+          "name": "Hammer and Anvil",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 433718
+        },
+        {
+          "id": 109744,
+          "name": "Resounding Strike",
           "type": "circle",
           "maxPoints": 1,
           "col": 3,
           "row": 3,
-          "spellId": 1270450
+          "spellId": 1271553
         },
         {
-          "id": 94894,
-          "name": "Ancestral Swiftness",
+          "id": 110257,
+          "name": "Holy Armaments",
           "type": "circle",
           "maxPoints": 1,
-          "col": 1,
-          "row": 4,
-          "spellId": 443454
+          "col": 2,
+          "row": 0,
+          "spellId": 432459
         }
       ],
       "edges": [
         [
-          94888,
-          94869
+          95228,
+          95231
         ],
         [
-          94888,
-          109732
+          95229,
+          95230
         ],
         [
-          94869,
-          94861
+          95231,
+          95229
         ],
         [
-          109732,
-          109731
+          95232,
+          95238
         ],
         [
-          94860,
-          94883
+          95233,
+          95236
         ],
         [
-          94861,
-          94875
+          95234,
+          95233
         ],
         [
-          109731,
-          109730
+          95234,
+          95235
         ],
         [
-          94883,
-          94894
+          95234,
+          95228
         ],
         [
-          94875,
-          94894
+          95234,
+          109742
         ],
         [
-          109730,
-          94894
+          95235,
+          95232
+        ],
+        [
+          95236,
+          95237
+        ],
+        [
+          95237,
+          95230
+        ],
+        [
+          95238,
+          95230
+        ],
+        [
+          109742,
+          109743
+        ],
+        [
+          109743,
+          109744
+        ],
+        [
+          109744,
+          95230
+        ],
+        [
+          110257,
+          109742
+        ],
+        [
+          110257,
+          95235
+        ],
+        [
+          110257,
+          95228
+        ],
+        [
+          110257,
+          95233
         ]
       ]
     },
     "right": {
       "id": "hero_right",
-      "label": "Hero · Totemic",
-      "heroName": "Totemic",
+      "label": "Hero \u00b7 Herald of the Sun",
+      "heroName": "Herald of the Sun",
       "nodeIds": [
-        94877,
-        94890,
-        94882,
-        109726,
-        94891,
-        94872,
-        109725,
-        94871,
-        109724,
-        94879
+        95069,
+        95071,
+        95072,
+        95073,
+        95080,
+        95086,
+        95094,
+        95095,
+        95098,
+        95099,
+        95105,
+        109748,
+        109749,
+        109750
       ],
       "nodes": [
         {
-          "id": 94877,
-          "name": "Surging Totem",
+          "id": 95069,
+          "name": "Aurora",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 3,
+          "spellId": 439760
+        },
+        {
+          "id": 95071,
+          "name": "Blessing of An'she",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 445200
+        },
+        {
+          "id": 95072,
+          "name": "Sun Sear",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 431413
+        },
+        {
+          "id": 95073,
+          "name": "Morning Star",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 1,
+          "spellId": 431482
+        },
+        {
+          "id": 95080,
+          "name": "Luminosity",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 1,
+          "spellId": 431402
+        },
+        {
+          "id": 95086,
+          "name": "Second Sunrise",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 3,
+          "spellId": 431474
+        },
+        {
+          "id": 95094,
+          "name": "Walk Into Light",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 3,
+          "spellId": 1263782
+        },
+        {
+          "id": 95095,
+          "name": "Eternal Flame",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 1,
+          "spellId": 156322
+        },
+        {
+          "id": 95098,
+          "name": "Illumine",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 2,
+          "spellId": 431423
+        },
+        {
+          "id": 95099,
+          "name": "Dawnlight",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
           "row": 0,
-          "spellId": 444995
+          "spellId": 431377
         },
         {
-          "id": 94890,
-          "name": "Totemic Rebound",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 1,
-          "spellId": 445025
-        },
-        {
-          "id": 94882,
-          "name": "Lively Totems",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 445034
-        },
-        {
-          "id": 109726,
-          "name": "Totemic Momentum",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 1260644
-        },
-        {
-          "id": 94891,
-          "name": "Wind Barrier",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 445031
-        },
-        {
-          "id": 94872,
-          "name": "Splitstream",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 2,
-          "spellId": 445035
-        },
-        {
-          "id": 109725,
-          "name": "Elemental Attunement",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 1263288
-        },
-        {
-          "id": 94871,
-          "name": "Imbuement Mastery",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 445028
-        },
-        {
-          "id": 109724,
-          "name": "Primal Catalyst",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 3,
-          "spellId": 1260874
-        },
-        {
-          "id": 94879,
-          "name": "Whirling Elements",
+          "id": 95105,
+          "name": "Sun's Avatar",
           "type": "circle",
           "maxPoints": 1,
           "col": 2,
           "row": 4,
-          "spellId": 445024
+          "spellId": 431425
+        },
+        {
+          "id": 109748,
+          "name": "Endless Gleam",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 1,
+          "spellId": 1263787
+        },
+        {
+          "id": 109749,
+          "name": "Born in Sunlight",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 1263920
+        },
+        {
+          "id": 109750,
+          "name": "Solar Grace",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 431404
         }
       ],
       "edges": [
         [
-          94877,
-          94890
+          95069,
+          95105
         ],
         [
-          94877,
-          94882
+          95071,
+          95094
         ],
         [
-          94877,
-          109726
+          95072,
+          95086
         ],
         [
-          94882,
-          94872
+          95073,
+          95098
         ],
         [
-          109726,
-          109725
+          95080,
+          95072
         ],
         [
-          109725,
-          109724
+          95086,
+          95105
         ],
         [
-          94871,
-          94879
+          95094,
+          95105
         ],
         [
-          109724,
-          94879
+          95095,
+          95071
+        ],
+        [
+          95098,
+          95069
+        ],
+        [
+          95099,
+          95095
+        ],
+        [
+          95099,
+          95073
+        ],
+        [
+          95099,
+          95080
+        ],
+        [
+          95099,
+          109748
+        ],
+        [
+          109748,
+          109750
+        ],
+        [
+          109749,
+          95105
+        ],
+        [
+          109750,
+          109749
         ]
       ]
     }
   }
-},
 };
 
 </script>
@@ -3819,6 +5441,18 @@ const FLEX_STYLES = [
   { value: 'pulse',  label: 'Pulse' },
 ];
 
+// === Auto-name a cluster by its 1–2 most defining contested takes ==========
+// "Most defining" = lowest global pick rate among takes (most selective choice).
+function autoClusterName(cluster) {
+  const takes = (cluster.takes || [])
+    .filter(t => t.name && t.pct >= 20 && t.pct <= 80)
+    .sort((a, b) => a.pct - b.pct);
+  if (!takes.length) return `#${cluster.rank}`;
+  const word1 = (name) => name.split(' ')[0];
+  if (takes.length === 1) return word1(takes[0].name);
+  return word1(takes[0].name) + ' + ' + word1(takes[1].name);
+}
+
 // === Derive per-cluster tree-node state =====================================
 // Global core → core; global flex → flex; cluster.takes → core+contested.
 // Everything else → not in map (renders as skip).
@@ -3854,17 +5488,20 @@ function App() {
     () => [...data.clusters].sort((a, b) => b.pct - a.pct),
     [data]
   );
+  // Only display clusters with 2+ players; single-player outliers are noise.
+  const majorClusters = useMemo(() => clusters.filter(c => c.count >= 2), [clusters]);
+  const minorCount = clusters.length - majorClusters.length;
 
-  const [activeRank, setActiveRank] = useState(clusters[0].rank);
+  const [activeRank, setActiveRank] = useState(majorClusters[0].rank);
   useEffect(() => {
-    if (!clusters.find(c => c.rank === activeRank)) setActiveRank(clusters[0].rank);
-  }, [clusters, activeRank]);
+    if (!majorClusters.find(c => c.rank === activeRank)) setActiveRank(majorClusters[0].rank);
+  }, [majorClusters, activeRank]);
 
   const cluster = clusters.find(c => c.rank === activeRank) || clusters[0];
 
   // Derived node-state map for the active cluster.
   const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
-  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: `Cluster #${cluster.rank}` };
+  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: autoClusterName(cluster) };
   const heroTree = useMemo(() => selectHeroTree(data, nodeMap), [data, nodeMap]);
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -3875,9 +5512,9 @@ function App() {
   useEffect(() => {
     function onKey(e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      const idx = clusters.findIndex(c => c.rank === activeRank);
-      if (e.key === 'ArrowRight') setActiveRank(clusters[(idx + 1) % clusters.length].rank);
-      else if (e.key === 'ArrowLeft') setActiveRank(clusters[(idx - 1 + clusters.length) % clusters.length].rank);
+      const idx = majorClusters.findIndex(c => c.rank === activeRank);
+      if (e.key === 'ArrowRight') setActiveRank(majorClusters[(idx + 1) % majorClusters.length].rank);
+      else if (e.key === 'ArrowLeft') setActiveRank(majorClusters[(idx - 1 + majorClusters.length) % majorClusters.length].rank);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -3913,16 +5550,16 @@ function App() {
       </header>
 
       <nav className="tabs" role="tablist" aria-label="Cluster">
-        {clusters.map(c => (
+        {majorClusters.map(c => (
           <button
             key={c.rank}
             className={`tab ${c.rank === activeRank ? 'active' : ''}`}
             onClick={() => setActiveRank(c.rank)}
             role="tab"
-            data-screen-label={`Cluster #${c.rank}`}
+            data-screen-label={autoClusterName(c)}
           >
             <span className="tab-rank">#{c.rank}</span>
-            <span className="tab-name">Cluster #{c.rank}</span>
+            <span className="tab-name">{autoClusterName(c)}</span>
             <span className="tab-meta">
               <span><span className="pct">{c.pct}%</span></span>
               <span>n={c.count}</span>
@@ -3932,6 +5569,11 @@ function App() {
             </span>
           </button>
         ))}
+        {minorCount > 0 && (
+          <div className="tab tab-minor" title={`${minorCount} more clusters with n=1 (outliers)`}>
+            +{minorCount} minor
+          </div>
+        )}
       </nav>
 
       <main className="main">

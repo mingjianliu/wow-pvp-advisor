@@ -21,6 +21,18 @@ const FLEX_STYLES = [
   { value: 'pulse',  label: 'Pulse' },
 ];
 
+// === Auto-name a cluster by its 1–2 most defining contested takes ==========
+// "Most defining" = lowest global pick rate among takes (most selective choice).
+function autoClusterName(cluster) {
+  const takes = (cluster.takes || [])
+    .filter(t => t.name && t.pct >= 20 && t.pct <= 80)
+    .sort((a, b) => a.pct - b.pct);
+  if (!takes.length) return `#${cluster.rank}`;
+  const word1 = (name) => name.split(' ')[0];
+  if (takes.length === 1) return word1(takes[0].name);
+  return word1(takes[0].name) + ' + ' + word1(takes[1].name);
+}
+
 // === Derive per-cluster tree-node state =====================================
 // Global core → core; global flex → flex; cluster.takes → core+contested.
 // Everything else → not in map (renders as skip).
@@ -56,17 +68,20 @@ function App() {
     () => [...data.clusters].sort((a, b) => b.pct - a.pct),
     [data]
   );
+  // Only display clusters with 2+ players; single-player outliers are noise.
+  const majorClusters = useMemo(() => clusters.filter(c => c.count >= 2), [clusters]);
+  const minorCount = clusters.length - majorClusters.length;
 
-  const [activeRank, setActiveRank] = useState(clusters[0].rank);
+  const [activeRank, setActiveRank] = useState(majorClusters[0].rank);
   useEffect(() => {
-    if (!clusters.find(c => c.rank === activeRank)) setActiveRank(clusters[0].rank);
-  }, [clusters, activeRank]);
+    if (!majorClusters.find(c => c.rank === activeRank)) setActiveRank(majorClusters[0].rank);
+  }, [majorClusters, activeRank]);
 
   const cluster = clusters.find(c => c.rank === activeRank) || clusters[0];
 
   // Derived node-state map for the active cluster.
   const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
-  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: `Cluster #${cluster.rank}` };
+  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: autoClusterName(cluster) };
   const heroTree = useMemo(() => selectHeroTree(data, nodeMap), [data, nodeMap]);
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -77,9 +92,9 @@ function App() {
   useEffect(() => {
     function onKey(e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-      const idx = clusters.findIndex(c => c.rank === activeRank);
-      if (e.key === 'ArrowRight') setActiveRank(clusters[(idx + 1) % clusters.length].rank);
-      else if (e.key === 'ArrowLeft') setActiveRank(clusters[(idx - 1 + clusters.length) % clusters.length].rank);
+      const idx = majorClusters.findIndex(c => c.rank === activeRank);
+      if (e.key === 'ArrowRight') setActiveRank(majorClusters[(idx + 1) % majorClusters.length].rank);
+      else if (e.key === 'ArrowLeft') setActiveRank(majorClusters[(idx - 1 + majorClusters.length) % majorClusters.length].rank);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -115,16 +130,16 @@ function App() {
       </header>
 
       <nav className="tabs" role="tablist" aria-label="Cluster">
-        {clusters.map(c => (
+        {majorClusters.map(c => (
           <button
             key={c.rank}
             className={`tab ${c.rank === activeRank ? 'active' : ''}`}
             onClick={() => setActiveRank(c.rank)}
             role="tab"
-            data-screen-label={`Cluster #${c.rank}`}
+            data-screen-label={autoClusterName(c)}
           >
             <span className="tab-rank">#{c.rank}</span>
-            <span className="tab-name">Cluster #{c.rank}</span>
+            <span className="tab-name">{autoClusterName(c)}</span>
             <span className="tab-meta">
               <span><span className="pct">{c.pct}%</span></span>
               <span>n={c.count}</span>
@@ -134,6 +149,11 @@ function App() {
             </span>
           </button>
         ))}
+        {minorCount > 0 && (
+          <div className="tab tab-minor" title={`${minorCount} more clusters with n=1 (outliers)`}>
+            +{minorCount} minor
+          </div>
+        )}
       </nav>
 
       <main className="main">

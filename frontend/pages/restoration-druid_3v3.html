@@ -1,0 +1,5942 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>Cluster·Pick — Talent build clusters</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* === Theme tokens === */
+:root {
+  --bg-0: #0a0d12;
+  --bg-1: #0f1319;
+  --bg-2: #141925;
+  --bg-3: #1b2231;
+  --line: #232a3a;
+  --line-2: #2d3650;
+  --text-0: #e6ebf2;
+  --text-1: #b0bacb;
+  --text-2: #6e7a91;
+  --text-3: #4a5468;
+
+  /* Status colors */
+  --core: #6ee3a3;        /* taken / locked-in */
+  --core-dim: #2a5a40;
+  --flex: #f5b342;        /* flexible */
+  --flex-dim: #6b4a18;
+  --skip: #2a3142;        /* not taken */
+  --capstone: #b794f4;
+
+  --accent: #4d9fff;
+
+  /* Heatmap stops (cool -> hot) */
+  --heat-0: #1a2235;
+  --heat-1: #1f3a5a;
+  --heat-2: #2d5e7d;
+  --heat-3: #5a8a6f;
+  --heat-4: #c6a04a;
+  --heat-5: #d97757;
+
+  --font-sans: 'Geist', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+/* === Layout shell === */
+.app {
+  display: grid;
+  grid-template-rows: 56px 72px 1fr;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 13px; letter-spacing: 0.02em;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  background: linear-gradient(135deg, var(--accent), var(--flex));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.crumb {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-2); font-family: var(--font-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.crumb .sep { color: var(--text-3); }
+.crumb .active { color: var(--text-0); }
+
+.topbar-right { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+.topbar-stat {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+}
+.topbar-stat-val { font-size: 12px; color: var(--text-0); font-weight: 500; }
+
+.filter-group {
+  display: flex; align-items: center; gap: 8px;
+}
+.filter-label {
+  color: var(--text-2); font-size: 10px;
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em;
+}
+.seg {
+  display: flex; background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 4px; overflow: hidden;
+}
+.seg button {
+  background: transparent; border: 0; color: var(--text-1);
+  padding: 5px 10px; font-size: 11px; font-family: var(--font-mono);
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.seg button.active {
+  background: var(--bg-3); color: var(--text-0);
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:hover:not(.active) { background: var(--bg-3); }
+
+.btn {
+  background: var(--bg-2); border: 1px solid var(--line);
+  color: var(--text-0); padding: 6px 12px; border-radius: 4px;
+  font-size: 11px; font-family: var(--font-mono);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn:hover { background: var(--bg-3); border-color: var(--line-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-0); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+/* Cluster tabs */
+.tabs {
+  display: flex;
+  padding: 0 16px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  background: transparent; border: 0;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 3px;
+  align-items: flex-start; min-width: 160px;
+  padding: 14px 18px 16px;
+  gap: 4px;
+  color: var(--text-1);
+  position: relative;
+  transition: background 0.12s;
+}
+.tab:first-child { border-left: 1px solid var(--line); }
+.tab:hover { background: var(--bg-2); }
+.tab.active { background: var(--bg-0); color: var(--text-0); }
+.tab.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2px; background: var(--accent);
+}
+.tab-name { font-size: 12px; font-weight: 600; text-align: left; }
+.tab-rank {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.12em; color: var(--text-3);
+  margin-bottom: 1px;
+}
+.tab.active .tab-rank { color: var(--accent); }
+.tab-meta {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.06em; color: var(--text-2);
+  display: flex; gap: 10px;
+}
+.tab-meta .pct { color: var(--flex); font-weight: 600; }
+.tab.active .tab-meta .pct { color: var(--core); }
+.tab-bar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 2px; background: var(--bg-3);
+}
+.tab-bar-fill { height: 100%; background: var(--text-3); }
+.tab-minor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  font-size: 10px;
+  color: var(--text-3);
+  cursor: default;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  border-left: 1px solid var(--border);
+}
+
+.tab.active .tab-bar-fill { background: var(--accent); }
+
+/* Main grid */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  overflow: hidden;
+}
+.tree-pane {
+  position: relative;
+  overflow: auto;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(77,159,255,0.06), transparent 60%),
+    var(--bg-0);
+}
+.tree-pane-inner {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px 60px;
+  min-width: 1140px;
+}
+.trees-row {
+  display: flex;
+  gap: 56px;
+}
+.tree { flex: 0 0 auto; }
+
+.tree {
+  position: relative;
+  flex: 1;
+}
+.tree-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--line);
+}
+.tree-header h3 {
+  margin: 0;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-1); font-weight: 600;
+}
+.tree-header .stat {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+  letter-spacing: 0.08em;
+}
+.tree-header .stat .num { color: var(--text-0); }
+
+.tree-svg-wrap { position: relative; }
+
+/* Node states */
+.node-group { cursor: default; }
+.node-shape {
+  fill: var(--skip);
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+  transition: fill 0.12s, stroke 0.12s, filter 0.12s;
+}
+.node-group.core .node-shape {
+  fill: var(--bg-3);
+  stroke: var(--core);
+  stroke-width: 2;
+}
+.node-group.flex .node-shape {
+  fill: var(--bg-3);
+  stroke: var(--flex);
+  stroke-width: 2;
+}
+.node-group.skip .node-shape {
+  opacity: 0.6;
+}
+
+/* Flex highlight styles (controlled by tweaks) */
+.tree-svg.flex-glow .node-group.flex .node-shape {
+  filter: drop-shadow(0 0 6px rgba(245, 179, 66, 0.55));
+}
+.tree-svg.flex-dashed .node-group.flex .node-shape {
+  stroke-dasharray: 4 3;
+}
+.tree-svg.flex-fill .node-group.flex .node-shape {
+  fill: rgba(245, 179, 66, 0.18);
+}
+.tree-svg.flex-pulse .node-group.flex .node-shape {
+  animation: flexPulse 1.8s ease-in-out infinite;
+}
+@keyframes flexPulse {
+  0%, 100% { stroke-opacity: 1; filter: drop-shadow(0 0 0 rgba(245,179,66,0)); }
+  50% { stroke-opacity: 0.7; filter: drop-shadow(0 0 8px rgba(245,179,66,0.7)); }
+}
+
+/* Heatmap mode — recolor node shape based on pick rate */
+.tree-svg.heatmap .node-group .node-shape {
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+}
+.tree-svg.heatmap .node-group .node-shape[data-heat="0"] { fill: var(--heat-0); }
+.tree-svg.heatmap .node-group .node-shape[data-heat="1"] { fill: var(--heat-1); }
+.tree-svg.heatmap .node-group .node-shape[data-heat="2"] { fill: var(--heat-2); }
+.tree-svg.heatmap .node-group .node-shape[data-heat="3"] { fill: var(--heat-3); }
+.tree-svg.heatmap .node-group .node-shape[data-heat="4"] { fill: var(--heat-4); }
+.tree-svg.heatmap .node-group .node-shape[data-heat="5"] { fill: var(--heat-5); }
+.tree-svg.heatmap .node-group.skip .node-shape { fill: var(--heat-0); opacity: 0.7; }
+
+/* Rank-flex: static-take but rank varies. Inner dashed amber ring. */
+.node-inner-ring {
+  fill: none !important;
+  stroke: var(--flex);
+  stroke-width: 1.5;
+  stroke-dasharray: 2.5 2;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.tree-svg.heatmap .node-inner-ring { stroke: var(--flex); }
+
+/* Cluster-take accent (contested talent picked by this cluster). */
+.node-signature-ring {
+  fill: var(--accent) !important;
+  stroke: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.tree-svg.show-signature .node-group.contested-take .node-signature-ring { opacity: 0.85; }
+.tree-svg.show-signature .node-group.contested-take .node-shape { stroke: var(--accent); }
+
+.node-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  fill: var(--text-1);
+  text-anchor: middle;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
+.node-group.skip .node-label { fill: var(--text-3); }
+.node-group.core .node-label { fill: var(--text-0); }
+.node-group.flex .node-label { fill: var(--flex); }
+
+.node-points {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--text-0);
+  text-anchor: middle;
+  font-weight: 600;
+  pointer-events: none;
+}
+.node-group.skip .node-points { display: none; }
+
+.edge {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+.edge.active {
+  stroke: var(--core);
+  stroke-width: 2.5;
+  opacity: 0.55;
+}
+.edge.flex {
+  stroke: var(--flex);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  pointer-events: none;
+  font-size: 12px;
+  transform: translate(12px, 12px);
+}
+.tooltip-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+.tooltip-name { font-weight: 600; font-size: 12.5px; color: var(--text-0); }
+.tooltip-tag {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 2px 5px; border-radius: 2px;
+}
+.tooltip-tag.core { background: rgba(110, 227, 163, 0.15); color: var(--core); }
+.tooltip-tag.flex { background: rgba(245, 179, 66, 0.15); color: var(--flex); }
+.tooltip-tag.skip { background: rgba(110, 122, 145, 0.15); color: var(--text-2); }
+.tooltip-tag.contested { background: rgba(77, 159, 255, 0.18); color: var(--accent); }
+
+.tooltip-desc {
+  color: var(--text-1); font-size: 11.5px; margin-bottom: 8px; line-height: 1.5;
+}
+.tooltip-stat {
+  display: flex; justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-2); letter-spacing: 0.04em;
+}
+.tooltip-stat .v { color: var(--text-0); font-weight: 600; }
+.tooltip-bar {
+  height: 3px; background: var(--bg-3); border-radius: 1.5px;
+  margin-top: 6px; overflow: hidden;
+}
+.tooltip-bar-fill { height: 100%; background: var(--accent); }
+
+/* Sidebar */
+.sidebar {
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.side-section { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.side-section h4 {
+  margin: 0 0 10px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-2); font-weight: 600;
+}
+.cluster-title {
+  font-size: 18px; font-weight: 600; margin: 0 0 6px;
+}
+.cluster-tagline {
+  color: var(--text-1); font-size: 12px; line-height: 1.55;
+}
+.kpi-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--line); margin-top: 14px;
+  border: 1px solid var(--line); border-radius: 3px; overflow: hidden;
+}
+.kpi {
+  background: var(--bg-2); padding: 10px 12px;
+}
+.kpi-label {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2); margin-bottom: 4px;
+}
+.kpi-value {
+  font-family: var(--font-mono); font-size: 18px;
+  color: var(--text-0); font-weight: 500;
+}
+.kpi-value .pct { color: var(--core); font-size: 13px; margin-left: 2px; }
+
+.flex-slot {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.flex-slot-head {
+  background: var(--bg-2);
+  padding: 8px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.flex-slot-label {
+  font-size: 11px; color: var(--text-1); font-weight: 500;
+}
+.flex-slot-tag {
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--flex); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.flex-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+}
+.flex-opt:first-of-type { border-top: 0; }
+.flex-opt-dot {
+  width: 7px; height: 7px; background: var(--flex);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.flex-opt-name { flex: 1; font-size: 12px; }
+.flex-opt-pct {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-1);
+  min-width: 36px; text-align: right;
+}
+.flex-opt-bar {
+  width: 60px; height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden;
+}
+.flex-opt-bar-fill { height: 100%; background: var(--flex); }
+
+.legend {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11.5px; color: var(--text-1);
+}
+.legend-dot {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid transparent;
+  background: var(--bg-3);
+}
+.legend-dot.core { border-color: var(--core); }
+.legend-dot.core.rank-flex-mini {
+  position: relative;
+}
+.legend-dot.core.rank-flex-mini::after {
+  content: ''; position: absolute; inset: 2px;
+  border: 1px dashed var(--flex);
+  border-radius: 50%;
+}
+.legend-dot.core.contested-mini {
+  border-color: var(--core);
+  position: relative;
+}
+.legend-dot.core.contested-mini::after {
+  content: ''; position: absolute; inset: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.legend-dot.flex { border-color: var(--flex); }
+.legend-dot.skip { background: var(--skip); border-color: var(--line-2); }
+.legend-dot.diamond { transform: rotate(45deg); }
+
+.build-string {
+  margin-top: 10px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  border-radius: 3px;
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--text-2);
+  word-break: break-all;
+  line-height: 1.5;
+}
+.build-actions {
+  margin-top: 8px;
+  display: flex; gap: 8px;
+}
+.copy-toast {
+  position: fixed;
+  bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--core);
+  padding: 9px 16px; border-radius: 3px;
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 100;
+  animation: toastIn 0.2s ease-out;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Heatmap scale legend strip */
+.heat-strip {
+  display: flex; gap: 0; margin-top: 8px;
+  border: 1px solid var(--line); border-radius: 2px; overflow: hidden;
+}
+.heat-strip > div { flex: 1; height: 10px; }
+.heat-strip-labels {
+  display: flex; justify-content: space-between;
+  margin-top: 4px;
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-2);
+}
+
+/* === PvP panel === */
+.pvp-panel {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+  width: 100%;
+}
+.pvp-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.pvp-head h3 {
+  margin: 0;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-1); font-weight: 600;
+}
+.pvp-head .stat {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+  letter-spacing: 0.08em;
+}
+.pvp-head .stat .num { color: var(--text-0); }
+
+.pvp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 1.4fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.pvp-slot {
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column;
+  position: relative;
+  min-height: 96px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.pvp-slot:hover { border-color: var(--line-2); background: var(--bg-2); }
+.pvp-slot-tag {
+  position: absolute; top: 8px; right: 10px;
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--text-3); letter-spacing: 0.1em;
+}
+.pvp-slot-pos {
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--text-2); letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.pvp-slot-name {
+  font-size: 14px; font-weight: 600; color: var(--text-0);
+  margin-bottom: 4px;
+}
+.pvp-slot-pct {
+  font-family: var(--font-mono); font-size: 18px; color: var(--core);
+  font-weight: 500; margin-top: auto;
+}
+.pvp-slot-pct .unit { color: var(--text-2); font-size: 11px; margin-left: 2px; }
+
+.pvp-slot.alt { background: var(--bg-0); border-style: dashed; }
+.pvp-slot.alt .pvp-slot-pos { color: var(--flex); }
+
+.pvp-alts {
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column;
+  min-height: 96px;
+}
+.pvp-alts-head {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-2); margin-bottom: 8px;
+}
+.pvp-alts-list {
+  display: flex; flex-direction: column; gap: 4px; flex: 1;
+}
+.pvp-alt-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+  padding: 2px 0;
+}
+.pvp-alt-name {
+  flex: 1; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pvp-alt-bar {
+  width: 60px; height: 3px; background: var(--bg-3);
+  border-radius: 1.5px; overflow: hidden;
+}
+.pvp-alt-bar-fill { height: 100%; background: var(--text-2); }
+.pvp-alt-pct {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-2); min-width: 26px; text-align: right;
+}
+
+/* Tooltip — rank distribution */
+.tooltip-rank-title {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2); margin-top: 8px; margin-bottom: 4px;
+}
+.tooltip-rank-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px;
+  margin-bottom: 2px;
+}
+.tooltip-rank-row .lbl {
+  font-family: var(--font-mono); color: var(--text-2);
+  width: 36px;
+}
+.tooltip-rank-row .bar {
+  flex: 1; height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden;
+}
+.tooltip-rank-row .fill { height: 100%; background: var(--flex); }
+.tooltip-rank-row .fill.modal { background: var(--core); }
+.tooltip-rank-row .pct {
+  font-family: var(--font-mono); color: var(--text-0); min-width: 30px; text-align: right;
+}
+.tooltip-rank-row .pct.skip { color: var(--text-3); }
+
+
+/* === Sidebar additions for backend shape === */
+
+.cluster-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px;
+}
+.cluster-head-share {
+  display: flex; align-items: baseline; gap: 6px;
+}
+.cluster-head-pct {
+  font-family: var(--font-mono);
+  font-size: 22px; font-weight: 500;
+  color: var(--text-0);
+}
+.cluster-head-count {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text-2); letter-spacing: 0.02em;
+}
+.cluster-rank-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  color: var(--accent); background: rgba(77,159,255,0.12);
+  border: 1px solid rgba(77,159,255,0.3);
+  border-radius: 3px;
+  padding: 3px 8px;
+  letter-spacing: 0.04em;
+}
+.cluster-label-btn {
+  background: transparent; border: 0;
+  color: var(--text-0); font-family: inherit;
+  font-size: 18px; font-weight: 600;
+  padding: 4px 6px; margin-left: -6px;
+  border-radius: 3px;
+  display: inline-flex; align-items: center; gap: 8px;
+  flex: 1;
+  text-align: left;
+}
+.cluster-label-btn:hover { background: var(--bg-2); color: var(--text-0); }
+.cluster-label-btn:hover svg { opacity: 1; }
+.cluster-label-btn svg { color: var(--text-2); opacity: 0; transition: opacity 0.12s; }
+.cluster-label-btn .placeholder { color: var(--text-2); font-weight: 500; }
+.cluster-label-input {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  color: var(--text-0);
+  font-family: inherit;
+  font-size: 18px; font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 3px;
+  outline: none;
+}
+
+.side-h-hint {
+  margin-left: 6px; font-weight: 400;
+  font-family: var(--font-sans); text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px; color: var(--text-3);
+}
+
+/* Signature list */
+.signature-block {
+  margin-top: 4px;
+}
+.signature-row-head {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.signature-row-head .num {
+  color: var(--text-0); font-weight: 600;
+  margin-left: 2px;
+}
+.dot-take, .dot-skip, .dot-flex {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.dot-take { background: var(--core); }
+.dot-skip { background: var(--text-3); }
+.dot-flex { background: var(--flex); }
+
+.signature-row-hint {
+  margin-left: auto;
+  font-family: var(--font-sans); text-transform: none;
+  font-size: 10.5px; color: var(--text-3); letter-spacing: 0;
+  font-weight: 400;
+}
+.signature-empty {
+  padding: 8px 10px;
+  font-size: 11.5px; color: var(--text-3);
+  border: 1px dashed var(--line); border-radius: 3px;
+}
+
+.signature-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sig-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  border-top: 1px solid var(--line);
+}
+.sig-item:first-child { border-top: 0; }
+.sig-item.take { background: var(--bg-2); }
+.sig-item.flex { background: var(--bg-2); }
+.sig-item.skip { background: var(--bg-0); color: var(--text-2); }
+.sig-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sig-name.talent-link {
+  text-decoration: none;
+  color: inherit;
+}
+.sig-name.talent-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+/* Wowhead's power.js stamps q1–q5 quality classes onto its anchors; keep our
+   color contract so links look at-home in the dark theme. */
+a.sig-name.q1, a.sig-name.q2, a.sig-name.q3,
+a.sig-name.q4, a.sig-name.q5 { color: inherit; }
+.sig-item.skip .sig-name { text-decoration: line-through; text-decoration-color: var(--text-3); }
+.sig-bar {
+  width: 60px; height: 4px;
+  background: var(--bg-3); border-radius: 2px; overflow: hidden;
+}
+.sig-bar-fill { height: 100%; background: var(--core); }
+.sig-bar-fill.flex { background: var(--flex); }
+.sig-bar-fill.skip { background: var(--text-3); }
+.sig-pct {
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--text-1); min-width: 30px; text-align: right;
+}
+.sig-item.skip .sig-pct { color: var(--text-3); }
+
+/* Gear list — per-slot */
+.gear-summary {
+  display: flex; align-items: baseline; gap: 8px;
+  margin-bottom: 10px;
+}
+.gear-ilvl {
+  font-family: var(--font-mono); font-size: 16px;
+  color: var(--text-0); font-weight: 500;
+}
+.gear-list {
+  list-style: none; padding: 0; margin: 0;
+  border: 1px solid var(--line); border-radius: 3px;
+  overflow: hidden;
+}
+.gear-slot {
+  background: var(--bg-2);
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+}
+.gear-slot:first-child { border-top: 0; }
+.gear-slot:hover { background: var(--bg-3); }
+.gear-slot-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 2px;
+}
+.gear-slot-name {
+  font-family: var(--font-mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2);
+}
+.gear-slot-pct {
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--core); font-weight: 500;
+}
+.gear-slot-item {
+  font-size: 12px; color: var(--text-0);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block;
+  text-decoration: none;
+}
+a.gear-slot-item:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+/* Wowhead's power.js adds quality color classes (q1–q5) to its links; let those win */
+a.gear-slot-item.q1, a.gear-slot-item.q2, a.gear-slot-item.q3,
+a.gear-slot-item.q4, a.gear-slot-item.q5 { color: inherit; }
+.gear-slot-enchant {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.enchant-tag {
+  font-family: var(--font-mono); font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  background: rgba(77,159,255,0.12);
+  padding: 1px 4px; border-radius: 2px;
+}
+.enchant-name {
+  flex: 1; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.enchant-pct {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-2);
+}
+
+/* Legacy gear-stub kept for fallback */
+.gear-stub {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 3px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+.gear-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+}
+.gear-row:first-child { border-top: 0; }
+.gear-label {
+  font-family: var(--font-mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-2);
+  min-width: 80px;
+}
+.gear-value { color: var(--text-0); flex: 1; }
+.gear-pct { color: var(--text-2); font-family: var(--font-mono); font-size: 10px; }
+.gear-placeholder {
+  color: var(--text-3); font-size: 11.5px;
+  padding: 8px 0;
+}
+
+
+/* === Bottom gear panel (full-width) === */
+.gear-panel {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+.gear-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.gear-panel-head h3 {
+  margin: 0;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-1); font-weight: 600;
+}
+.gear-panel-head .stat {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+  letter-spacing: 0.08em;
+}
+.gear-panel-head .stat .num { color: var(--text-0); font-weight: 600; }
+
+.gear-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.gear-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column;
+  min-height: 86px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.gear-card:hover { border-color: var(--line-2); background: var(--bg-2); }
+.gear-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.gear-card-slot {
+  font-family: var(--font-mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2);
+}
+.gear-card-pct {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--core); font-weight: 500;
+}
+.gear-card-item {
+  font-size: 12.5px; color: var(--text-0);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+a.gear-card-item:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+a.gear-card-item.q1, a.gear-card-item.q2, a.gear-card-item.q3,
+a.gear-card-item.q4, a.gear-card-item.q5 { color: inherit; }
+.gear-card-enchant {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: auto;
+  font-size: 10.5px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.gear-card-enchant.placeholder { opacity: 0.5; }
+.gear-card-enchant .enchant-name {
+  flex: 1; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gear-card-enchant .enchant-pct {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-2);
+}
+.enchant-tag.dim { color: var(--text-3); background: var(--bg-2); }
+.enchant-name.dim { color: var(--text-3); font-style: italic; }
+
+</style>
+
+<!-- Wowhead tooltip widget — auto-renders rich tooltips on any element with data-wowhead -->
+<script>const whTooltips = { colorLinks: true, iconizeLinks: true };</script>
+<script src="https://wow.zamimg.com/widgets/power.js"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+// Auto-generated by build_page — do not edit manually
+
+window.CLUSTER_DATA = {
+  "spec": "restoration-druid",
+  "specLabel": {
+    "class": "Druid",
+    "spec": "Restoration"
+  },
+  "bracket": "3v3",
+  "sample_size": 50,
+  "avg_ilvl": 245,
+  "pvp_talents": [
+    {
+      "id": "p1",
+      "name": "Call of Ohn'ahra",
+      "pct": 98.0
+    },
+    {
+      "id": "p2",
+      "name": "Early Spring",
+      "pct": 98.0
+    },
+    {
+      "id": "p3",
+      "name": "Forest Guardian",
+      "pct": 96.0
+    },
+    {
+      "id": "p4",
+      "name": "Tireless Pursuit",
+      "pct": 4.0
+    },
+    {
+      "id": "p5",
+      "name": "Disentanglement",
+      "pct": 2.0
+    },
+    {
+      "id": "p6",
+      "name": "High Winds",
+      "pct": 2.0
+    }
+  ],
+  "talents": {
+    "core": [
+      {
+        "id": 82043,
+        "name": "Grove Guardians",
+        "pct": 100.0
+      },
+      {
+        "id": 82047,
+        "name": "Swiftmend",
+        "pct": 100.0
+      },
+      {
+        "id": 82049,
+        "name": "Lifebloom",
+        "pct": 100.0
+      },
+      {
+        "id": 82050,
+        "name": "Nature's Swiftness",
+        "pct": 100.0
+      },
+      {
+        "id": 82051,
+        "name": "Nature's Splendor",
+        "pct": 92.0
+      },
+      {
+        "id": 82054,
+        "name": "Tranquility",
+        "pct": 98.0
+      },
+      {
+        "id": 82055,
+        "name": "Soul of the Forest",
+        "pct": 100.0
+      },
+      {
+        "id": 82057,
+        "name": "Efflorescence",
+        "pct": 100.0
+      },
+      {
+        "id": 82058,
+        "name": "Rampant Growth",
+        "pct": 90.0
+      },
+      {
+        "id": 82059,
+        "name": "Verdancy",
+        "pct": 100.0
+      },
+      {
+        "id": 82060,
+        "name": "Renewing Surge",
+        "pct": 100.0
+      },
+      {
+        "id": 82063,
+        "name": "Cenarius' Guidance",
+        "pct": 100.0
+      },
+      {
+        "id": 82064,
+        "name": "Incarnation: Tree of Life",
+        "pct": 100.0
+      },
+      {
+        "id": 82065,
+        "name": "Power of the Archdruid",
+        "pct": 100.0
+      },
+      {
+        "id": 82067,
+        "name": "Call of the Elder Druid",
+        "pct": 96.0
+      },
+      {
+        "id": 82068,
+        "name": "Thriving Vegetation",
+        "pct": 100.0
+      },
+      {
+        "id": 82069,
+        "name": "Reforestation",
+        "pct": 92.0
+      },
+      {
+        "id": 82071,
+        "name": "Germination",
+        "pct": 100.0
+      },
+      {
+        "id": 82073,
+        "name": "Photosynthesis",
+        "pct": 98.0
+      },
+      {
+        "id": 82074,
+        "name": "Liveliness",
+        "pct": 94.0
+      },
+      {
+        "id": 82077,
+        "name": "Harmonious Blooming",
+        "pct": 98.0
+      },
+      {
+        "id": 82079,
+        "name": "Verdant Infusion",
+        "pct": 100.0
+      },
+      {
+        "id": 82081,
+        "name": "Stonebark",
+        "pct": 88.0
+      },
+      {
+        "id": 82082,
+        "name": "Ironbark",
+        "pct": 100.0
+      },
+      {
+        "id": 82198,
+        "name": "Wild Charge",
+        "pct": 100.0
+      },
+      {
+        "id": 82199,
+        "name": "Rake",
+        "pct": 96.0
+      },
+      {
+        "id": 82200,
+        "name": "Starsurge",
+        "pct": 94.0
+      },
+      {
+        "id": 82205,
+        "name": "Wild Growth",
+        "pct": 100.0
+      },
+      {
+        "id": 82207,
+        "name": "Mass Entanglement",
+        "pct": 100.0
+      },
+      {
+        "id": 82210,
+        "name": "Astral Influence",
+        "pct": 98.0
+      },
+      {
+        "id": 82214,
+        "name": "Nurturing Instinct",
+        "pct": 100.0
+      },
+      {
+        "id": 82217,
+        "name": "Rejuvenation",
+        "pct": 100.0
+      },
+      {
+        "id": 82218,
+        "name": "Verdant Heart",
+        "pct": 100.0
+      },
+      {
+        "id": 82219,
+        "name": "Ursoc's Spirit",
+        "pct": 92.0
+      },
+      {
+        "id": 82220,
+        "name": "Frenzied Regeneration",
+        "pct": 100.0
+      },
+      {
+        "id": 82221,
+        "name": "Maim",
+        "pct": 90.0
+      },
+      {
+        "id": 82222,
+        "name": "Rip",
+        "pct": 94.0
+      },
+      {
+        "id": 82228,
+        "name": "Thick Hide",
+        "pct": 100.0
+      },
+      {
+        "id": 82229,
+        "name": "Soothe",
+        "pct": 100.0
+      },
+      {
+        "id": 82231,
+        "name": "Heart of the Wild",
+        "pct": 100.0
+      },
+      {
+        "id": 82232,
+        "name": "Aessina's Renewal",
+        "pct": 100.0
+      },
+      {
+        "id": 82233,
+        "name": "Lycara's Teachings",
+        "pct": 100.0
+      },
+      {
+        "id": 82234,
+        "name": "Stampeding Roar",
+        "pct": 100.0
+      },
+      {
+        "id": 82235,
+        "name": "Well-Honed Instincts",
+        "pct": 100.0
+      },
+      {
+        "id": 82237,
+        "name": "Incapacitating Roar",
+        "pct": 98.0
+      },
+      {
+        "id": 82240,
+        "name": "Lingering Healing",
+        "pct": 100.0
+      },
+      {
+        "id": 82244,
+        "name": "Innervate",
+        "pct": 80.0
+      },
+      {
+        "id": 91044,
+        "name": "Starfire",
+        "pct": 94.0
+      },
+      {
+        "id": 94535,
+        "name": "Wild Synthesis",
+        "pct": 98.0
+      },
+      {
+        "id": 94591,
+        "name": "Bounteous Bloom",
+        "pct": 92.0
+      },
+      {
+        "id": 94592,
+        "name": "Power of the Dream",
+        "pct": 92.0
+      },
+      {
+        "id": 94593,
+        "name": "Protective Growth",
+        "pct": 92.0
+      },
+      {
+        "id": 94595,
+        "name": "Grove's Inspiration",
+        "pct": 92.0
+      },
+      {
+        "id": 94599,
+        "name": "Treants of the Moon",
+        "pct": 92.0
+      },
+      {
+        "id": 94600,
+        "name": "Dream Surge",
+        "pct": 92.0
+      },
+      {
+        "id": 94601,
+        "name": "Blooming Infusion",
+        "pct": 92.0
+      },
+      {
+        "id": 94602,
+        "name": "Expansiveness",
+        "pct": 92.0
+      },
+      {
+        "id": 94604,
+        "name": "Cenarius' Might",
+        "pct": 92.0
+      },
+      {
+        "id": 94605,
+        "name": "Power of Nature",
+        "pct": 92.0
+      },
+      {
+        "id": 94606,
+        "name": "Harmony of the Grove",
+        "pct": 92.0
+      },
+      {
+        "id": 100175,
+        "name": "Gift of the Wild",
+        "pct": 100.0
+      },
+      {
+        "id": 100176,
+        "name": "Oakskin",
+        "pct": 100.0
+      },
+      {
+        "id": 100177,
+        "name": "Matted Fur",
+        "pct": 96.0
+      },
+      {
+        "id": 100223,
+        "name": "Starlight Conduit",
+        "pct": 92.0
+      },
+      {
+        "id": 103873,
+        "name": "Improved Swiftmend",
+        "pct": 88.0
+      },
+      {
+        "id": 103874,
+        "name": "Lifetreading",
+        "pct": 100.0
+      },
+      {
+        "id": 104078,
+        "name": "Circle of the Wild",
+        "pct": 88.0
+      },
+      {
+        "id": 104084,
+        "name": "Improved Nature's Cure",
+        "pct": 100.0
+      },
+      {
+        "id": 104085,
+        "name": "Improved Barkskin",
+        "pct": 100.0
+      },
+      {
+        "id": 104125,
+        "name": "Omen of Clarity",
+        "pct": 100.0
+      },
+      {
+        "id": 109712,
+        "name": "Spirit of the Thicket",
+        "pct": 92.0
+      },
+      {
+        "id": 109713,
+        "name": "Dryad's Dance",
+        "pct": 92.0
+      },
+      {
+        "id": 109714,
+        "name": "Sylvan Beckoning",
+        "pct": 92.0
+      },
+      {
+        "id": 110424,
+        "name": "Everbloom",
+        "pct": 100.0
+      }
+    ],
+    "flex": [
+      {
+        "id": 82045,
+        "name": "Improved Wild Growth",
+        "pct": 2.0
+      },
+      {
+        "id": 82046,
+        "name": "Waking Dream",
+        "pct": 4.0
+      },
+      {
+        "id": 82048,
+        "name": "Ysera's Gift",
+        "pct": 4.0
+      },
+      {
+        "id": 82052,
+        "name": "Intensity",
+        "pct": 4.0
+      },
+      {
+        "id": 82053,
+        "name": "Inner Peace",
+        "pct": 2.0
+      },
+      {
+        "id": 82056,
+        "name": "Cultivation",
+        "pct": 2.0
+      },
+      {
+        "id": 82062,
+        "name": "Regenesis",
+        "pct": 14.0
+      },
+      {
+        "id": 82066,
+        "name": "Dream of Cenarius",
+        "pct": 2.0
+      },
+      {
+        "id": 82070,
+        "name": "Embrace of the Dream",
+        "pct": 2.0
+      },
+      {
+        "id": 82072,
+        "name": "Nature's Bounty",
+        "pct": 4.0
+      },
+      {
+        "id": 82075,
+        "name": "Regenerative Heartwood",
+        "pct": 2.0
+      },
+      {
+        "id": 82076,
+        "name": "Nurturing Dormancy",
+        "pct": 2.0
+      },
+      {
+        "id": 82080,
+        "name": "Unstoppable Growth",
+        "pct": 2.0
+      },
+      {
+        "id": 82225,
+        "name": "Killer Instinct",
+        "pct": 6.0
+      },
+      {
+        "id": 82227,
+        "name": "Ironfur",
+        "pct": 2.0
+      },
+      {
+        "id": 82230,
+        "name": "Improved Stampeding Roar",
+        "pct": 8.0
+      },
+      {
+        "id": 82239,
+        "name": "Grievous Wounds",
+        "pct": 2.0
+      },
+      {
+        "id": 82243,
+        "name": "Forestwalk",
+        "pct": 16.0
+      },
+      {
+        "id": 92229,
+        "name": "Lycara's Inspiration",
+        "pct": 4.0
+      },
+      {
+        "id": 94621,
+        "name": "Wildstalker's Power",
+        "pct": 8.0
+      },
+      {
+        "id": 94622,
+        "name": "Entangling Vortex",
+        "pct": 8.0
+      },
+      {
+        "id": 94623,
+        "name": "Strategic Infusion",
+        "pct": 8.0
+      },
+      {
+        "id": 94624,
+        "name": "Lethal Preservation",
+        "pct": 8.0
+      },
+      {
+        "id": 94625,
+        "name": "Bond with Nature",
+        "pct": 8.0
+      },
+      {
+        "id": 94626,
+        "name": "Thriving Growth",
+        "pct": 8.0
+      },
+      {
+        "id": 94627,
+        "name": "Vigorous Creepers",
+        "pct": 8.0
+      },
+      {
+        "id": 94628,
+        "name": "Twin Sprouts",
+        "pct": 8.0
+      },
+      {
+        "id": 94629,
+        "name": "Hunt Beneath the Open Skies",
+        "pct": 8.0
+      },
+      {
+        "id": 94630,
+        "name": "Patient Custodian",
+        "pct": 8.0
+      },
+      {
+        "id": 94631,
+        "name": "Resilient Flourishing",
+        "pct": 8.0
+      },
+      {
+        "id": 103876,
+        "name": "Abundance",
+        "pct": 4.0
+      },
+      {
+        "id": 104079,
+        "name": "Gale Winds",
+        "pct": 2.0
+      },
+      {
+        "id": 104082,
+        "name": "Perfectly-Honed Instincts",
+        "pct": 16.0
+      },
+      {
+        "id": 109715,
+        "name": "Rampancy",
+        "pct": 8.0
+      },
+      {
+        "id": 109716,
+        "name": "Bursting Growth",
+        "pct": 8.0
+      },
+      {
+        "id": 109717,
+        "name": "Green Thumb",
+        "pct": 8.0
+      }
+    ],
+    "contested": [
+      {
+        "id": 82083,
+        "name": "Improved Regrowth",
+        "pct": 56.0
+      },
+      {
+        "id": 82206,
+        "name": "Natural Recovery",
+        "pct": 28.0
+      },
+      {
+        "id": 82209,
+        "name": "Typhoon",
+        "pct": 64.0
+      },
+      {
+        "id": 82223,
+        "name": "Swipe",
+        "pct": 60.0
+      },
+      {
+        "id": 82246,
+        "name": "Fluid Form",
+        "pct": 36.0
+      },
+      {
+        "id": 92674,
+        "name": "Tranquil Mind",
+        "pct": 52.0
+      },
+      {
+        "id": 100173,
+        "name": "Symbiotic Relationship",
+        "pct": 52.0
+      },
+      {
+        "id": 100174,
+        "name": "Ursine Vigor",
+        "pct": 46.0
+      }
+    ]
+  },
+  "clusters": [
+    {
+      "rank": 1,
+      "pct": 18.0,
+      "count": 9,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbGAAAAAAAAAAsMDZzMmmZmZwsZmZmZxgBAAAAgBAwA22GLYamZZAAACYBmZGmxGoZAwMDAYA",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "pct": 10.0,
+      "count": 5,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZIbmx0MzMDmNzMzMbGMDAAAAgBAMGw22YDTzMLDAgZZmlmtZWsAz8ADzYB0MAYmZmBgB",
+      "takes": [
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "pct": 10.0,
+      "count": 5,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZIbMmmZmZwsZmZGLGMDAAAAgBAMGw22YBTzMLDAgZbmlmtZWswYmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMzsMmZMmNmFGAAAAAAAAAAYZGaWYMNzMDMbmZmxiBDAAAAADAYMgttxCmmZWGAAzyMLNbzsYhZm5BGM2woZAwMzMDAD",
+      "takes": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZILmx0YmBmtZmZmZxgBAAAAgBAMGw22YBTzMLDAgZbmlmtZWswMzMDzAoZAwMzMDAD",
+      "takes": [
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmBGjZmZZMzYMbMLWmBAAAAAAAAAALGaWMjpZGgZzMzMzmhZAAAAAYAAjBstM2w0MzyAAY2mZpZbmFLMmZGmxGoZAwMzMDAD",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbGAAAAAAAAAAsMDZjx0MzMDmNzMzMLGYAAAAAMAAGw22YBTzMLDAAQALMzMPwwM2ANDAmZAAD",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ]
+    },
+    {
+      "rank": 8,
+      "pct": 6.0,
+      "count": 3,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMmZmlxMjxsxsYbGAAAAAAAAAAsMDZjx0MzMwsZmZmZxgBAAAAgBAwA22GLYamZZAAMbzs0sNziFmZmZwYD0MAYmZmBgB",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZZMjZmxsN8AMzswsYbGAAAAAAAAAAsMoZzw0MjhHwsYmZmZZGeADAAAAAAAGw22YBTzMLDAgZbmtmlZWsxMzMYmZB0MAYmZmBgB",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPmZmZjZMmxsMmhxYML2mBAAAAAAAAAALDaWMjpZGYMbzMzMzihBAAAAAAAMgttxCmmZWGAAz2MLNbzsYBzMDmBMaGAMzMzAwA",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ]
+    },
+    {
+      "rank": 11,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMzsMmZMmNmFmBAAAAAAAAAALzQ2MjpZmZgZzMzMzmBDAAAAADAgBstNWw0MzyAAY2mZpZbmFLwMzgxGGNDAmZmZAYA",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 12,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZIbmx0MzMDmNzMzMLGMAAAAAMAgxA22GLYamZZAAMbzs0sNziFYmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 13,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbGAAAAAAAAAAsMDZxMmmZmZwsZmZmZxAAAAAAMAAGw22YBTzMLDAgZbmlmtZWswYmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 14,
+      "pct": 4.0,
+      "count": 2,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZIbMmmZmZwsZmZmZxgBAAAAgBAMGw22YBTzMLDAgZbmlmtZWsgZmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ]
+    },
+    {
+      "rank": 15,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZoZzMmmZmZwsZmZGbGYAAAAAMAgxA22GLYamZZAAMbzs0sNziFYmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 16,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZoZjx0MzMDmNzMzMbGMAAAAAMAgxA22GLYamZZAAMbzs0sNziFGz8ADzYD0MAYmZmBgB",
+      "takes": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 17,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbAAAAAAAAAAglZIbmx0MzMwsZmZmZxgZAAAAAMAgxA22GLYamZZAAMLzs0sNziFYmZYGbgmBAzMzMAMA",
+      "takes": [
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    },
+    {
+      "rank": 18,
+      "pct": 2.0,
+      "count": 1,
+      "canonical_code": "CkGA8cL7tpvige+kkmGM9zUPWPMmZjZMzMmlxMjxsxsYbGAAAAAAAAAAsMDZzMmmZmZwsZmZmZzADAAAAgBAwA22GLYamZZAAMbzs0sNziFYmHYYGbbQzAgZmZGAGA",
+      "takes": [
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "pct": 56.0
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "pct": 64.0
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "pct": 60.0
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "pct": 36.0
+        }
+      ],
+      "skips": [
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "pct": 28.0
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "pct": 52.0
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "pct": 52.0
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "pct": 46.0
+        }
+      ]
+    }
+  ],
+  "gear": {
+    "avg_ilvl": 245,
+    "slots": [
+      {
+        "slot": "Head",
+        "item": {
+          "id": 250024,
+          "name": "Branches of the Luminous Bloom",
+          "pct": 70.0
+        },
+        "enchant": {
+          "name": "Empowered Blessing of Speed",
+          "pct": 52.0
+        }
+      },
+      {
+        "slot": "Neck",
+        "item": {
+          "id": 240952,
+          "name": "Thalassian Competitor's Amulet",
+          "pct": 86.0
+        }
+      },
+      {
+        "slot": "Shoulder",
+        "item": {
+          "id": 250022,
+          "name": "Seedpods of the Luminous Bloom",
+          "pct": 50.0
+        },
+        "enchant": {
+          "name": "Akil'zon's Swiftness",
+          "pct": 54.0
+        }
+      },
+      {
+        "slot": "Back",
+        "item": {
+          "id": 255434,
+          "name": "Galactic Gladiator's Shawl",
+          "pct": 54.0
+        },
+        "enchant": {
+          "name": "Goblin Glider",
+          "pct": 2.0
+        }
+      },
+      {
+        "slot": "Chest",
+        "item": {
+          "id": 244554,
+          "name": "Thalassian Competitor's Leather Chestpiece",
+          "pct": 58.0
+        },
+        "enchant": {
+          "name": "Mark of the Magister",
+          "pct": 94.0
+        }
+      },
+      {
+        "slot": "Wrist",
+        "item": {
+          "id": 244560,
+          "name": "Thalassian Competitor's Leather Wristwraps",
+          "pct": 48.0
+        }
+      },
+      {
+        "slot": "Hands",
+        "item": {
+          "id": 250025,
+          "name": "Arbortenders of the Luminous Bloom",
+          "pct": 68.0
+        },
+        "enchant": {
+          "name": "+3 Stamina",
+          "pct": 2.0
+        }
+      },
+      {
+        "slot": "Waist",
+        "item": {
+          "id": 244557,
+          "name": "Thalassian Competitor's Leather Belt",
+          "pct": 88.0
+        },
+        "enchant": {
+          "name": "Nitro Boosts",
+          "pct": 2.0
+        }
+      },
+      {
+        "slot": "Legs",
+        "item": {
+          "id": 250023,
+          "name": "Phloemwraps of the Luminous Bloom",
+          "pct": 86.0
+        },
+        "enchant": {
+          "name": "+41 Intellect & +4% Mana",
+          "pct": 98.0
+        }
+      },
+      {
+        "slot": "Feet",
+        "item": {
+          "id": 244553,
+          "name": "Thalassian Competitor's Leather Boots",
+          "pct": 72.0
+        },
+        "enchant": {
+          "name": "Farstrider's Hunt",
+          "pct": 60.0
+        }
+      },
+      {
+        "slot": "Ring 1",
+        "item": {
+          "id": 240951,
+          "name": "Thalassian Competitor's Signet",
+          "pct": 94.0
+        },
+        "enchant": {
+          "name": "Zul'jin's Mastery",
+          "pct": 76.0
+        }
+      },
+      {
+        "slot": "Ring 2",
+        "item": {
+          "id": 240951,
+          "name": "Thalassian Competitor's Signet",
+          "pct": 86.0
+        },
+        "enchant": {
+          "name": "Zul'jin's Mastery",
+          "pct": 72.0
+        }
+      },
+      {
+        "slot": "Trinket 1",
+        "item": {
+          "id": 255614,
+          "name": "Galactic Gladiator's Insignia of Alacrity",
+          "pct": 52.0
+        }
+      },
+      {
+        "slot": "Trinket 2",
+        "item": {
+          "id": 255616,
+          "name": "Galactic Gladiator's Medallion",
+          "pct": 56.0
+        }
+      },
+      {
+        "slot": "Weapon",
+        "item": {
+          "id": 255631,
+          "name": "Galactic Gladiator's Greatstaff",
+          "pct": 72.0
+        },
+        "enchant": {
+          "name": "Acuity of the Ren'dorei",
+          "pct": 88.0
+        }
+      },
+      {
+        "slot": "Off-hand",
+        "item": {
+          "id": 255625,
+          "name": "Galactic Gladiator's Tome",
+          "pct": 18.0
+        }
+      }
+    ]
+  }
+};
+
+window.CLUSTER_DATA.tree = {
+  "trees": [
+    {
+      "id": "class",
+      "label": "Class Tree",
+      "nodes": [
+        {
+          "id": 82199,
+          "name": "Rake",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 0,
+          "spellId": 1822
+        },
+        {
+          "id": 82220,
+          "name": "Frenzied Regeneration",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 0,
+          "spellId": 22842
+        },
+        {
+          "id": 82217,
+          "name": "Rejuvenation",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 0,
+          "spellId": 774
+        },
+        {
+          "id": 91044,
+          "name": "Starfire",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 0,
+          "spellId": 197628
+        },
+        {
+          "id": 82239,
+          "name": "Grievous Wounds",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 1,
+          "spellId": 474526
+        },
+        {
+          "id": 82223,
+          "name": "Swipe",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 1,
+          "spellId": 213764
+        },
+        {
+          "id": 82219,
+          "name": "Ursoc's Spirit",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 1,
+          "spellId": 449182
+        },
+        {
+          "id": 82205,
+          "name": "Wild Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 1,
+          "spellId": 48438
+        },
+        {
+          "id": 82200,
+          "name": "Starsurge",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 1,
+          "spellId": 197626
+        },
+        {
+          "id": 82222,
+          "name": "Rip",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 1079
+        },
+        {
+          "id": 82218,
+          "name": "Verdant Heart",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 301768
+        },
+        {
+          "id": 104084,
+          "name": "Improved Nature's Cure",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 2,
+          "spellId": 392378
+        },
+        {
+          "id": 82208,
+          "name": "Moonkin Form",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 2,
+          "spellId": 24858
+        },
+        {
+          "id": 82221,
+          "name": "Maim",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 3,
+          "spellId": 22570
+        },
+        {
+          "id": 82225,
+          "name": "Killer Instinct",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 2,
+          "row": 3,
+          "spellId": 108299
+        },
+        {
+          "id": 82227,
+          "name": "Ironfur",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 192081
+        },
+        {
+          "id": 104085,
+          "name": "Improved Barkskin",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 3,
+          "spellId": 327993
+        },
+        {
+          "id": 82211,
+          "name": "Hibernate",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 3,
+          "spellId": 2637
+        },
+        {
+          "id": 82214,
+          "name": "Nurturing Instinct",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 6,
+          "row": 3,
+          "spellId": 33873
+        },
+        {
+          "id": 93714,
+          "name": "Sunfire",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 3,
+          "spellId": 93402
+        },
+        {
+          "id": 82224,
+          "name": "Primal Fury",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 4,
+          "spellId": 159286
+        },
+        {
+          "id": 82228,
+          "name": "Thick Hide",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 4,
+          "spellId": 16931
+        },
+        {
+          "id": 82206,
+          "name": "Natural Recovery",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 4,
+          "spellId": 377796
+        },
+        {
+          "id": 82210,
+          "name": "Astral Influence",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 4,
+          "spellId": 197524
+        },
+        {
+          "id": 82198,
+          "name": "Wild Charge",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 5,
+          "spellId": 102401
+        },
+        {
+          "id": 82229,
+          "name": "Soothe",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 5,
+          "spellId": 2908
+        },
+        {
+          "id": 82232,
+          "name": "Aessina's Renewal",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 5,
+          "spellId": 474678
+        },
+        {
+          "id": 100223,
+          "name": "Starlight Conduit",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 5,
+          "spellId": 451211
+        },
+        {
+          "id": 82236,
+          "name": "Feline Swiftness",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 6,
+          "spellId": 131768
+        },
+        {
+          "id": 82235,
+          "name": "Well-Honed Instincts",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 6,
+          "spellId": 377847
+        },
+        {
+          "id": 100177,
+          "name": "Matted Fur",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 3,
+          "row": 6,
+          "spellId": 385786
+        },
+        {
+          "id": 82234,
+          "name": "Stampeding Roar",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 6,
+          "spellId": 106898
+        },
+        {
+          "id": 82240,
+          "name": "Lingering Healing",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 6,
+          "spellId": 231040
+        },
+        {
+          "id": 82209,
+          "name": "Typhoon",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 6,
+          "spellId": 132469
+        },
+        {
+          "id": 82207,
+          "name": "Mass Entanglement",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 6,
+          "spellId": 102359
+        },
+        {
+          "id": 100176,
+          "name": "Oakskin",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 7,
+          "spellId": 449191
+        },
+        {
+          "id": 104082,
+          "name": "Perfectly-Honed Instincts",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 7,
+          "spellId": 1213597
+        },
+        {
+          "id": 104081,
+          "name": "Instincts of the Claw",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 7,
+          "spellId": 449184
+        },
+        {
+          "id": 82233,
+          "name": "Lycara's Teachings",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 4,
+          "row": 7,
+          "spellId": 378988
+        },
+        {
+          "id": 104080,
+          "name": "Lore of the Grove",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 7,
+          "spellId": 449185
+        },
+        {
+          "id": 104079,
+          "name": "Gale Winds",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 7,
+          "spellId": 400142
+        },
+        {
+          "id": 100175,
+          "name": "Gift of the Wild",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 7,
+          "spellId": 1262034
+        },
+        {
+          "id": 82237,
+          "name": "Incapacitating Roar",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 8,
+          "spellId": 99
+        },
+        {
+          "id": 100174,
+          "name": "Ursine Vigor",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 8,
+          "spellId": 377842
+        },
+        {
+          "id": 82230,
+          "name": "Improved Stampeding Roar",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 8,
+          "spellId": 288826
+        },
+        {
+          "id": 104078,
+          "name": "Circle of the Wild",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 8,
+          "spellId": 474530
+        },
+        {
+          "id": 92229,
+          "name": "Lycara's Inspiration",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 8,
+          "spellId": 1232897
+        },
+        {
+          "id": 100173,
+          "name": "Symbiotic Relationship",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 8,
+          "spellId": 474750
+        },
+        {
+          "id": 82243,
+          "name": "Forestwalk",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 8,
+          "row": 8,
+          "spellId": 400129
+        },
+        {
+          "id": 82246,
+          "name": "Fluid Form",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 9,
+          "spellId": 449193
+        },
+        {
+          "id": 82231,
+          "name": "Heart of the Wild",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 9,
+          "spellId": 1261867
+        },
+        {
+          "id": 82244,
+          "name": "Innervate",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 9,
+          "spellId": 29166
+        }
+      ],
+      "edges": [
+        [
+          82199,
+          82223
+        ],
+        [
+          82199,
+          82222
+        ],
+        [
+          82199,
+          82239
+        ],
+        [
+          82220,
+          82223
+        ],
+        [
+          82220,
+          82219
+        ],
+        [
+          82220,
+          82218
+        ],
+        [
+          82217,
+          82205
+        ],
+        [
+          82217,
+          104084
+        ],
+        [
+          82217,
+          82219
+        ],
+        [
+          91044,
+          82208
+        ],
+        [
+          91044,
+          82200
+        ],
+        [
+          82223,
+          82225
+        ],
+        [
+          82223,
+          82218
+        ],
+        [
+          82219,
+          104085
+        ],
+        [
+          82219,
+          104084
+        ],
+        [
+          82219,
+          82218
+        ],
+        [
+          82205,
+          82214
+        ],
+        [
+          82222,
+          82225
+        ],
+        [
+          82222,
+          82221
+        ],
+        [
+          82218,
+          104085
+        ],
+        [
+          82218,
+          82227
+        ],
+        [
+          82218,
+          82225
+        ],
+        [
+          104084,
+          82214
+        ],
+        [
+          104084,
+          82211
+        ],
+        [
+          104084,
+          104085
+        ],
+        [
+          82208,
+          82214
+        ],
+        [
+          82208,
+          93714
+        ],
+        [
+          82225,
+          82198
+        ],
+        [
+          82225,
+          82224
+        ],
+        [
+          82225,
+          82228
+        ],
+        [
+          104085,
+          82206
+        ],
+        [
+          104085,
+          82228
+        ],
+        [
+          82211,
+          82206
+        ],
+        [
+          82214,
+          82232
+        ],
+        [
+          82214,
+          82206
+        ],
+        [
+          82214,
+          82210
+        ],
+        [
+          93714,
+          100223
+        ],
+        [
+          82228,
+          82198
+        ],
+        [
+          82228,
+          100177
+        ],
+        [
+          82228,
+          82229
+        ],
+        [
+          82206,
+          82240
+        ],
+        [
+          82206,
+          82232
+        ],
+        [
+          82206,
+          82229
+        ],
+        [
+          82210,
+          100223
+        ],
+        [
+          82198,
+          82235
+        ],
+        [
+          82198,
+          82236
+        ],
+        [
+          82198,
+          100177
+        ],
+        [
+          82229,
+          82234
+        ],
+        [
+          82232,
+          82209
+        ],
+        [
+          82232,
+          82207
+        ],
+        [
+          82232,
+          82240
+        ],
+        [
+          82236,
+          100176
+        ],
+        [
+          82235,
+          100176
+        ],
+        [
+          82235,
+          104082
+        ],
+        [
+          82234,
+          82233
+        ],
+        [
+          82234,
+          104080
+        ],
+        [
+          82234,
+          104081
+        ],
+        [
+          82209,
+          100175
+        ],
+        [
+          82209,
+          104079
+        ],
+        [
+          82207,
+          100175
+        ],
+        [
+          100176,
+          100174
+        ],
+        [
+          100176,
+          82237
+        ],
+        [
+          100176,
+          82246
+        ],
+        [
+          82233,
+          82230
+        ],
+        [
+          82233,
+          92229
+        ],
+        [
+          82233,
+          104078
+        ],
+        [
+          100175,
+          100173
+        ],
+        [
+          100175,
+          82243
+        ],
+        [
+          100175,
+          82244
+        ],
+        [
+          82230,
+          82231
+        ],
+        [
+          104078,
+          82231
+        ],
+        [
+          92229,
+          82231
+        ]
+      ]
+    },
+    {
+      "id": "spec",
+      "label": "Spec Tree",
+      "nodes": [
+        {
+          "id": 82049,
+          "name": "Lifebloom",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 0,
+          "spellId": 33763
+        },
+        {
+          "id": 82047,
+          "name": "Swiftmend",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 1,
+          "spellId": 18562
+        },
+        {
+          "id": 82050,
+          "name": "Nature's Swiftness",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 1,
+          "spellId": 132158
+        },
+        {
+          "id": 104125,
+          "name": "Omen of Clarity",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 1,
+          "spellId": 113043
+        },
+        {
+          "id": 82079,
+          "name": "Verdant Infusion",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 392410
+        },
+        {
+          "id": 82051,
+          "name": "Nature's Splendor",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 2,
+          "spellId": 392288
+        },
+        {
+          "id": 82083,
+          "name": "Improved Regrowth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 2,
+          "spellId": 231032
+        },
+        {
+          "id": 82055,
+          "name": "Soul of the Forest",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 158478
+        },
+        {
+          "id": 92674,
+          "name": "Tranquil Mind",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 3,
+          "spellId": 403521
+        },
+        {
+          "id": 82057,
+          "name": "Efflorescence",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 4,
+          "spellId": 145205
+        },
+        {
+          "id": 82054,
+          "name": "Tranquility",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 4,
+          "spellId": 740
+        },
+        {
+          "id": 82082,
+          "name": "Ironbark",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 4,
+          "spellId": 102342
+        },
+        {
+          "id": 82059,
+          "name": "Verdancy",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 5,
+          "spellId": 392325
+        },
+        {
+          "id": 103874,
+          "name": "Lifetreading",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 5,
+          "spellId": 1217941
+        },
+        {
+          "id": 82043,
+          "name": "Grove Guardians",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 5,
+          "spellId": 1226140
+        },
+        {
+          "id": 82053,
+          "name": "Inner Peace",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 5,
+          "spellId": 197073
+        },
+        {
+          "id": 82056,
+          "name": "Cultivation",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 5,
+          "spellId": 200390
+        },
+        {
+          "id": 82045,
+          "name": "Improved Wild Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 6,
+          "row": 5,
+          "spellId": 328025
+        },
+        {
+          "id": 82081,
+          "name": "Stonebark",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 5,
+          "spellId": 197061
+        },
+        {
+          "id": 82060,
+          "name": "Renewing Surge",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 6,
+          "spellId": 470562
+        },
+        {
+          "id": 82058,
+          "name": "Rampant Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 6,
+          "spellId": 404521
+        },
+        {
+          "id": 82062,
+          "name": "Regenesis",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 2,
+          "row": 6,
+          "spellId": 383191
+        },
+        {
+          "id": 94535,
+          "name": "Wild Synthesis",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 6,
+          "spellId": 400533
+        },
+        {
+          "id": 82065,
+          "name": "Power of the Archdruid",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 6,
+          "spellId": 392302
+        },
+        {
+          "id": 82080,
+          "name": "Unstoppable Growth",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 6,
+          "row": 6,
+          "spellId": 382559
+        },
+        {
+          "id": 103873,
+          "name": "Improved Swiftmend",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 6,
+          "spellId": 470549
+        },
+        {
+          "id": 82075,
+          "name": "Regenerative Heartwood",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 6,
+          "spellId": 392116
+        },
+        {
+          "id": 82048,
+          "name": "Ysera's Gift",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 7,
+          "spellId": 145108
+        },
+        {
+          "id": 82064,
+          "name": "Incarnation: Tree of Life",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 7,
+          "spellId": 33891
+        },
+        {
+          "id": 82067,
+          "name": "Call of the Elder Druid",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 7,
+          "spellId": 426784
+        },
+        {
+          "id": 82052,
+          "name": "Intensity",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 7,
+          "spellId": 1264649
+        },
+        {
+          "id": 82074,
+          "name": "Liveliness",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 8,
+          "spellId": 426702
+        },
+        {
+          "id": 82046,
+          "name": "Waking Dream",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 8,
+          "spellId": 392221
+        },
+        {
+          "id": 82070,
+          "name": "Embrace of the Dream",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 8,
+          "spellId": 392124
+        },
+        {
+          "id": 82063,
+          "name": "Cenarius' Guidance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 8,
+          "spellId": 393371
+        },
+        {
+          "id": 82072,
+          "name": "Nature's Bounty",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 8,
+          "spellId": 1263879
+        },
+        {
+          "id": 82066,
+          "name": "Dream of Cenarius",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 8,
+          "spellId": 158504
+        },
+        {
+          "id": 82068,
+          "name": "Thriving Vegetation",
+          "type": "circle",
+          "maxPoints": 2,
+          "col": 6,
+          "row": 8,
+          "spellId": 447131
+        },
+        {
+          "id": 103876,
+          "name": "Abundance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 8,
+          "spellId": 207383
+        },
+        {
+          "id": 82076,
+          "name": "Nurturing Dormancy",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 8,
+          "row": 8,
+          "spellId": 392099
+        },
+        {
+          "id": 82073,
+          "name": "Photosynthesis",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 9,
+          "spellId": 274902
+        },
+        {
+          "id": 82077,
+          "name": "Harmonious Blooming",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 9,
+          "spellId": 392256
+        },
+        {
+          "id": 82069,
+          "name": "Reforestation",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 5,
+          "row": 9,
+          "spellId": 392356
+        },
+        {
+          "id": 82071,
+          "name": "Germination",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 7,
+          "row": 9,
+          "spellId": 155675
+        },
+        {
+          "id": 110424,
+          "name": "Everbloom",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 4,
+          "row": 10,
+          "spellId": 392167
+        }
+      ],
+      "edges": [
+        [
+          82049,
+          104125
+        ],
+        [
+          82049,
+          82047
+        ],
+        [
+          82049,
+          82050
+        ],
+        [
+          82047,
+          82079
+        ],
+        [
+          82050,
+          82051
+        ],
+        [
+          104125,
+          82083
+        ],
+        [
+          82079,
+          82057
+        ],
+        [
+          82079,
+          82055
+        ],
+        [
+          82051,
+          92674
+        ],
+        [
+          82051,
+          82055
+        ],
+        [
+          82083,
+          82082
+        ],
+        [
+          82083,
+          92674
+        ],
+        [
+          82055,
+          82057
+        ],
+        [
+          82055,
+          82054
+        ],
+        [
+          92674,
+          82082
+        ],
+        [
+          92674,
+          82054
+        ],
+        [
+          82057,
+          82059
+        ],
+        [
+          82057,
+          82043
+        ],
+        [
+          82057,
+          103874
+        ],
+        [
+          82054,
+          82053
+        ],
+        [
+          82082,
+          82045
+        ],
+        [
+          82082,
+          82056
+        ],
+        [
+          82082,
+          82081
+        ],
+        [
+          82082,
+          82045
+        ],
+        [
+          82059,
+          82058
+        ],
+        [
+          82059,
+          82060
+        ],
+        [
+          82059,
+          82062
+        ],
+        [
+          103874,
+          82062
+        ],
+        [
+          82043,
+          82062
+        ],
+        [
+          82043,
+          82065
+        ],
+        [
+          82043,
+          94535
+        ],
+        [
+          82053,
+          82065
+        ],
+        [
+          82056,
+          82080
+        ],
+        [
+          82056,
+          82065
+        ],
+        [
+          82045,
+          82080
+        ],
+        [
+          82045,
+          103873
+        ],
+        [
+          82045,
+          82080
+        ],
+        [
+          82081,
+          103873
+        ],
+        [
+          82081,
+          82075
+        ],
+        [
+          82060,
+          82048
+        ],
+        [
+          82060,
+          82074
+        ],
+        [
+          82058,
+          82048
+        ],
+        [
+          82062,
+          82048
+        ],
+        [
+          82062,
+          82064
+        ],
+        [
+          94535,
+          82064
+        ],
+        [
+          82065,
+          82064
+        ],
+        [
+          82065,
+          82067
+        ],
+        [
+          82080,
+          82052
+        ],
+        [
+          82080,
+          82067
+        ],
+        [
+          103873,
+          82052
+        ],
+        [
+          82075,
+          82052
+        ],
+        [
+          82075,
+          82076
+        ],
+        [
+          82048,
+          82070
+        ],
+        [
+          82048,
+          82046
+        ],
+        [
+          82048,
+          82074
+        ],
+        [
+          82064,
+          82063
+        ],
+        [
+          82064,
+          82070
+        ],
+        [
+          82064,
+          82072
+        ],
+        [
+          82067,
+          82066
+        ],
+        [
+          82067,
+          82068
+        ],
+        [
+          82067,
+          82072
+        ],
+        [
+          82052,
+          103876
+        ],
+        [
+          82052,
+          82076
+        ],
+        [
+          82052,
+          82068
+        ],
+        [
+          82074,
+          82073
+        ],
+        [
+          82046,
+          82073
+        ],
+        [
+          82070,
+          82077
+        ],
+        [
+          82070,
+          82073
+        ],
+        [
+          82063,
+          82077
+        ],
+        [
+          82072,
+          82077
+        ],
+        [
+          82072,
+          82069
+        ],
+        [
+          82066,
+          82069
+        ],
+        [
+          82068,
+          82069
+        ],
+        [
+          82068,
+          82071
+        ],
+        [
+          103876,
+          82071
+        ],
+        [
+          82076,
+          82071
+        ]
+      ]
+    }
+  ],
+  "heroTrees": {
+    "left": {
+      "id": "hero_left",
+      "label": "Hero \u00b7 Wildstalker",
+      "heroName": "Wildstalker",
+      "nodeIds": [
+        94621,
+        94622,
+        94623,
+        94624,
+        94625,
+        94626,
+        94627,
+        94628,
+        94629,
+        94630,
+        94631,
+        109715,
+        109716,
+        109717
+      ],
+      "nodes": [
+        {
+          "id": 94621,
+          "name": "Wildstalker's Power",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 1,
+          "spellId": 439926
+        },
+        {
+          "id": 94622,
+          "name": "Entangling Vortex",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 439895
+        },
+        {
+          "id": 94623,
+          "name": "Strategic Infusion",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 1,
+          "spellId": 439890
+        },
+        {
+          "id": 94624,
+          "name": "Lethal Preservation",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 2,
+          "spellId": 455461
+        },
+        {
+          "id": 94625,
+          "name": "Bond with Nature",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 439929
+        },
+        {
+          "id": 94626,
+          "name": "Thriving Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 0,
+          "spellId": 439528
+        },
+        {
+          "id": 94627,
+          "name": "Vigorous Creepers",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 4,
+          "spellId": 440119
+        },
+        {
+          "id": 94628,
+          "name": "Twin Sprouts",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 3,
+          "spellId": 440117
+        },
+        {
+          "id": 94629,
+          "name": "Hunt Beneath the Open Skies",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 1,
+          "spellId": 439868
+        },
+        {
+          "id": 94630,
+          "name": "Patient Custodian",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 3,
+          "spellId": 1270592
+        },
+        {
+          "id": 94631,
+          "name": "Resilient Flourishing",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 3,
+          "spellId": 439880
+        },
+        {
+          "id": 109715,
+          "name": "Rampancy",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 1270586
+        },
+        {
+          "id": 109716,
+          "name": "Bursting Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 440120
+        },
+        {
+          "id": 109717,
+          "name": "Green Thumb",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 1,
+          "spellId": 1270565
+        }
+      ],
+      "edges": [
+        [
+          94621,
+          94625
+        ],
+        [
+          94622,
+          94630
+        ],
+        [
+          94623,
+          94622
+        ],
+        [
+          94624,
+          94631
+        ],
+        [
+          94625,
+          94628
+        ],
+        [
+          94626,
+          94629
+        ],
+        [
+          94626,
+          94623
+        ],
+        [
+          94626,
+          94621
+        ],
+        [
+          94626,
+          109717
+        ],
+        [
+          94628,
+          94627
+        ],
+        [
+          94629,
+          94624
+        ],
+        [
+          94630,
+          94627
+        ],
+        [
+          94631,
+          94627
+        ],
+        [
+          109715,
+          94627
+        ],
+        [
+          109716,
+          109715
+        ],
+        [
+          109717,
+          109716
+        ]
+      ]
+    },
+    "right": {
+      "id": "hero_right",
+      "label": "Hero \u00b7 Keeper of the Grove",
+      "heroName": "Keeper of the Grove",
+      "nodeIds": [
+        94591,
+        94592,
+        94593,
+        94595,
+        94599,
+        94600,
+        94601,
+        94602,
+        94604,
+        94605,
+        94606,
+        109712,
+        109713,
+        109714
+      ],
+      "nodes": [
+        {
+          "id": 94591,
+          "name": "Bounteous Bloom",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 3,
+          "spellId": 429215
+        },
+        {
+          "id": 94592,
+          "name": "Power of the Dream",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 3,
+          "spellId": 434220
+        },
+        {
+          "id": 94593,
+          "name": "Protective Growth",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 1,
+          "spellId": 433748
+        },
+        {
+          "id": 94595,
+          "name": "Grove's Inspiration",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 2,
+          "spellId": 429402
+        },
+        {
+          "id": 94599,
+          "name": "Treants of the Moon",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 1,
+          "spellId": 428544
+        },
+        {
+          "id": 94600,
+          "name": "Dream Surge",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 0,
+          "spellId": 433831
+        },
+        {
+          "id": 94601,
+          "name": "Blooming Infusion",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 2,
+          "row": 3,
+          "spellId": 429433
+        },
+        {
+          "id": 94602,
+          "name": "Expansiveness",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 1,
+          "spellId": 429399
+        },
+        {
+          "id": 94604,
+          "name": "Cenarius' Might",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 2,
+          "spellId": 455797
+        },
+        {
+          "id": 94605,
+          "name": "Power of Nature",
+          "type": "diamond",
+          "maxPoints": 1,
+          "col": 0,
+          "row": 2,
+          "spellId": 428859
+        },
+        {
+          "id": 94606,
+          "name": "Harmony of the Grove",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 1,
+          "row": 4,
+          "spellId": 428731
+        },
+        {
+          "id": 109712,
+          "name": "Spirit of the Thicket",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 3,
+          "spellId": 1264899
+        },
+        {
+          "id": 109713,
+          "name": "Dryad's Dance",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 2,
+          "spellId": 1264776
+        },
+        {
+          "id": 109714,
+          "name": "Sylvan Beckoning",
+          "type": "circle",
+          "maxPoints": 1,
+          "col": 3,
+          "row": 1,
+          "spellId": 1264614
+        }
+      ],
+      "edges": [
+        [
+          94591,
+          94606
+        ],
+        [
+          94592,
+          94606
+        ],
+        [
+          94593,
+          94595
+        ],
+        [
+          94595,
+          94601
+        ],
+        [
+          94599,
+          94605
+        ],
+        [
+          94600,
+          94593
+        ],
+        [
+          94600,
+          94602
+        ],
+        [
+          94600,
+          94599
+        ],
+        [
+          94600,
+          109714
+        ],
+        [
+          94601,
+          94606
+        ],
+        [
+          94602,
+          94604
+        ],
+        [
+          94604,
+          94592
+        ],
+        [
+          94605,
+          94591
+        ],
+        [
+          109712,
+          94606
+        ],
+        [
+          109713,
+          109712
+        ],
+        [
+          109714,
+          109713
+        ]
+      ]
+    }
+  }
+};
+
+</script>
+  <script type="text/babel">
+
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakColor  label="Palette" value={t.palette}
+//                        options={[['#D97757', '#29261b', '#f6f4ef'],
+//                                  ['#475569', '#0f172a', '#f1f5f9']]}
+//                        onChange={(v) => setTweak('palette', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+  .twk-chip:hover{transform:translateY(-1px);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i:first-child{box-shadow:none}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
+    // can react — the parent message only reaches the host, not peers.
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', noDeckControls = false, children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  // Auto-inject a rail toggle when a <deck-stage> is on the page. The
+  // toggle drives the deck's per-viewer _railVisible via window message;
+  // state is mirrored from the same localStorage key the deck reads so
+  // the control reflects reality across reloads. The mechanism is the
+  // message — authors who want custom placement can post it directly
+  // and pass noDeckControls to suppress this one.
+  const hasDeckStage = React.useMemo(
+    () => typeof document !== 'undefined' && !!document.querySelector('deck-stage'),
+    [],
+  );
+  // deck-stage enables its rail in connectedCallback, but this panel can
+  // mount before that element has upgraded. The initial read catches the
+  // common case; the listener covers mounting first. (Older deck-stage.js
+  // copies still wait for the host's __omelette_rail_enabled postMessage —
+  // same listener handles those.)
+  const [railEnabled, setRailEnabled] = React.useState(
+    () => hasDeckStage && !!document.querySelector('deck-stage')?._railEnabled,
+  );
+  React.useEffect(() => {
+    if (!hasDeckStage || railEnabled) return undefined;
+    const onMsg = (e) => {
+      if (e.data && e.data.type === '__omelette_rail_enabled') setRailEnabled(true);
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [hasDeckStage, railEnabled]);
+  const [railVisible, setRailVisible] = React.useState(() => {
+    try { return localStorage.getItem('deck-stage.railVisible') !== '0'; } catch (e) { return true; }
+  });
+  const toggleRail = (on) => {
+    setRailVisible(on);
+    window.postMessage({ type: '__deck_rail_visible', on }, '*');
+  };
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-noncommentable=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">
+          {children}
+          {hasDeckStage && railEnabled && !noDeckControls && (
+            <TweakSection label="Deck">
+              <TweakToggle label="Thumbnail rail" value={railVisible} onChange={toggleRail} />
+            </TweakSection>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  // Segments wrap mid-word once per-segment width runs out. The track is
+  // ~248px (280 panel − 28 body pad − 4 seg pad), each button loses 12px
+  // to its own padding, and 11.5px system-ui averages ~6.3px/char — so 2
+  // options fit ~16 chars each, 3 fit ~10. Past that (or >3 options), fall
+  // back to a dropdown rather than wrap.
+  const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+  const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+  const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+  if (!fitsAsSegments) {
+    // <select> emits strings — map back to the original option value so the
+    // fallback stays type-preserving (numbers, booleans) like the segment path.
+    const resolve = (s) => {
+      const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+      return m === undefined ? s : typeof m === 'object' ? m.value : m;
+    };
+    return <TweakSelect label={label} value={value} options={options}
+                        onChange={(s) => onChange(resolve(s))} />;
+  }
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+// Relative-luminance contrast pick — checkmarks drawn over a swatch need to
+// read on both #111 and #fafafa without per-option configuration. Hex input
+// only (#rgb / #rrggbb); named or rgb()/hsl() colors fall through to "light".
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#', '');
+  const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+  const n = parseInt(x.slice(0, 6), 16);
+  if (Number.isNaN(n)) return true;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return r * 299 + g * 587 + b * 114 > 148000;
+}
+
+const __TwkCheck = ({ light }) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+  </svg>
+);
+
+// TweakColor — curated color/palette picker. Each option is either a single
+// hex string or an array of 1-5 hex strings; the card adapts — a lone color
+// renders solid, a palette renders colors[0] as the hero (left ~2/3) with the
+// rest stacked in a sharp column on the right. onChange emits the
+// option in the shape it was passed (string stays string, array stays array).
+// Without options it falls back to the native color input for back-compat.
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value}
+               onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  // Native <input type=color> emits lowercase hex per the HTML spec, so
+  // compare case-insensitively. String() guards JSON.stringify(undefined),
+  // which returns the primitive undefined (no .toLowerCase).
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o, i) => {
+          const colors = Array.isArray(o) ? o : [o];
+          const [hero, ...rest] = colors;
+          const sup = rest.slice(0, 4);
+          const on = key(o) === cur;
+          return (
+            <button key={i} type="button" className="twk-chip" role="radio"
+                    aria-checked={on} data-on={on ? '1' : '0'}
+                    aria-label={colors.join(', ')} title={colors.join(' · ')}
+                    style={{ background: hero }}
+                    onClick={() => onChange(o)}>
+              {sup.length > 0 && (
+                <span>
+                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                </span>
+              )}
+              {on && <__TwkCheck light={__twkIsLight(hero)} />}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+</script>
+  <script type="text/babel">
+// Tree renderer — converts (col, row) nodes + edges to SVG with diamond/circle shapes.
+// Receives current cluster's node-state map so it can render core/flex/skip + rank-flex.
+
+const COL_W = 70;
+const ROW_H = 78;
+const PAD_X = 36;
+const PAD_Y = 28;
+
+function nodeXY(node) {
+  return {
+    x: PAD_X + node.col * COL_W,
+    y: PAD_Y + node.row * ROW_H,
+  };
+}
+
+function isRankFlex(node, state) {
+  if (!state || !state.rankDist || node.maxPoints < 2) return false;
+  const total = state.rankDist.reduce((s, v) => s + v, 0);
+  if (total <= 0) return false;
+  const max = Math.max(...state.rankDist);
+  // Rank-flex: no single rank dominates >= 75% of the picks
+  return max / total < 0.75;
+}
+
+function modalRank(state) {
+  if (!state.rankDist) return state.pts;
+  let bestI = 0, bestV = -1;
+  state.rankDist.forEach((v, i) => { if (v > bestV) { bestV = v; bestI = i; } });
+  return bestI + 1;
+}
+
+function shapeFor(node, x, y, size) {
+  if (node.type === 'diamond' || node.type === 'capstone') {
+    const s = size;
+    return `${x},${y - s} ${x + s},${y} ${x},${y + s} ${x - s},${y}`;
+  }
+  return null;
+}
+
+function NodeShape({ node, x, y, scale = 1, extraClass = '', heat }) {
+  const r = (node.type === 'capstone' ? 20 : node.type === 'diamond' ? 16 : 15) * scale;
+  if (node.type === 'diamond' || node.type === 'capstone') {
+    return <polygon
+      className={`node-shape ${extraClass}`}
+      data-heat={heat}
+      points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`}
+    />;
+  }
+  return <circle className={`node-shape ${extraClass}`} data-heat={heat} cx={x} cy={y} r={r} />;
+}
+
+function heatBucket(rate) {
+  if (rate >= 95) return 5;
+  if (rate >= 80) return 4;
+  if (rate >= 65) return 3;
+  if (rate >= 45) return 2;
+  if (rate >= 25) return 1;
+  return 0;
+}
+
+function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showSignature }) {
+  const widthCols = Math.max(...tree.nodes.map(n => n.col)) + 1;
+  const heightRows = Math.max(...tree.nodes.map(n => n.row)) + 1;
+  const W = PAD_X * 2 + (widthCols - 1) * COL_W;
+  const H = PAD_Y * 2 + (heightRows - 1) * ROW_H;
+
+  const stateFor = (id) => cluster.nodes[id];
+
+  const svgClass = [
+    'tree-svg',
+    flexStyle ? `flex-${flexStyle}` : '',
+    heatmap ? 'heatmap' : '',
+    showSignature ? 'show-signature' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className="tree-svg-wrap">
+      <svg
+        className={svgClass}
+        width={W} height={H}
+        viewBox={`0 0 ${W} ${H}`}
+      >
+        <g>
+          {tree.edges.map(([a, b], i) => {
+            const na = tree.nodes.find(n => n.id === a);
+            const nb = tree.nodes.find(n => n.id === b);
+            if (!na || !nb) return null;
+            const pa = nodeXY(na);
+            const pb = nodeXY(nb);
+            const sa = stateFor(a);
+            const sb = stateFor(b);
+            let cls = 'edge';
+            if (sa && sb) {
+              if (sa.role === 'flex' || sb.role === 'flex') cls = 'edge flex';
+              else cls = 'edge active';
+            }
+            return (
+              <line key={i} className={cls}
+                x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y}
+              />
+            );
+          })}
+        </g>
+
+        <g>
+          {tree.nodes.map((node) => {
+            const { x, y } = nodeXY(node);
+            const st = stateFor(node.id);
+            const role = st ? st.role : 'skip';
+            const pickRate = st ? st.pickRate : 0;
+            const heat = heatBucket(pickRate);
+            const rankFlex = st && isRankFlex(node, st);
+            const contestedTake = st && st.contested;
+            const displayRank = st ? (st.rankDist ? modalRank(st) : st.pts) : 0;
+
+            const onEnter = (e) => onHover({ node, state: st, x: e.clientX, y: e.clientY });
+            const onMove = (e) => onHover({ node, state: st, x: e.clientX, y: e.clientY });
+
+            return (
+              <g key={node.id}
+                className={`node-group ${role} ${rankFlex ? 'rank-flex' : ''} ${contestedTake ? 'contested-take' : ''}`}
+                onMouseEnter={onEnter}
+                onMouseMove={onMove}
+                onMouseLeave={onLeave}
+              >
+                <NodeShape node={node} x={x} y={y} heat={heat} />
+                {/* Inner dashed ring for rank-flex core nodes */}
+                {rankFlex && (
+                  <NodeShape
+                    node={node} x={x} y={y}
+                    scale={0.62}
+                    extraClass="node-inner-ring"
+                  />
+                )}
+                {/* Cluster-take accent ring for contested takes */}
+                {contestedTake && !rankFlex && (
+                  <NodeShape
+                    node={node} x={x} y={y}
+                    scale={0.55}
+                    extraClass="node-signature-ring"
+                  />
+                )}
+                {displayRank > 0 && (
+                  <text className="node-points" x={x} y={y + 3}>
+                    {displayRank}{node.maxPoints > 1 ? `/${node.maxPoints}` : ''}
+                  </text>
+                )}
+                <text className="node-label" x={x} y={y + 32}>
+                  {truncateLabel(node.name)}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function truncateLabel(s) {
+  return s.length > 14 ? s.slice(0, 13) + '…' : s;
+}
+
+window.TalentTree = TalentTree;
+window.isRankFlex = isRankFlex;
+window.modalRank = modalRank;
+
+</script>
+  <script type="text/babel">
+// Right sidebar — cluster summary, signature (takes + flex), legend, build code + copy.
+// Gear moved out to its own bottom panel in the main pane.
+
+function Sidebar({ cluster, group, onCopy, heatmap }) {
+  const takes = cluster.takes || [];
+  const flex = (group.talents && group.talents.flex) || [];
+
+  // Resolve spellIds for the tree-node ids referenced in cluster.takes.
+  // (Global talents carry both `id` and `spellId`; cluster takes carry just `id`
+  // — we look up the spellId so the takes link to Wowhead too.)
+  const spellIdById = React.useMemo(() => {
+    const m = {};
+    ['core', 'flex', 'contested'].forEach(role => {
+      const list = (group.talents && group.talents[role]) || [];
+      list.forEach(t => { if (t.spellId) m[t.id] = t.spellId; });
+    });
+    return m;
+  }, [group]);
+
+  const TalentLink = ({ t, className }) => {
+    const sid = t.spellId || spellIdById[t.id];
+    if (!sid) return <span className={className}>{t.name}</span>;
+    return (
+      <a
+        className={`${className} talent-link`}
+        href={`https://www.wowhead.com/spell=${sid}`}
+        target="_blank"
+        rel="noopener"
+        data-wowhead={`spell=${sid}`}
+      >{t.name}</a>
+    );
+  };
+
+  return (
+    <aside className="sidebar" data-screen-label="Cluster details">
+      <div className="side-section">
+        <div className="kpi-row">
+          <div className="kpi">
+            <div className="kpi-label">Share</div>
+            <div className="kpi-value">{cluster.pct}<span className="pct">%</span></div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Count</div>
+            <div className="kpi-value">{cluster.count}</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Takes</div>
+            <div className="kpi-value">{takes.length}</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">Flex</div>
+            <div className="kpi-value" style={{color:'var(--flex)'}}>{flex.length}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="side-section">
+        <h4>Cluster signature <span className="side-h-hint">contested talents this cluster picks</span></h4>
+        <div className="signature-block">
+          <div className="signature-row-head"><span className="dot-take"></span> Takes <span className="num">{takes.length}</span></div>
+          <ul className="signature-list">
+            {takes.map(t => (
+              <li key={t.id} className="sig-item take">
+                <TalentLink t={t} className="sig-name" />
+                <span className="sig-bar"><span className="sig-bar-fill" style={{width: `${t.pct}%`}}></span></span>
+                <span className="sig-pct">{t.pct}%</span>
+              </li>
+            ))}
+          </ul>
+          <div className="signature-row-head" style={{marginTop:14}}>
+            <span className="dot-flex"></span> Flex points
+            <span className="num">{flex.length}</span>
+            <span className="signature-row-hint">global · varies, doesn't change playstyle</span>
+          </div>
+          {flex.length > 0 ? (
+            <ul className="signature-list">
+              {flex.map(t => (
+                <li key={t.id} className="sig-item flex">
+                  <TalentLink t={t} className="sig-name" />
+                  <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
+                  <span className="sig-pct">{t.pct}%</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="signature-empty">No flex points for this spec</div>
+          )}
+        </div>
+      </div>
+
+      <div className="side-section">
+        <h4>Legend</h4>
+        <div className="legend">
+          <div className="legend-row"><span className="legend-dot core"></span> Core — ~100% of players take this</div>
+          <div className="legend-row"><span className="legend-dot core contested-mini"></span> Cluster take — this cluster's pick of a contested talent</div>
+          <div className="legend-row"><span className="legend-dot flex"></span> Flex — rare, varies; doesn't change playstyle</div>
+          <div className="legend-row"><span className="legend-dot skip"></span> Skipped in this cluster</div>
+          <div className="legend-row"><span className="legend-dot core diamond"></span> Choice node (diamond)</div>
+        </div>
+        {heatmap && (
+          <div style={{marginTop:14}}>
+            <div className="kpi-label" style={{marginBottom:6}}>Pick-rate heatmap</div>
+            <div className="heat-strip">
+              <div style={{background:'var(--heat-0)'}}></div>
+              <div style={{background:'var(--heat-1)'}}></div>
+              <div style={{background:'var(--heat-2)'}}></div>
+              <div style={{background:'var(--heat-3)'}}></div>
+              <div style={{background:'var(--heat-4)'}}></div>
+              <div style={{background:'var(--heat-5)'}}></div>
+            </div>
+            <div className="heat-strip-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+          </div>
+        )}
+      </div>
+
+      <div className="side-section">
+        <h4>Build code <span className="side-h-hint">canonical · WoW import string</span></h4>
+        <div className="build-string">{cluster.canonical_code}</div>
+        <div className="build-actions">
+          <button className="btn primary" onClick={onCopy}>
+            <CopyIcon /> Copy code
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// Bottom panel — full-width gear grid. Lives below the trees / PvP in the main pane.
+function GearPanel({ group }) {
+  if (!group.gear || !group.gear.slots) return null;
+  return (
+    <div className="gear-panel" data-screen-label="Gear">
+      <div className="gear-panel-head">
+        <h3>Gear</h3>
+        <div className="stat">
+          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>GLOBAL</span>
+          <span>avg ilvl <span className="num">{group.gear.avg_ilvl}</span> · top pick per slot · n={group.sample_size.toLocaleString()}</span>
+        </div>
+      </div>
+      <ul className="gear-grid">
+        {group.gear.slots.map(s => (
+          <li className="gear-card" key={s.slot}>
+            <div className="gear-card-head">
+              <span className="gear-card-slot">{s.slot}</span>
+              <span className="gear-card-pct">{s.item.pct}%</span>
+            </div>
+            {s.item.id ? (
+              <a className="gear-card-item"
+                 href={`https://www.wowhead.com/item=${s.item.id}`}
+                 target="_blank"
+                 rel="noopener"
+                 data-wowhead={`item=${s.item.id}`}>{s.item.name}</a>
+            ) : (
+              <span className="gear-card-item">{s.item.name}</span>
+            )}
+            {s.enchant ? (
+              <div className="gear-card-enchant">
+                <span className="enchant-tag">ENCH</span>
+                <span className="enchant-name">{s.enchant.name}</span>
+                <span className="enchant-pct">{s.enchant.pct}%</span>
+              </div>
+            ) : (
+              <div className="gear-card-enchant placeholder">
+                <span className="enchant-tag dim">—</span>
+                <span className="enchant-name dim">no enchant</span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <rect x="3" y="3" width="9" height="11" rx="1" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M6 1.5h7a1 1 0 0 1 1 1V11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+window.Sidebar = Sidebar;
+window.GearPanel = GearPanel;
+
+</script>
+  <script type="text/babel">
+// Main app — composes topbar, cluster tabs, tree pane, global PvP panel,
+// sidebar (Cluster Signature), bottom Gear panel, tooltip, and tweaks panel.
+//
+// Wired to the flat backend shape (one bracket per CLUSTER_DATA):
+//   data.spec, data.bracket, data.specLabel, data.sample_size, data.avg_ilvl,
+//   data.pvp_talents, data.talents.{core|flex|contested}, data.clusters,
+//   data.gear.{avg_ilvl, slots}
+
+const { useState, useEffect, useMemo } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "flexStyle": "glow",
+  "heatmap": false,
+  "showSignature": true
+}/*EDITMODE-END*/;
+
+const FLEX_STYLES = [
+  { value: 'glow',   label: 'Glow' },
+  { value: 'dashed', label: 'Dashed' },
+  { value: 'fill',   label: 'Tint' },
+  { value: 'pulse',  label: 'Pulse' },
+];
+
+// === Auto-name a cluster by its 1–2 most defining contested takes ==========
+// "Most defining" = lowest global pick rate among takes (most selective choice).
+function autoClusterName(cluster) {
+  const takes = (cluster.takes || [])
+    .filter(t => t.name && t.pct >= 20 && t.pct <= 80)
+    .sort((a, b) => a.pct - b.pct);
+  if (!takes.length) return `#${cluster.rank}`;
+  const word1 = (name) => name.split(' ')[0];
+  if (takes.length === 1) return word1(takes[0].name);
+  return word1(takes[0].name) + ' + ' + word1(takes[1].name);
+}
+
+// === Derive per-cluster tree-node state =====================================
+// Global core → core; global flex → flex; cluster.takes → core+contested.
+// Everything else → not in map (renders as skip).
+function deriveNodeMap(data, cluster) {
+  const map = {};
+  (data.talents.core || []).forEach(t => {
+    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name };
+  });
+  (data.talents.flex || []).forEach(t => {
+    map[t.id] = { role: 'flex', pts: 1, pickRate: t.pct, sourceName: t.name };
+  });
+  (cluster.takes || []).forEach(t => {
+    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name, contested: true };
+  });
+  return map;
+}
+
+
+// Pick the hero tree whose nodeIds have the most overlap with the cluster's
+// core+takes node IDs. Falls back to the right tree (Totemic for Resto Shaman).
+function selectHeroTree(data, nodeMap) {
+  const heroTrees = data.tree && data.tree.heroTrees;
+  if (!heroTrees) return null;
+  const dominated = (ht) => ht.nodeIds.filter(id => nodeMap[id]).length;
+  return dominated(heroTrees.left) >= dominated(heroTrees.right)
+    ? heroTrees.left : heroTrees.right;
+}
+function App() {
+  const data = window.CLUSTER_DATA;
+
+  // Sort clusters by share descending.
+  const clusters = useMemo(
+    () => [...data.clusters].sort((a, b) => b.pct - a.pct),
+    [data]
+  );
+  // Only display clusters with 2+ players; single-player outliers are noise.
+  const majorClusters = useMemo(() => clusters.filter(c => c.count >= 2), [clusters]);
+  const minorCount = clusters.length - majorClusters.length;
+
+  const [activeRank, setActiveRank] = useState(majorClusters[0].rank);
+  useEffect(() => {
+    if (!majorClusters.find(c => c.rank === activeRank)) setActiveRank(majorClusters[0].rank);
+  }, [majorClusters, activeRank]);
+
+  const cluster = clusters.find(c => c.rank === activeRank) || clusters[0];
+
+  // Derived node-state map for the active cluster.
+  const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
+  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: autoClusterName(cluster) };
+  const heroTree = useMemo(() => selectHeroTree(data, nodeMap), [data, nodeMap]);
+
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [tip, setTip] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Keyboard nav — ← / → between clusters.
+  useEffect(() => {
+    function onKey(e) {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      const idx = majorClusters.findIndex(c => c.rank === activeRank);
+      if (e.key === 'ArrowRight') setActiveRank(majorClusters[(idx + 1) % majorClusters.length].rank);
+      else if (e.key === 'ArrowLeft') setActiveRank(majorClusters[(idx - 1 + majorClusters.length) % majorClusters.length].rank);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [clusters, activeRank]);
+
+  const onCopy = () => {
+    navigator.clipboard.writeText(cluster.canonical_code).catch(() => {});
+    setToast('Build code copied');
+    setTimeout(() => setToast(null), 1500);
+  };
+
+  return (
+    <div className="app" data-screen-label="Talent cluster picker">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark"></div>
+          CLUSTER<span style={{color:'var(--text-2)'}}>·</span>PICK
+        </div>
+        <div className="crumb">
+          <span>{data.specLabel.class}</span>
+          <span className="sep">/</span>
+          <span className="active">{data.specLabel.spec}</span>
+          <span className="sep">/</span>
+          <span style={{color:'var(--text-3)'}}>{data.bracket}</span>
+        </div>
+
+        <div className="topbar-right">
+          <div className="topbar-stat">
+            <span className="filter-label">N</span>
+            <span className="topbar-stat-val">{data.sample_size.toLocaleString()}</span>
+          </div>
+        </div>
+      </header>
+
+      <nav className="tabs" role="tablist" aria-label="Cluster">
+        {majorClusters.map(c => (
+          <button
+            key={c.rank}
+            className={`tab ${c.rank === activeRank ? 'active' : ''}`}
+            onClick={() => setActiveRank(c.rank)}
+            role="tab"
+            data-screen-label={autoClusterName(c)}
+          >
+            <span className="tab-rank">#{c.rank}</span>
+            <span className="tab-name">{autoClusterName(c)}</span>
+            <span className="tab-meta">
+              <span><span className="pct">{c.pct}%</span></span>
+              <span>n={c.count}</span>
+            </span>
+            <span className="tab-bar">
+              <span className="tab-bar-fill" style={{width: `${Math.min(100, c.pct * 4)}%`}}></span>
+            </span>
+          </button>
+        ))}
+        {minorCount > 0 && (
+          <div className="tab tab-minor" title={`${minorCount} more clusters with n=1 (outliers)`}>
+            +{minorCount} minor
+          </div>
+        )}
+      </nav>
+
+      <main className="main">
+        <section className="tree-pane">
+          <div className="tree-pane-inner">
+            <div className="trees-row">
+              {(() => { const src = window.CLUSTER_DATA.tree || window.TREE; const trees = heroTree ? [src.trees[0], heroTree, src.trees[1]] : src.trees; return trees; })().map(tree => (
+                <div className="tree" key={tree.id}>
+                  <div className="tree-header">
+                    <h3>{tree.label}</h3>
+                    <div className="stat">
+                      <span className="num">{tree.nodes.reduce((s, tn) =>
+                        s + (nodeMap[tn.id] ? (nodeMap[tn.id].pts || 1) : 0), 0
+                      )}</span> pts
+                    </div>
+                  </div>
+                  <TalentTree
+                    tree={tree}
+                    cluster={clusterForRenderer}
+                    flexStyle={tweaks.flexStyle}
+                    heatmap={tweaks.heatmap}
+                    showSignature={tweaks.showSignature}
+                    onHover={setTip}
+                    onLeave={() => setTip(null)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <GlobalPvpPanel data={data} onHover={setTip} onLeave={() => setTip(null)} />
+            <GearPanel group={data} />
+          </div>
+        </section>
+
+        <Sidebar
+          cluster={cluster}
+          group={data}
+          onCopy={onCopy}
+          heatmap={tweaks.heatmap}
+        />
+      </main>
+
+      {tip && <Tooltip {...tip} />}
+      {toast && <div className="copy-toast">✓ {toast}</div>}
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Flex highlight">
+          <TweakSelect label="Style" value={tweaks.flexStyle}
+            onChange={(v) => setTweak('flexStyle', v)} options={FLEX_STYLES} />
+        </TweakSection>
+        <TweakSection label="Pick-rate heatmap">
+          <TweakToggle label="Color by pick rate" value={tweaks.heatmap}
+            onChange={(v) => setTweak('heatmap', v)} />
+        </TweakSection>
+        <TweakSection label="Cluster signature">
+          <TweakToggle label="Mark contested takes" value={tweaks.showSignature}
+            onChange={(v) => setTweak('showSignature', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+function GlobalPvpPanel({ data, onHover, onLeave }) {
+  const all = data.pvp_talents || [];
+  if (all.length === 0) return null;
+  const modal = all.slice(0, 3);
+  const alts = all.slice(3);
+
+  const onHoverPvp = (e, p) => {
+    onHover({
+      node: { name: p.name, desc: `PvP talent · placeholder description for ${p.name}.`, maxPoints: 1 },
+      state: { role: 'core', pts: 1, pickRate: p.pct },
+      x: e.clientX, y: e.clientY,
+    });
+  };
+
+  return (
+    <div className="pvp-panel" data-screen-label="PvP talents (global)">
+      <div className="pvp-head">
+        <h3>PvP Talents</h3>
+        <div className="stat">
+          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>GLOBAL</span>
+          <span>same across all clusters · n={data.sample_size.toLocaleString()}</span>
+        </div>
+      </div>
+      <div className="pvp-grid">
+        {modal.map((p, i) => (
+          <div className="pvp-slot" key={p.id}
+               onMouseEnter={(e) => onHoverPvp(e, p)}
+               onMouseMove={(e) => onHoverPvp(e, p)}
+               onMouseLeave={onLeave}>
+            <span className="pvp-slot-tag">SLOT {i + 1}</span>
+            <div className="pvp-slot-pos">Modal pick</div>
+            <div className="pvp-slot-name">{p.name}</div>
+            <div className="pvp-slot-pct">{p.pct}<span className="unit">%</span></div>
+          </div>
+        ))}
+        <div className="pvp-alts">
+          <div className="pvp-alts-head">Alternatives · {alts.length}</div>
+          <div className="pvp-alts-list">
+            {alts.map(p => (
+              <div className="pvp-alt-row" key={p.id}
+                   onMouseEnter={(e) => onHoverPvp(e, p)}
+                   onMouseMove={(e) => onHoverPvp(e, p)}
+                   onMouseLeave={onLeave}>
+                <span className="pvp-alt-name">{p.name}</span>
+                <span className="pvp-alt-bar">
+                  <span className="pvp-alt-bar-fill" style={{width: `${p.pct}%`}}></span>
+                </span>
+                <span className="pvp-alt-pct">{p.pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Tooltip({ node, state, x, y }) {
+  const role = state ? state.role : 'skip';
+  const isContested = state && state.contested;
+  const tooltipStyle = {
+    left: Math.min(x, window.innerWidth - 300),
+    top: Math.min(y, window.innerHeight - 240),
+  };
+  const isMulti = node.maxPoints && node.maxPoints > 1;
+  const rankDist = state && state.rankDist;
+  const displayRank = state ? (rankDist ? window.modalRank(state) : state.pts) : 0;
+  const rankFlex = state && window.isRankFlex(node, state);
+
+  let tag = 'SKIP';
+  if (role === 'core') tag = rankFlex ? 'CORE · RANK-FLEX' : (isContested ? 'CLUSTER TAKE' : 'CORE');
+  else if (role === 'flex') tag = 'FLEX';
+
+  return (
+    <div className="tooltip" style={tooltipStyle}>
+      <div className="tooltip-head">
+        <span className="tooltip-name">{node.name}</span>
+        <span className={`tooltip-tag ${role} ${isContested ? 'contested' : ''}`}>{tag}</span>
+      </div>
+      <div className="tooltip-desc">{node.desc}</div>
+      {state ? (
+        <>
+          <div className="tooltip-stat">
+            <span>Pick rate {isContested ? '(overall)' : ''}</span>
+            <span className="v">{state.pickRate}%</span>
+          </div>
+          <div className="tooltip-bar">
+            <div className="tooltip-bar-fill" style={{width: `${state.pickRate}%`}}></div>
+          </div>
+          {isMulti && rankDist ? (
+            <>
+              <div className="tooltip-rank-title">Rank distribution</div>
+              {rankDist.map((pct, i) => {
+                const modalI = displayRank - 1;
+                return (
+                  <div className="tooltip-rank-row" key={i}>
+                    <span className="lbl">R {i + 1}</span>
+                    <span className="bar">
+                      <span className={`fill ${i === modalI ? 'modal' : ''}`} style={{width: `${pct}%`}}></span>
+                    </span>
+                    <span className="pct">{pct}%</span>
+                  </div>
+                );
+              })}
+              {(() => {
+                const skipPct = Math.max(0, 100 - rankDist.reduce((s,v) => s+v, 0));
+                if (skipPct < 0.5) return null;
+                return (
+                  <div className="tooltip-rank-row">
+                    <span className="lbl">skip</span>
+                    <span className="bar">
+                      <span className="fill" style={{width: `${skipPct}%`, background:'var(--text-3)'}}></span>
+                    </span>
+                    <span className="pct skip">{Math.round(skipPct)}%</span>
+                  </div>
+                );
+              })()}
+            </>
+          ) : null}
+        </>
+      ) : (
+        <div className="tooltip-stat">
+          <span>Not taken in this cluster</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>
