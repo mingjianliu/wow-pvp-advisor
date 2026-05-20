@@ -60,7 +60,5 @@ def init_db(path: str) -> sqlite3.Connection:
 
 
 def get_default_db() -> sqlite3.Connection:
-    db_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "data", "wow_advisor.db")
-    )
-    return init_db(db_path)
+    from wow_advisor._paths import get_db_path
+    return init_db(str(get_db_path()))
