@@ -1,0 +1,73 @@
+name: Build Windows exe
+
+on:
+  push:
+    tags:
+      - "v*"          # v1.0.0, v1.2.3 etc → creates a GitHub Release
+  workflow_dispatch:  # manual trigger from the Actions tab
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install httpx python-dotenv pyinstaller
+          # fastmcp is excluded from the exe build (MCP server only)
+
+      - name: Build exe
+        run: pyinstaller build.spec --clean --noconfirm
+
+      - name: Verify build
+        run: |
+          if (!(Test-Path "dist\wow-advisor.exe")) {
+            Write-Error "Build failed: dist\wow-advisor.exe not found"
+            exit 1
+          }
+          $size = (Get-Item "dist\wow-advisor.exe").length / 1MB
+          Write-Host "wow-advisor.exe built successfully ($([math]::Round($size, 1)) MB)"
+
+      - name: Upload artifact (every run)
+        uses: actions/upload-artifact@v4
+        with:
+          name: wow-advisor-windows
+          path: dist/wow-advisor.exe
+          retention-days: 30
+
+      - name: Create GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/wow-advisor.exe
+          generate_release_notes: true
+          body: |
+            ## WoW Advisor ${{ github.ref_name }}
+
+            ### Quick start
+            1. Download `wow-advisor.exe`
+            2. Open a terminal and run:
+               ```
+               wow-advisor.exe "restoration shaman" 3v3
+               ```
+            3. On first run it will ask for your Blizzard API credentials.
+               Get them free at https://develop.battle.net/access/clients
+
+            ### Usage
+            ```
+            wow-advisor.exe <spec> <bracket> [--region us|eu] [--refresh]
+
+            Examples:
+              wow-advisor.exe "holy paladin" 3v3
+              wow-advisor.exe rsham 2v2 --region eu
+              wow-advisor.exe arms-warrior 3v3 --refresh
+            ```
