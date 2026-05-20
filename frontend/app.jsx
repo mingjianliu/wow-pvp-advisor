@@ -24,10 +24,10 @@ const PVP_BY_ID = {};
 // Cluster.skips and everything else → not in map (renders as skip).
 function deriveNodeMap(data, cluster) {
   const map = {};
-  group.talents.core.forEach(t => {
+  data.talents.core.forEach(t => {
     map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name };
   });
-  group.talents.flex.forEach(t => {
+  data.talents.flex.forEach(t => {
     map[t.id] = { role: 'flex', pts: 1, pickRate: t.pct, sourceName: t.name };
   });
   cluster.takes.forEach(t => {
@@ -74,7 +74,7 @@ function App() {
   };
 
   // Derived node state map for the active cluster.
-  const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [group, cluster]);
+  const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
   const clusterForRenderer = { ...cluster, nodes: nodeMap, name: clusterLabel(cluster, customLabels) };
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
