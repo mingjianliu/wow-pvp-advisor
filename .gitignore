@@ -12,3 +12,4 @@ frontend/demo.html
 frontend/pages/
 .claude/worktrees/
 build/
+.worktrees/
