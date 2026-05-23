@@ -59,18 +59,19 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
                 continue
             
             node_ranks = {}
-            for t in loadout.get("selected_class_talents", []):
-                node_ranks[t["id"]] = t.get("rank", 1)
-            for t in loadout.get("selected_spec_talents", []):
-                node_ranks[t["id"]] = t.get("rank", 1)
-            for t in loadout.get("selected_hero_talents", []):
-                node_ranks[t["id"]] = t.get("rank", 1)
+            def add_ranks(talents):
+                for t in talents:
+                    node_ranks[t["id"]] = node_ranks.get(t["id"], 0) + t.get("rank", 1)
+
+            add_ranks(loadout.get("selected_class_talents", []))
+            add_ranks(loadout.get("selected_spec_talents", []))
+            add_ranks(loadout.get("selected_hero_talents", []))
 
             return TalentData(
                 loadout_code=loadout.get("talent_loadout_code", ""),
-                class_node_ids=[t["id"] for t in loadout.get("selected_class_talents", [])],
-                spec_node_ids=[t["id"] for t in loadout.get("selected_spec_talents", [])],
-                hero_node_ids=[t["id"] for t in loadout.get("selected_hero_talents", [])],
+                class_node_ids=sorted({t["id"] for t in loadout.get("selected_class_talents", [])}),
+                spec_node_ids=sorted({t["id"] for t in loadout.get("selected_spec_talents", [])}),
+                hero_node_ids=sorted({t["id"] for t in loadout.get("selected_hero_talents", [])}),
                 pvp_talent_ids=pvp_ids,
                 pvp_talent_names=pvp_names,
                 node_ranks=node_ranks,
