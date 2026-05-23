@@ -6,10 +6,9 @@ const ROW_H = 78;
 const PAD_X = 36;
 const PAD_Y = 28;
 
-function nodeXY(node, overrideCol = null) {
-  const col = overrideCol !== null ? overrideCol : node.col;
+function nodeXY(node) {
   return {
-    x: PAD_X + col * COL_W,
+    x: PAD_X + node.col * COL_W,
     y: PAD_Y + node.row * ROW_H,
   };
 }
@@ -55,9 +54,10 @@ function NodeShape({ node, x, y, scale = 1, extraClass = '', heat }) {
 function NodeIcon({ node, x, y, iconUrl }) {
   if (!iconUrl) return null;
   const baseR = node.type === 'capstone' ? 20 : node.type === 'diamond' ? 16 : 15;
-  // For diamonds: side of inscribed square = r * sqrt(2). We use ~r*1.25 to
-  // leave a small inner gap so the colored stroke stays visible.
-  const size = (node.type === 'diamond' || node.type === 'capstone' ? baseR * 1.25 : baseR * 1.7);
+  // For diamonds: side of inscribed square = r * sqrt(2) ≈ r * 1.414.  We
+  // size the icon at ~r * 1.4 so it fills the diamond's interior; CSS
+  // clip-path then trims the corners back to the diamond shape.
+  const size = (node.type === 'diamond' || node.type === 'capstone' ? baseR * 1.45 : baseR * 1.7);
   const isDiamond = node.type === 'diamond' || node.type === 'capstone';
   return (
     <image
@@ -70,6 +70,32 @@ function NodeIcon({ node, x, y, iconUrl }) {
       height={size}
       preserveAspectRatio="xMidYMid slice"
     />
+  );
+}
+
+// Pick-rate ring — a circumscribed arc whose length encodes pickRate %.
+// We always use a circle (even for diamonds) so the visual cue is
+// consistent across node shapes.
+function PickRateRing({ node, x, y, pickRate, role }) {
+  if (pickRate == null) return null;
+  // Skip the ring when pick rate is essentially 100% — it'd just be a
+  // closed circle, indistinguishable from a regular outline and adds noise.
+  if (pickRate >= 99.5) return null;
+  const baseR = node.type === 'capstone' ? 20 : node.type === 'diamond' ? 16 : 15;
+  const r = baseR + 5;
+  const circ = 2 * Math.PI * r;
+  const len = Math.max(0.5, (circ * pickRate) / 100);
+  return (
+    <g className={`rate-ring rate-ring-${role}`} transform={`rotate(-90 ${x} ${y})`}>
+      <circle cx={x} cy={y} r={r}
+        className="rate-ring-track"
+        fill="none" />
+      <circle cx={x} cy={y} r={r}
+        className="rate-ring-fill"
+        fill="none"
+        strokeDasharray={`${len} ${circ - len}`}
+        strokeLinecap="round" />
+    </g>
   );
 }
 
@@ -88,19 +114,21 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
   const W = PAD_X * 2 + (widthCols - 1) * COL_W;
   const H = PAD_Y * 2 + (heightRows - 1) * ROW_H;
 
-  const isHeroTree = tree.id && tree.id.startsWith('hero_');
-  const rowCounts = {};
-  if (isHeroTree) {
-    tree.nodes.forEach(n => { rowCounts[n.row] = (rowCounts[n.row] || 0) + 1; });
-  }
-  const centerCol = (widthCols - 1) / 2;
-
-  const getNodeXY = (node) => {
-    const isCentered = isHeroTree && rowCounts[node.row] === 1;
-    return nodeXY(node, isCentered ? centerCol : null);
-  };
-
   const meta = window.useTalentMeta();
+
+  // Center any row that contains exactly one node across the tree's column
+  // span — gives the hero tree's top/bottom singletons a balanced look.
+  const effectiveCol = React.useMemo(() => {
+    const rowsCount = {};
+    tree.nodes.forEach(n => { rowsCount[n.row] = (rowsCount[n.row] || 0) + 1; });
+    const cols = tree.nodes.map(n => n.col);
+    const midCol = (Math.min(...cols) + Math.max(...cols)) / 2;
+    return (n) => (rowsCount[n.row] === 1 ? midCol : n.col);
+  }, [tree.id]);
+  const xyFor = (n) => ({
+    x: PAD_X + effectiveCol(n) * COL_W,
+    y: PAD_Y + n.row * ROW_H,
+  });
 
   // Preload icons for every node in this tree on mount / when tree changes.
   React.useEffect(() => {
@@ -129,8 +157,8 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
             const na = tree.nodes.find(n => n.id === a);
             const nb = tree.nodes.find(n => n.id === b);
             if (!na || !nb) return null;
-            const pa = getNodeXY(na);
-            const pb = getNodeXY(nb);
+            const pa = xyFor(na);
+            const pb = xyFor(nb);
             const sa = stateFor(a);
             const sb = stateFor(b);
             let cls = 'edge';
@@ -148,7 +176,7 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
 
         <g>
           {tree.nodes.map((node) => {
-            const { x, y } = getNodeXY(node);
+            const { x, y } = xyFor(node);
             const st = stateFor(node.id);
             const role = st ? st.role : 'skip';
             const pickRate = st ? st.pickRate : 0;
@@ -158,18 +186,17 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
             const displayRank = st ? (st.rankDist ? modalRank(st) : st.pts) : 0;
 
             const onEnter = (e) => onHover({ node, state: st, x: e.clientX, y: e.clientY });
-            const onMove = (e) => onHover({ node, state: st, x: e.clientX, y: e.clientY });
 
             return (
               <g key={node.id}
                 className={`node-group ${role} ${rankFlex ? 'rank-flex' : ''} ${contestedTake ? 'contested-take' : ''}`}
                 onMouseEnter={onEnter}
-                onMouseMove={onMove}
                 onMouseLeave={onLeave}
               >
                 <NodeShape node={node} x={x} y={y} heat={heat} />
                 <NodeIcon node={node} x={x} y={y}
                   iconUrl={meta.get(node.spellId) && meta.get(node.spellId).icon} />
+                {st ? <PickRateRing node={node} x={x} y={y} pickRate={pickRate} role={role} /> : null}
                 {/* Inner dashed ring for rank-flex core nodes */}
                 {rankFlex && (
                   <NodeShape
