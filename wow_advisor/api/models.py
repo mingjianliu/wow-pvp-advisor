@@ -27,9 +27,12 @@ class TalentData:
     hero_node_ids: list[int] = field(default_factory=list)
     pvp_talent_ids: list[int] = field(default_factory=list)
     pvp_talent_names: list[str] = field(default_factory=list)
+    node_ranks: dict[int, int] = field(default_factory=dict)
 
     @property
     def all_node_ids(self) -> set[int]:
+        if self.node_ranks:
+            return set(self.node_ranks.keys())
         return set(self.class_node_ids + self.spec_node_ids + self.hero_node_ids)
 
 

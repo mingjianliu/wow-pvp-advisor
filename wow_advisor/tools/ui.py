@@ -85,7 +85,7 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
 
     def enrich(talent_list: list[dict]) -> list[dict]:
         return [
-            {"id": t["id"], "name": t.get("name") or id_to_name.get(t["id"]), "pct": t["pct"]}
+            {**t, "name": t.get("name") or id_to_name.get(t["id"])}
             for t in talent_list
             if (t.get("name") or id_to_name.get(t["id"])) and t["id"] not in hero_ids
         ]

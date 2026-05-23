@@ -30,14 +30,15 @@ class CacheStore:
             pid = cur.lastrowid
             self._conn.execute(
                 """INSERT INTO player_loadouts
-                   (player_id, talent_code, class_node_ids, spec_node_ids, hero_node_ids, pvp_talent_ids, pvp_talent_names, gear)
-                   VALUES (?,?,?,?,?,?,?,?)""",
+                   (player_id, talent_code, class_node_ids, spec_node_ids, hero_node_ids, node_ranks, pvp_talent_ids, pvp_talent_names, gear)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
                 (
                     pid,
                     p.talent.loadout_code if p.talent else None,
                     json.dumps(p.talent.class_node_ids if p.talent else []),
                     json.dumps(p.talent.spec_node_ids if p.talent else []),
                     json.dumps(p.talent.hero_node_ids if p.talent else []),
+                    json.dumps({str(k): v for k, v in p.talent.node_ranks.items()} if p.talent else {}),
                     json.dumps(p.talent.pvp_talent_ids if p.talent else []),
                     json.dumps(p.talent.pvp_talent_names if p.talent else []),
                     json.dumps([
@@ -62,7 +63,7 @@ class CacheStore:
             """SELECT p.name, p.realm, p.region, p.character_class, p.spec,
                       p.rating, p.equipped_ilvl,
                       l.talent_code, l.class_node_ids, l.spec_node_ids,
-                      l.hero_node_ids, l.pvp_talent_ids, l.pvp_talent_names, l.gear
+                      l.hero_node_ids, l.node_ranks, l.pvp_talent_ids, l.pvp_talent_names, l.gear
                FROM players p
                LEFT JOIN player_loadouts l ON p.id = l.player_id
                WHERE p.spec=? AND p.bracket=? AND p.region=?
@@ -73,11 +74,13 @@ class CacheStore:
         for r in rows:
             talent = None
             if r["talent_code"]:
+                node_ranks_raw = json.loads(r["node_ranks"] or "{}")
                 talent = TalentData(
                     loadout_code=r["talent_code"],
                     class_node_ids=json.loads(r["class_node_ids"] or "[]"),
                     spec_node_ids=json.loads(r["spec_node_ids"] or "[]"),
                     hero_node_ids=json.loads(r["hero_node_ids"] or "[]"),
+                    node_ranks={int(k): v for k, v in node_ranks_raw.items()},
                     pvp_talent_ids=json.loads(r["pvp_talent_ids"] or "[]"),
                     pvp_talent_names=json.loads(r["pvp_talent_names"] or "[]"),
                 )

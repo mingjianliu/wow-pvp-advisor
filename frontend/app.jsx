@@ -92,13 +92,13 @@ function autoClusterName(cluster) {
 function deriveNodeMap(data, cluster) {
   const map = {};
   (data.talents.core || []).forEach((t) => {
-    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name };
+    map[t.id] = { role: 'core', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, rankDist: t.rankDist };
   });
   (data.talents.flex || []).forEach((t) => {
-    map[t.id] = { role: 'flex', pts: 1, pickRate: t.pct, sourceName: t.name };
+    map[t.id] = { role: 'flex', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, rankDist: t.rankDist };
   });
   (cluster.takes || []).forEach((t) => {
-    map[t.id] = { role: 'core', pts: 1, pickRate: t.pct, sourceName: t.name, contested: true };
+    map[t.id] = { role: 'core', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, contested: true, rankDist: t.rankDist };
   });
   return map;
 }

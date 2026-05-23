@@ -7,13 +7,26 @@ from wow_advisor.tools.fetch import fetch_top_players
 def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
     """Transform raw talent node IDs into {id, name, pct} objects."""
     pick_rates = {int(k): v for k, v in talents.get("pick_rates", {}).items()}
+    rank_dists = talents.get("rank_distributions", {})
 
-    def enrich(ids: list[int]) -> list[dict]:
-        enriched = [{
-            "id": nid,
-            "name": (node_map.get(nid) or {}).get("name"),
-            "pct": pick_rates.get(nid),
-        } for nid in ids]
+    def enrich(ids_or_objs: list) -> list[dict]:
+        enriched = []
+        for item in ids_or_objs:
+            nid = item["id"] if isinstance(item, dict) else item
+            entry = {
+                "id": nid,
+                "name": (node_map.get(nid) or {}).get("name"),
+                "pct": pick_rates.get(nid),
+            }
+            if isinstance(item, dict) and "rank" in item:
+                entry["pts"] = item["rank"]
+            
+            dist = rank_dists.get(str(nid))
+            if dist:
+                entry["rankDist"] = dist
+            
+            enriched.append(entry)
+        
         # Sort by pick rate descending, but keep items with same pick rate in ID order
         return sorted(enriched, key=lambda x: (-(x["pct"] or 0), x["id"]))
 

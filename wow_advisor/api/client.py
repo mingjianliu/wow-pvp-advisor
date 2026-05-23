@@ -57,6 +57,15 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
         for loadout in spec.get("loadouts", []):
             if not loadout.get("is_active"):
                 continue
+            
+            node_ranks = {}
+            for t in loadout.get("selected_class_talents", []):
+                node_ranks[t["id"]] = t.get("rank", 1)
+            for t in loadout.get("selected_spec_talents", []):
+                node_ranks[t["id"]] = t.get("rank", 1)
+            for t in loadout.get("selected_hero_talents", []):
+                node_ranks[t["id"]] = t.get("rank", 1)
+
             return TalentData(
                 loadout_code=loadout.get("talent_loadout_code", ""),
                 class_node_ids=[t["id"] for t in loadout.get("selected_class_talents", [])],
@@ -64,6 +73,7 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
                 hero_node_ids=[t["id"] for t in loadout.get("selected_hero_talents", [])],
                 pvp_talent_ids=pvp_ids,
                 pvp_talent_names=pvp_names,
+                node_ranks=node_ranks,
             )
     return None
 

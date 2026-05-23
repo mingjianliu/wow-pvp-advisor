@@ -1050,6 +1050,24 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   align-items: center;
   gap: 8px;
 }
+.sig-name-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: 8px;
+}
+.sig-pts {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(77,159,255,0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
 .sig-icon {
   width: 18px;
   height: 18px;

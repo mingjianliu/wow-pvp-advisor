@@ -74,6 +74,7 @@ def build_aggregation(
 
     # Talent clustering
     node_sets = [p.talent.all_node_ids for p in players_with_talent]
+    node_ranks_list = [p.talent.node_ranks for p in players_with_talent]
     loadout_codes = [p.talent.loadout_code for p in players_with_talent]
     keystone_nodes = _load_keystone_nodes(spec, keystone_file)
 
@@ -81,6 +82,7 @@ def build_aggregation(
         node_sets=node_sets,
         loadout_codes=loadout_codes,
         keystone_nodes=keystone_nodes,
+        node_ranks_list=node_ranks_list,
     )
 
     # Gear and item level aggregation

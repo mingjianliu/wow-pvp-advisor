@@ -8,10 +8,12 @@ class TalentAnalysis:
     flex_nodes: set[int] = field(default_factory=set)
     contested_nodes: set[int] = field(default_factory=set)
     pick_rates: dict[int, float] = field(default_factory=dict)
+    rank_distributions: dict[int, list[float]] = field(default_factory=dict)
 
 
 def analyze_talents(
     node_sets: list[set[int]],
+    node_ranks_list: list[dict[int, int]] | None = None,
     core_threshold: float = 0.8,
     flex_threshold: float = 0.2,
 ) -> TalentAnalysis:
@@ -27,11 +29,28 @@ def analyze_talents(
     core = {node for node, rate in pick_rates.items() if rate >= core_threshold}
     flex = {node for node, rate in pick_rates.items() if rate <= flex_threshold}
     contested = all_nodes - core - flex
+
+    rank_distributions = {}
+    if node_ranks_list:
+        for node in all_nodes:
+            # We don't know the max_rank here, so we'll just track whatever ranks we see.
+            # Usually it's 1 or 2.
+            ranks_seen = [ranks.get(node, 0) for ranks in node_ranks_list if node in ranks]
+            if not ranks_seen:
+                continue
+            max_r = max(ranks_seen)
+            if max_r > 1:
+                counts = Counter(ranks_seen)
+                # list index i corresponds to rank i+1
+                dist = [round(counts.get(r, 0) / n * 100, 1) for r in range(1, max_r + 1)]
+                rank_distributions[node] = dist
+
     return TalentAnalysis(
         core_nodes=core,
         flex_nodes=flex,
         contested_nodes=contested,
         pick_rates=pick_rates,
+        rank_distributions=rank_distributions,
     )
 
 
@@ -65,6 +84,7 @@ def summarize_talent_clusters(
     node_sets: list[set[int]],
     loadout_codes: list[str],
     keystone_nodes: list[int] | None = None,
+    node_ranks_list: list[dict[int, int]] | None = None,
 ) -> dict:
     """Full pipeline: analyze → cluster → summarize."""
     n = len(node_sets)
@@ -72,7 +92,7 @@ def summarize_talent_clusters(
         return {"core_nodes": [], "flex_nodes": [], "contested_nodes": [],
                 "clusters": [], "clustering_method": "variance+hamming"}
 
-    analysis = analyze_talents(node_sets)
+    analysis = analyze_talents(node_sets, node_ranks_list=node_ranks_list)
 
     if keystone_nodes is not None:
         decision_nodes = set(keystone_nodes)
@@ -101,12 +121,24 @@ def summarize_talent_clusters(
             cluster[0][1],
         )
         canonical_code = loadout_codes[canonical_idx] if canonical_idx < len(loadout_codes) else ""
+
+        # Determine modal rank for each node in this cluster
+        takes_with_ranks = []
+        for nid in sorted(canonical_set):
+            node_ranks_in_cluster = [
+                node_ranks_list[idx].get(nid, 1)
+                for _, idx in cluster
+                if node_ranks_list and nid in node_ranks_list[idx]
+            ]
+            modal_rank = Counter(node_ranks_in_cluster).most_common(1)[0][0] if node_ranks_in_cluster else 1
+            takes_with_ranks.append({"id": nid, "rank": modal_rank})
+
         cluster_summaries.append({
             "rank": rank,
             "count": len(cluster),
             "pct": round(len(cluster) / n * 100, 1),
             "canonical_code": canonical_code,
-            "takes": sorted(canonical_set),
+            "takes": takes_with_ranks,
             "skips": sorted(decision_nodes - canonical_set),
         })
 
@@ -115,6 +147,7 @@ def summarize_talent_clusters(
         "flex_nodes": sorted(analysis.flex_nodes),
         "contested_nodes": sorted(decision_nodes),
         "pick_rates": {node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()},
+        "rank_distributions": {str(node): dist for node, dist in analysis.rank_distributions.items()},
         "clusters": cluster_summaries,
         "clustering_method": method,
     }

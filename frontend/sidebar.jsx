@@ -81,7 +81,10 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
           <ul className="signature-list">
             {takes.map(t => (
               <li key={t.id} className="sig-item take">
-                <TalentLink t={t} className="sig-name" />
+                <div className="sig-name-row">
+                  <TalentLink t={t} className="sig-name" />
+                  {t.pts > 1 && <span className="sig-pts">R{t.pts}</span>}
+                </div>
                 <span className="sig-bar"><span className="sig-bar-fill" style={{width: `${t.pct}%`}}></span></span>
                 <span className="sig-pct">{t.pct}%</span>
               </li>
@@ -96,7 +99,10 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             <ul className="signature-list">
               {flex.map(t => (
                 <li key={t.id} className="sig-item flex">
-                  <TalentLink t={t} className="sig-name" />
+                  <div className="sig-name-row">
+                    <TalentLink t={t} className="sig-name" />
+                    {t.pts > 1 && <span className="sig-pts">R{t.pts}</span>}
+                  </div>
                   <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
                   <span className="sig-pct">{t.pct}%</span>
                 </li>
