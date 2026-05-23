@@ -38,14 +38,28 @@ window.TalentMeta = (function () {
       })
       .catch(() => {
         inFlight.delete(key);
-        // If 'spell' failed, try 'pvp-talent'
+        // If 'spell' failed, try 'pvp-talent' (some pvp talents use a different namespace)
         if (type === 'spell') {
           fetchOne(id, 'pvp-talent');
         }
       });
   }
 
-  // ... (sanitize function remains same) ...
+  // Strip the parts of Wowhead's tooltip HTML we don't want to show in our
+  // own popup (the name — we already render it; the leading icon block;
+  // sell-price / drop-from / sold-by chunks the widget appends for items).
+  function sanitize(html) {
+    if (!html) return '';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.whtt-name, .whtt-tooltip-icon').forEach((n) => n.remove());
+    wrap.querySelectorAll('a[href^="/"]').forEach((a) => {
+      a.setAttribute('href', 'https://www.wowhead.com' + a.getAttribute('href'));
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+    });
+    return wrap.innerHTML;
+  }
 
   function preload(ids, type = 'spell') {
     ids.forEach((id) => { if (id) fetchOne(id, type); });
