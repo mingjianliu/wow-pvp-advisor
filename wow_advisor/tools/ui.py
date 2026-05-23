@@ -102,13 +102,23 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
         """
         all_raw = raw["talents"]["core"] + raw["talents"]["flex"] + raw["talents"]["contested"]
         rate: dict[int, float] = {t["id"]: t["pct"] for t in all_raw if t["id"] in hero_ids}
+        pts: dict[int, int] = {t["id"]: t.get("pts", 1) for t in all_raw if t["id"] in hero_ids}
+        dist: dict[int, list] = {t["id"]: t.get("rankDist", []) for t in all_raw if t["id"] in hero_ids}
+        
         left_ids  = {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
         right_ids = {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
         left_avg  = sum(rate.get(i, 0) for i in left_ids)  / max(len(left_ids), 1)
         right_avg = sum(rate.get(i, 0) for i in right_ids) / max(len(right_ids), 1)
         dominant  = left_ids if left_avg >= right_avg else right_ids
+        
         return [
-            {"id": hid, "name": id_to_name[hid], "pct": rate.get(hid, 0)}
+            {
+                "id": hid, 
+                "name": id_to_name[hid], 
+                "pct": rate.get(hid, 0),
+                "pts": pts.get(hid, 1),
+                "rankDist": dist.get(hid, [])
+            }
             for hid in dominant
             if hid in id_to_name
         ]

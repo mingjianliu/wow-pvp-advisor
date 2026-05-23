@@ -33,17 +33,15 @@ def analyze_talents(
     rank_distributions = {}
     if node_ranks_list:
         for node in all_nodes:
-            # We don't know the max_rank here, so we'll just track whatever ranks we see.
-            # Usually it's 1 or 2.
+            # We track whatever ranks we see. Usually it's 1 or 2.
             ranks_seen = [ranks.get(node, 0) for ranks in node_ranks_list if node in ranks]
             if not ranks_seen:
                 continue
             max_r = max(ranks_seen)
-            if max_r > 1:
-                counts = Counter(ranks_seen)
-                # list index i corresponds to rank i+1
-                dist = [round(counts.get(r, 0) / n * 100, 1) for r in range(1, max_r + 1)]
-                rank_distributions[node] = dist
+            counts = Counter(ranks_seen)
+            # list index i corresponds to rank i+1
+            dist = [round(counts.get(r, 0) / n * 100, 1) for r in range(1, max_r + 1)]
+            rank_distributions[node] = dist
 
     return TalentAnalysis(
         core_nodes=core,

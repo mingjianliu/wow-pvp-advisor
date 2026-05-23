@@ -6,10 +6,10 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
   const flex = [...((group.talents && group.talents.flex) || [])].sort((a, b) => b.pct - a.pct);
   const meta = window.useTalentMeta();
 
-  // Resolve spellIds for the tree-node ids referenced in cluster.takes.
+  // Resolve spellIds and maxPoints for the tree-node ids referenced in cluster.takes.
   // The flat group.talents lists carry only {id, name, pct} — the actual
-  // spellId lives on the tree-node, so we walk every tree to build the map.
-  const spellIdById = React.useMemo(() => {
+  // data lives on the tree-node, so we walk every tree to build the map.
+  const nodeMetaById = React.useMemo(() => {
     const m = {};
     const trees = (group.tree && group.tree.trees) || [];
     const heroTrees = group.tree && group.tree.heroTrees;
@@ -18,20 +18,27 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
       ...((heroTrees && heroTrees.left && heroTrees.left.nodes) || []),
       ...((heroTrees && heroTrees.right && heroTrees.right.nodes) || []),
     ];
-    allNodes.forEach(n => { if (n.spellId) m[n.id] = n.spellId; });
+    allNodes.forEach(n => { 
+      m[n.id] = { spellId: n.spellId, maxPoints: n.maxPoints || 1 };
+    });
     return m;
   }, [group]);
 
   // Preload icons for everything we'll render in the sidebar.
   React.useEffect(() => {
     const ids = [];
-    takes.forEach(t => { const sid = t.spellId || spellIdById[t.id]; if (sid) ids.push(sid); });
+    takes.forEach(t => { 
+      const meta = nodeMetaById[t.id];
+      const sid = t.spellId || (meta && meta.spellId);
+      if (sid) ids.push(sid); 
+    });
     flex.forEach(t => { if (t.spellId) ids.push(t.spellId); });
     if (ids.length) window.TalentMeta.preload(ids);
-  }, [cluster.rank, spellIdById]);
+  }, [cluster.rank, nodeMetaById]);
 
   const TalentLink = ({ t, className }) => {
-    const sid = t.spellId || spellIdById[t.id];
+    const nodeMeta = nodeMetaById[t.id];
+    const sid = t.spellId || (nodeMeta && nodeMeta.spellId);
     const m = sid && meta.get(sid);
     const icon = m && m.icon;
     const Iconlet = icon
@@ -49,6 +56,17 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
         data-wowhead={`spell=${sid}`}
       >{Iconlet}<span className="sig-text">{t.name}</span></a>
     );
+  };
+
+  const RankTag = ({ t }) => {
+    const nodeMeta = nodeMetaById[t.id];
+    const max = (nodeMeta && nodeMeta.maxPoints) || 1;
+    const current = t.pts || 1;
+    // Show rank tag if it's a multi-rank talent, even if current rank is 1
+    if (max > 1) {
+      return <span className="sig-pts">R{current}</span>;
+    }
+    return null;
   };
 
   return (
@@ -83,7 +101,7 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
               <li key={t.id} className="sig-item take">
                 <div className="sig-name-row">
                   <TalentLink t={t} className="sig-name" />
-                  {t.pts > 1 && <span className="sig-pts">R{t.pts}</span>}
+                  <RankTag t={t} />
                 </div>
                 <span className="sig-bar"><span className="sig-bar-fill" style={{width: `${t.pct}%`}}></span></span>
                 <span className="sig-pct">{t.pct}%</span>
@@ -101,7 +119,7 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
                 <li key={t.id} className="sig-item flex">
                   <div className="sig-name-row">
                     <TalentLink t={t} className="sig-name" />
-                    {t.pts > 1 && <span className="sig-pts">R{t.pts}</span>}
+                    <RankTag t={t} />
                   </div>
                   <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
                   <span className="sig-pct">{t.pct}%</span>

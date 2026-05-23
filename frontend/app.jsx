@@ -451,7 +451,7 @@ function Tooltip({ node, state, x, y }) {
           <div className="tooltip-bar">
             <div className="tooltip-bar-fill" style={{ width: `${state.pickRate}%` }}></div>
           </div>
-          {isMulti && rankDist ?
+          {rankDist ?
         <>
               <div className="tooltip-rank-title">Rank distribution</div>
               {rankDist.map((pct, i) => {

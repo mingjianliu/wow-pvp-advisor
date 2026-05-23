@@ -213,9 +213,9 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
                     extraClass="node-signature-ring"
                   />
                 )}
-                {displayRank > 0 && node.maxPoints > 1 && (
+                {displayRank > 0 && (
                   <text className="node-points" x={x} y={y + 3}>
-                    {displayRank}/{node.maxPoints}
+                    {node.maxPoints > 1 ? `${displayRank}/${node.maxPoints}` : displayRank}
                   </text>
                 )}
                 <text className="node-label" x={x} y={y + 32}>
