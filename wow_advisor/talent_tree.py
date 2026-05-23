@@ -24,14 +24,16 @@ def _parse_node(n: dict) -> dict | None:
         if "talent" in tt:
             name = tt["talent"].get("name")
             spell_id = tt.get("spell_tooltip", {}).get("spell", {}).get("id")
-            break
-        # Choice nodes: choice_of_tooltips sits directly on rank (no tooltip wrapper)
+            if name and spell_id:
+                break
+        # Choice nodes: choice_of_tooltips sits directly on rank or inside tooltip
         cot = rank.get("choice_of_tooltips") or tt.get("choice_of_tooltips")
         if cot:
             c = cot[0]
             name = c.get("talent", {}).get("name")
             spell_id = c.get("spell_tooltip", {}).get("spell", {}).get("id")
-            break
+            if name and spell_id:
+                break
     if not name:
         return None
     ntype = "diamond" if n.get("node_type", {}).get("id") == 2 else "circle"
