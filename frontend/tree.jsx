@@ -6,9 +6,10 @@ const ROW_H = 78;
 const PAD_X = 36;
 const PAD_Y = 28;
 
-function nodeXY(node) {
+function nodeXY(node, overrideCol = null) {
+  const col = overrideCol !== null ? overrideCol : node.col;
   return {
-    x: PAD_X + node.col * COL_W,
+    x: PAD_X + col * COL_W,
     y: PAD_Y + node.row * ROW_H,
   };
 }
@@ -87,6 +88,18 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
   const W = PAD_X * 2 + (widthCols - 1) * COL_W;
   const H = PAD_Y * 2 + (heightRows - 1) * ROW_H;
 
+  const isHeroTree = tree.id && tree.id.startsWith('hero_');
+  const rowCounts = {};
+  if (isHeroTree) {
+    tree.nodes.forEach(n => { rowCounts[n.row] = (rowCounts[n.row] || 0) + 1; });
+  }
+  const centerCol = (widthCols - 1) / 2;
+
+  const getNodeXY = (node) => {
+    const isCentered = isHeroTree && rowCounts[node.row] === 1;
+    return nodeXY(node, isCentered ? centerCol : null);
+  };
+
   const meta = window.useTalentMeta();
 
   // Preload icons for every node in this tree on mount / when tree changes.
@@ -116,8 +129,8 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
             const na = tree.nodes.find(n => n.id === a);
             const nb = tree.nodes.find(n => n.id === b);
             if (!na || !nb) return null;
-            const pa = nodeXY(na);
-            const pb = nodeXY(nb);
+            const pa = getNodeXY(na);
+            const pb = getNodeXY(nb);
             const sa = stateFor(a);
             const sb = stateFor(b);
             let cls = 'edge';
@@ -135,7 +148,7 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
 
         <g>
           {tree.nodes.map((node) => {
-            const { x, y } = nodeXY(node);
+            const { x, y } = getNodeXY(node);
             const st = stateFor(node.id);
             const role = st ? st.role : 'skip';
             const pickRate = st ? st.pickRate : 0;
