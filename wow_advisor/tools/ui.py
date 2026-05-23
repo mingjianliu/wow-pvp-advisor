@@ -217,12 +217,24 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                 spec, bracket = match.groups()
                 pages_dir = get_pages_dir()
                 full_path = pages_dir / filename
-                if not full_path.exists():
+                
+                needs_build = not full_path.exists()
+                if not needs_build:
+                    import time
+                    age = time.time() - full_path.stat().st_mtime
+                    if age > 2 * 3600:
+                        print(f"[Server] {filename} is {age/3600:.1f} hours old. Rebuilding...")
+                        needs_build = True
+
+                if needs_build:
                     try:
                         # Ensure we don't open browser during on-demand generation
                         build_page(spec, bracket, open_browser=False)
-                    except Exception:
-                        pass  # Standard 404 will be returned by super().do_GET()
+                        print(f"[Server] Successfully rebuilt {filename}")
+                    except Exception as e:
+                        import traceback
+                        traceback.print_exc()
+                        print(f"[Server] Failed to build {filename}: {e}")
 
         return super().do_GET()
 
