@@ -47,8 +47,9 @@ def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
         for slot in spec.get("pvp_talent_slots", []):
             selected = slot.get("selected", {})
             talent = selected.get("talent", {})
-            spell = selected.get("spell", {})
-            # Prefer spell ID for Wowhead tooltip compatibility
+            # Spell ID is inside spell_tooltip.spell.id
+            spell_tooltip = selected.get("spell_tooltip", {})
+            spell = spell_tooltip.get("spell", {})
             tid = spell.get("id") or talent.get("id")
             if tid:
                 pvp_ids.append(tid)
