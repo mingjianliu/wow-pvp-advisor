@@ -231,9 +231,9 @@ function App() {
               <div className="crumb-menu-title">Bracket</div>
               {BRACKETS.map((b) =>
                 <a key={b}
-                   href="#"
+                   href={isNavigating ? buildHref(navSelection.class, navSelection.spec, b) : "#"}
                    onClick={(e) => {
-                     e.preventDefault();
+                     if (!isNavigating && b === navSelection.bracket) e.preventDefault();
                      setNavSelection({ ...navSelection, bracket: b });
                    }}
                    className={`crumb-menu-item ${b === navSelection.bracket ? 'current' : ''}`}>
