@@ -4,22 +4,42 @@
 function Sidebar({ cluster, group, onCopy, heatmap }) {
   const takes = cluster.takes || [];
   const flex = (group.talents && group.talents.flex) || [];
+  const meta = window.useTalentMeta();
 
   // Resolve spellIds for the tree-node ids referenced in cluster.takes.
-  // (Global talents carry both `id` and `spellId`; cluster takes carry just `id`
-  // — we look up the spellId so the takes link to Wowhead too.)
+  // The flat group.talents lists carry only {id, name, pct} — the actual
+  // spellId lives on the tree-node, so we walk every tree to build the map.
   const spellIdById = React.useMemo(() => {
     const m = {};
-    ['core', 'flex', 'contested'].forEach(role => {
-      const list = (group.talents && group.talents[role]) || [];
-      list.forEach(t => { if (t.spellId) m[t.id] = t.spellId; });
-    });
+    const trees = (group.tree && group.tree.trees) || [];
+    const heroTrees = group.tree && group.tree.heroTrees;
+    const allNodes = [
+      ...trees.flatMap(t => t.nodes || []),
+      ...((heroTrees && heroTrees.left && heroTrees.left.nodes) || []),
+      ...((heroTrees && heroTrees.right && heroTrees.right.nodes) || []),
+    ];
+    allNodes.forEach(n => { if (n.spellId) m[n.id] = n.spellId; });
     return m;
   }, [group]);
 
+  // Preload icons for everything we'll render in the sidebar.
+  React.useEffect(() => {
+    const ids = [];
+    takes.forEach(t => { const sid = t.spellId || spellIdById[t.id]; if (sid) ids.push(sid); });
+    flex.forEach(t => { if (t.spellId) ids.push(t.spellId); });
+    if (ids.length) window.TalentMeta.preload(ids);
+  }, [cluster.rank, spellIdById]);
+
   const TalentLink = ({ t, className }) => {
     const sid = t.spellId || spellIdById[t.id];
-    if (!sid) return <span className={className}>{t.name}</span>;
+    const m = sid && meta.get(sid);
+    const icon = m && m.icon;
+    const Iconlet = icon
+      ? <img className="sig-icon" src={icon} alt="" loading="lazy" />
+      : <span className="sig-icon placeholder"></span>;
+    if (!sid) {
+      return <span className={className}>{Iconlet}<span className="sig-text">{t.name}</span></span>;
+    }
     return (
       <a
         className={`${className} talent-link`}
@@ -27,7 +47,7 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
         target="_blank"
         rel="noopener"
         data-wowhead={`spell=${sid}`}
-      >{t.name}</a>
+      >{Iconlet}<span className="sig-text">{t.name}</span></a>
     );
   };
 

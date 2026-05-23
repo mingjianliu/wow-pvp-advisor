@@ -53,7 +53,7 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 /* === Layout shell === */
 .app {
   display: grid;
-  grid-template-rows: 56px 72px 1fr;
+  grid-template-rows: 56px auto 1fr;
   height: 100vh;
   width: 100vw;
 }
@@ -66,15 +66,21 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   padding: 0 20px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
+  position: relative;
+  z-index: 50;
 }
 .brand {
   display: flex; align-items: center; gap: 10px;
   font-weight: 600; font-size: 13px; letter-spacing: 0.02em;
 }
 .brand-mark {
-  width: 22px; height: 22px;
-  background: linear-gradient(135deg, var(--accent), var(--flex));
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  width: 24px; height: 24px;
+  border-radius: 5px;
+  border: 1px solid var(--class-color, var(--accent));
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4) inset, 0 0 10px -2px var(--class-color, var(--accent));
+  object-fit: cover;
+  background: var(--bg-3);
+  display: block;
 }
 .crumb {
   display: flex; align-items: center; gap: 8px;
@@ -83,6 +89,136 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 }
 .crumb .sep { color: var(--text-3); }
 .crumb .active { color: var(--text-0); }
+
+/* === Crumb dropdowns (hover) ============================================ */
+.crumb-drop {
+  position: relative;
+  /* Extend hover surface downward so the menu and trigger touch */
+  padding: 18px 2px 18px;
+  margin: -18px 0;
+  cursor: pointer;
+}
+.crumb-trigger {
+  color: var(--text-1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px dashed transparent;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.crumb-trigger.active { color: var(--text-0); }
+.crumb-drop:hover .crumb-trigger {
+  color: var(--text-0);
+  border-bottom-color: var(--line-2);
+}
+.crumb-drop:hover .crumb-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.crumb-menu {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: -6px;
+  min-width: 220px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms;
+  z-index: 100;
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.crumb-trigger.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-bottom: none;
+}
+.select-hint {
+  color: var(--accent);
+  font-weight: 700;
+  animation: nav-pulse 2s infinite;
+}
+@keyframes nav-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; text-shadow: 0 0 10px var(--accent); }
+  100% { opacity: 0.6; }
+}
+.nav-go-btn {
+  margin-left: 12px;
+  background: var(--accent);
+  color: #000;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  box-shadow: 0 0 20px -2px var(--accent);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.nav-go-btn:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 0 25px 0px var(--accent);
+}
+.nav-go-btn:active {
+  transform: translateY(0) scale(1);
+}
+.crumb-menu-title {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+.crumb-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  min-width: 360px;
+}
+.crumb-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  font-size: 12px;
+  color: var(--text-1);
+  text-decoration: none;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background 100ms ease, color 100ms ease;
+}
+.crumb-menu-item:hover {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+.crumb-menu-item.current {
+  background: var(--bg-3);
+  color: var(--text-0);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.crumb-menu-item .cls-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 7px;
+  box-shadow: 0 0 6px currentColor;
+}
+.crumb-menu-item .bracket-tag {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
 
 .topbar-right { margin-left: auto; display: flex; gap: 16px; align-items: center; }
 .topbar-stat {
@@ -154,7 +290,7 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
   height: 2px; background: var(--accent);
 }
-.tab-name { font-size: 12px; font-weight: 600; text-align: left; }
+.tab-name { font-size: 12px; font-weight: 600; text-align: left; line-height: 1.25; }
 .tab-rank {
   font-family: var(--font-mono); font-size: 9px;
   letter-spacing: 0.12em; color: var(--text-3);
@@ -238,7 +374,13 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 
 /* Node states */
 .node-group { cursor: default; }
-.node-shape {
+.node-icon {
+  pointer-events: none;
+}
+.node-icon.circle  { clip-path: circle(50%); }
+.node-icon.diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.node-group.skip .node-icon { opacity: 0.32; filter: grayscale(0.7); }
+.node-group .node-shape {
   fill: var(--skip);
   stroke: var(--line-2);
   stroke-width: 1.5;
@@ -357,23 +499,33 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   border: 1px solid var(--line-2);
   border-radius: 4px;
   padding: 10px 12px;
-  min-width: 220px;
-  max-width: 280px;
+  width: 320px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.6);
   pointer-events: none;
   font-size: 12px;
-  transform: translate(12px, 12px);
+}
+.tooltip-icon {
+  width: 28px; height: 28px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.55);
+  flex: 0 0 28px;
 }
 .tooltip-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 6px;
-  gap: 8px;
+  display: flex; align-items: center;
+  margin-bottom: 8px;
+  gap: 10px;
 }
-.tooltip-name { font-weight: 600; font-size: 12.5px; color: var(--text-0); }
+.tooltip-name {
+  font-weight: 600; font-size: 13px; color: var(--text-0);
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .tooltip-tag {
   font-family: var(--font-mono); font-size: 9px;
   text-transform: uppercase; letter-spacing: 0.1em;
   padding: 2px 5px; border-radius: 2px;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .tooltip-tag.core { background: rgba(110, 227, 163, 0.15); color: var(--core); }
 .tooltip-tag.flex { background: rgba(245, 179, 66, 0.15); color: var(--flex); }
@@ -383,6 +535,46 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .tooltip-desc {
   color: var(--text-1); font-size: 11.5px; margin-bottom: 8px; line-height: 1.5;
 }
+.tooltip-desc-loading {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* Wowhead-fetched tooltip body — we keep their HTML structure but recolor
+   it to fit our dark theme. */
+.tooltip-wh {
+  font-size: 11.5px; line-height: 1.55;
+  color: var(--text-1);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.tooltip-wh table { border-collapse: collapse; margin: 2px 0; width: 100%; }
+.tooltip-wh td, .tooltip-wh th {
+  font-weight: 400;
+  vertical-align: top;
+  padding: 1px 0;
+}
+.tooltip-wh th { text-align: right; color: var(--text-2); }
+.tooltip-wh .whtt-name,
+.tooltip-wh .whtt-name b { display: none; }   /* we already show the name in our head */
+.tooltip-wh a { color: var(--accent); text-decoration: none; }
+.tooltip-wh a:hover { text-decoration: underline; }
+.tooltip-wh .q,  .tooltip-wh .q1, .tooltip-wh .q2, .tooltip-wh .q3,
+.tooltip-wh .q4, .tooltip-wh .q5, .tooltip-wh .q6 { color: var(--text-1); }
+.tooltip-wh .q0 { color: var(--text-3); }
+.tooltip-wh .q2 { color: #1eff00; }   /* green */
+.tooltip-wh .q3 { color: #0070dd; }   /* blue  */
+.tooltip-wh .q4 { color: #a335ee; }   /* purple */
+.tooltip-wh .wowhead-tooltip-requirements,
+.tooltip-wh .whtt-requirements { color: #ff4040; font-size: 10.5px; }
+.tooltip-wh ins, .tooltip-wh del { text-decoration: none; }
+.tooltip-wh .whtt-extra,
+.tooltip-wh .whtt-spell-tags,
+.tooltip-wh .whtt-sellprice,
+.tooltip-wh .whtt-droppedby,
+.tooltip-wh .whtt-soldby,
+.tooltip-wh .whtt-criteria { display: none; }
 .tooltip-stat {
   display: flex; justify-content: space-between;
   border-top: 1px solid var(--line);
@@ -790,7 +982,32 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .sig-item.take { background: var(--bg-2); }
 .sig-item.flex { background: var(--bg-2); }
 .sig-item.skip { background: var(--bg-0); color: var(--text-2); }
-.sig-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sig-name {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sig-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.5);
+  background: var(--bg-3);
+  display: block;
+  object-fit: cover;
+}
+.sig-icon.placeholder {
+  background: linear-gradient(135deg, var(--bg-3), var(--bg-2));
+}
+.sig-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 .sig-name.talent-link {
   text-decoration: none;
   color: inherit;

@@ -10,6 +10,10 @@ from wow_advisor.normalize import normalize_spec, normalize_bracket, spec_to_cla
 from wow_advisor.processor.aggregator import build_aggregation
 
 
+def slugify(s: str) -> str:
+    return s.lower().replace(" ", "-")
+
+
 def _make_client(region: str) -> tuple[BnetAuth, BnetClient]:
     client_id = os.environ["BNET_CLIENT_ID"]
     client_secret = os.environ["BNET_CLIENT_SECRET"]
@@ -40,9 +44,14 @@ async def fetch_top_players_async(
     target_class, target_spec = class_spec
     _, client = _make_client(region)
 
-    leaderboard = await client.fetch_leaderboard(bracket=bracket)
+    # Solo Shuffle leaderboard is spec-specific: shuffle-{class}-{spec}
+    api_bracket = bracket
+    if bracket == "shuffle":
+        api_bracket = f"shuffle-{slugify(target_class)}-{slugify(target_spec)}"
+
+    leaderboard = await client.fetch_leaderboard(bracket=api_bracket)
     if not leaderboard:
-        return {"error": f"No leaderboard data for bracket '{bracket}'. Check bracket name and season ID."}
+        return {"error": f"No leaderboard data for bracket '{api_bracket}'. Check bracket name and season ID."}
 
     # Phase 1: cheap spec-only scan across full leaderboard (1 API call per player).
     # Stops as soon as we have `limit` matching players.

@@ -49,6 +49,29 @@ function NodeShape({ node, x, y, scale = 1, extraClass = '', heat }) {
   return <circle className={`node-shape ${extraClass}`} data-heat={heat} cx={x} cy={y} r={r} />;
 }
 
+// Inside-shape icon — sized to fit comfortably inside circle (or inscribed
+// square of a diamond) so the colored border remains visible as a frame.
+function NodeIcon({ node, x, y, iconUrl }) {
+  if (!iconUrl) return null;
+  const baseR = node.type === 'capstone' ? 20 : node.type === 'diamond' ? 16 : 15;
+  // For diamonds: side of inscribed square = r * sqrt(2). We use ~r*1.25 to
+  // leave a small inner gap so the colored stroke stays visible.
+  const size = (node.type === 'diamond' || node.type === 'capstone' ? baseR * 1.25 : baseR * 1.7);
+  const isDiamond = node.type === 'diamond' || node.type === 'capstone';
+  return (
+    <image
+      className={`node-icon ${isDiamond ? 'diamond' : 'circle'}`}
+      href={iconUrl}
+      xlinkHref={iconUrl}
+      x={x - size / 2}
+      y={y - size / 2}
+      width={size}
+      height={size}
+      preserveAspectRatio="xMidYMid slice"
+    />
+  );
+}
+
 function heatBucket(rate) {
   if (rate >= 95) return 5;
   if (rate >= 80) return 4;
@@ -63,6 +86,14 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
   const heightRows = Math.max(...tree.nodes.map(n => n.row)) + 1;
   const W = PAD_X * 2 + (widthCols - 1) * COL_W;
   const H = PAD_Y * 2 + (heightRows - 1) * ROW_H;
+
+  const meta = window.useTalentMeta();
+
+  // Preload icons for every node in this tree on mount / when tree changes.
+  React.useEffect(() => {
+    const ids = tree.nodes.map(n => n.spellId).filter(Boolean);
+    if (ids.length) window.TalentMeta.preload(ids);
+  }, [tree.id]);
 
   const stateFor = (id) => cluster.nodes[id];
 
@@ -124,6 +155,8 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
                 onMouseLeave={onLeave}
               >
                 <NodeShape node={node} x={x} y={y} heat={heat} />
+                <NodeIcon node={node} x={x} y={y}
+                  iconUrl={meta.get(node.spellId) && meta.get(node.spellId).icon} />
                 {/* Inner dashed ring for rank-flex core nodes */}
                 {rankFlex && (
                   <NodeShape
@@ -140,9 +173,9 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
                     extraClass="node-signature-ring"
                   />
                 )}
-                {displayRank > 0 && (
+                {displayRank > 0 && node.maxPoints > 1 && (
                   <text className="node-points" x={x} y={y + 3}>
-                    {displayRank}{node.maxPoints > 1 ? `/${node.maxPoints}` : ''}
+                    {displayRank}/{node.maxPoints}
                   </text>
                 )}
                 <text className="node-label" x={x} y={y + 32}>

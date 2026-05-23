@@ -101,3 +101,39 @@ def test_build_aggregation_pvp_ids(tmp_path):
     # We expect pvp_talents to be a list of dicts with 'id', 'name', 'count', 'pct'
     assert result["pvp_talents"][0]["id"] == 10
     assert result["pvp_talents"][0]["name"] == "PVP 1"
+
+
+def test_build_aggregation_pvp_mismatch(tmp_path):
+    # Test case where names and IDs have different lengths
+    player = make_char(0)
+    player.talent.pvp_talent_names = ["PVP 1", "PVP 2"]
+    player.talent.pvp_talent_ids = [10] # Only one ID
+    
+    result = build_aggregation(
+        players=[player],
+        spec="restoration-shaman",
+        bracket="3v3",
+        region="us",
+        keystone_file=str(tmp_path / "keystone_talents.json"),
+    )
+    
+    # zip() will truncate to the shortest list
+    assert len(result["pvp_talents"]) == 1
+    assert result["pvp_talents"][0]["name"] == "PVP 1"
+    assert result["pvp_talents"][0]["id"] == 10
+
+
+def test_build_aggregation_corrupt_keystone_file(tmp_path):
+    keystone_file = tmp_path / "corrupt.json"
+    keystone_file.write_text("{ corrupt json")
+    
+    players = [make_char(0)]
+    # Should not raise exception, should fall back to non-keystone clustering
+    result = build_aggregation(
+        players=players,
+        spec="restoration-shaman",
+        bracket="3v3",
+        region="us",
+        keystone_file=str(keystone_file),
+    )
+    assert result["talents"]["clustering_method"] == "variance+hamming"

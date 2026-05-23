@@ -191,29 +191,71 @@ def _bundle_html(cluster_data: dict, tree: dict) -> str:
         '<script src="tree-data.js"></script>\n  <script src="data.js"></script>',
         f"<script>\n{data_js}\n</script>",
     )
-    for jsx_file in ["tweaks-panel.jsx", "tree.jsx", "sidebar.jsx", "app.jsx"]:
+    for jsx_file in ["talent-meta.js", "tweaks-panel.jsx", "tree.jsx", "sidebar.jsx", "app.jsx"]:
         src = (get_frontend_dir() / jsx_file).read_text()
-        html = re.sub(
-            rf'<script type="text/babel" src="{re.escape(jsx_file)}"></script>',
+        html = html.replace(
+            f'<script type="text/babel" src="{jsx_file}"></script>',
             f'<script type="text/babel">\n{src}\n</script>',
-            html,
         )
     return html
 
 
+import http.server
+import threading
+
+
+class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
+    """Handler that generates reports on-demand if they are missing."""
+
+    def do_GET(self):
+        # We serve from the 'frontend' directory, so /pages/... is relative to that.
+        path = self.path.split("?")[0]
+        if path.startswith("/pages/") and path.endswith(".html"):
+            filename = path.split("/")[-1]
+            match = re.match(r"^([a-z0-9-]+)_([a-z0-9-]+)\.html$", filename)
+            if match:
+                spec, bracket = match.groups()
+                pages_dir = get_pages_dir()
+                full_path = pages_dir / filename
+                if not full_path.exists():
+                    try:
+                        # Ensure we don't open browser during on-demand generation
+                        build_page(spec, bracket, open_browser=False)
+                    except Exception:
+                        pass  # Standard 404 will be returned by super().do_GET()
+
+        return super().do_GET()
+
+
+_server_started = False
+
+
 def _ensure_server(port: int = 8080) -> None:
-    """Start the frontend HTTP server on *port* if it is not already listening."""
+    """Start the frontend HTTP server in a background thread if it is not already listening."""
+    global _server_started
+    if _server_started:
+        return
+
+    # Check if someone else is already listening on the port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         if s.connect_ex(("localhost", port)) == 0:
-            return  # already up
-    subprocess.Popen(
-        ["python3", "-m", "http.server", str(port)],
-        cwd=str(_FRONTEND_DIR),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    # Wait up to 3 s for the server to accept connections
-    deadline = time.time() + 3
+            _server_started = True
+            return
+
+    def run_server():
+        frontend_dir = get_frontend_dir()
+        handler = lambda *args, **kwargs: DynamicReportHandler(
+            *args, directory=str(frontend_dir), **kwargs
+        )
+        httpd = http.server.HTTPServer(("localhost", port), handler)
+        httpd.serve_forever()
+
+    thread = threading.Thread(target=run_server, daemon=True)
+    thread.start()
+    _server_started = True
+
+    # Wait briefly for the server to accept connections
+    deadline = time.time() + 2
     while time.time() < deadline:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if s.connect_ex(("localhost", port)) == 0:
@@ -232,12 +274,11 @@ def _open_browser(url: str) -> None:
         subprocess.Popen(["xdg-open", url])
 
 
-def build_page(spec: str, bracket: str, region: str = "us") -> dict:
+def build_page(spec: str, bracket: str, region: str = "us", open_browser: bool = True) -> dict:
     """Build a self-contained HTML page for a spec+bracket.
 
     Fetches summary + tree structure, bundles everything inline, and writes
-    frontend/pages/{spec}_{bracket}.html.  The file is immediately accessible
-    via the local HTTP server at localhost:8080.
+    frontend/pages/{spec}_{bracket}.html.
 
     Returns:
         {"path": str, "url": str, "spec": str, "bracket": str,
@@ -262,9 +303,12 @@ def build_page(spec: str, bracket: str, region: str = "us") -> dict:
     out_path = pages_dir / filename
     out_path.write_text(html, encoding="utf-8")
 
-    # file:// works for fully self-contained pages — no HTTP server needed
-    url = out_path.as_uri()
-    _open_browser(url)
+    port = 8080
+    _ensure_server(port)
+
+    url = f"http://localhost:{port}/pages/{filename}"
+    if open_browser:
+        _open_browser(url)
 
     return {
         "path": str(out_path),

@@ -11,11 +11,43 @@ _DEFAULT_KEYSTONE_FILE = os.path.abspath(
 
 
 def _load_keystone_nodes(spec: str, keystone_file: str) -> list[int] | None:
+    """Load keystone node IDs for a given spec from a JSON file."""
     if not os.path.exists(keystone_file):
         return None
-    with open(keystone_file) as f:
-        data = json.load(f)
-    return data.get(spec)
+    try:
+        with open(keystone_file) as f:
+            data = json.load(f)
+        return data.get(spec)
+    except (json.JSONDecodeError, IOError):
+        # Fall back to default behavior if file is corrupt or unreadable
+        return None
+
+
+def _aggregate_pvp_talents(players_with_talent: list[CharacterData]) -> list[dict]:
+    """Calculate frequency of PvP talents across players with talent data."""
+    pvp_counts: Counter = Counter()
+    valid_pvp_player_count = 0
+
+    for player in players_with_talent:
+        talent = player.talent
+        if talent and talent.pvp_talent_names and talent.pvp_talent_ids:
+            valid_pvp_player_count += 1
+            # zip() truncates to the shortest list if lengths happen to mismatch
+            for name, tid in zip(talent.pvp_talent_names, talent.pvp_talent_ids):
+                pvp_counts[(name, tid)] += 1
+
+    denominator = valid_pvp_player_count or 1
+    pvp_summary = [
+        {
+            "name": name,
+            "id": tid,
+            "count": count,
+            "pct": round(count / denominator * 100, 1),
+        }
+        for (name, tid), count in pvp_counts.items()
+    ]
+
+    return sorted(pvp_summary, key=lambda x: x["count"], reverse=True)
 
 
 def build_aggregation(
@@ -25,7 +57,22 @@ def build_aggregation(
     region: str,
     keystone_file: str = _DEFAULT_KEYSTONE_FILE,
 ) -> dict:
+    """
+    Build a comprehensive summary of talents, gear, and PvP talents from a list of players.
+
+    Args:
+        players: List of CharacterData objects to aggregate.
+        spec: The specialization name.
+        bracket: PvP bracket (e.g., '3v3').
+        region: Region code (e.g., 'us').
+        keystone_file: Path to the JSON file containing keystone talent nodes.
+
+    Returns:
+        A dictionary containing the aggregated data.
+    """
     players_with_talent = [p for p in players if p.talent is not None]
+
+    # Talent clustering
     node_sets = [p.talent.all_node_ids for p in players_with_talent]
     loadout_codes = [p.talent.loadout_code for p in players_with_talent]
     keystone_nodes = _load_keystone_nodes(spec, keystone_file)
@@ -36,6 +83,7 @@ def build_aggregation(
         keystone_nodes=keystone_nodes,
     )
 
+    # Gear and item level aggregation
     equipped_ilvls = [p.equipped_ilvl for p in players]
     gear_per_player = [p.gear for p in players]
     gear_summary = aggregate_gear(
@@ -44,23 +92,8 @@ def build_aggregation(
         equipped_ilvls=equipped_ilvls,
     )
 
-    # PvP talent aggregation: frequency of each named PvP talent across all players
-    pvp_counts: Counter = Counter()
-    pvp_players_with_data = 0
-    for p in players_with_talent:
-        if p.talent.pvp_talent_names and p.talent.pvp_talent_ids:
-            pvp_players_with_data += 1
-            for name, tid in zip(p.talent.pvp_talent_names, p.talent.pvp_talent_ids):
-                pvp_counts[(name, tid)] += 1
-
-    n_pvp = pvp_players_with_data or 1
-    pvp_summary = sorted(
-        [
-            {"name": name, "id": tid, "count": count, "pct": round(count / n_pvp * 100, 1)}
-            for (name, tid), count in pvp_counts.items()
-        ],
-        key=lambda x: -x["count"],
-    )
+    # PvP talent aggregation
+    pvp_summary = _aggregate_pvp_talents(players_with_talent)
 
     return {
         "spec": spec,
