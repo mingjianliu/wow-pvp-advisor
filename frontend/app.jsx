@@ -356,7 +356,7 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
 
   const onHoverPvp = (e, p) => {
     onHover({
-      node: { name: p.name, desc: `PvP talent · placeholder description for ${p.name}.`, maxPoints: 1 },
+      node: { name: p.name, spellId: p.id, maxPoints: 1 },
       state: { role: 'core', pts: 1, pickRate: p.pct },
       x: e.clientX, y: e.clientY
     });
@@ -375,7 +375,6 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
         {modal.map((p, i) =>
         <div className="pvp-slot" key={p.id}
         onMouseEnter={(e) => onHoverPvp(e, p)}
-        onMouseMove={(e) => onHoverPvp(e, p)}
         onMouseLeave={onLeave}>
             <span className="pvp-slot-tag">SLOT {i + 1}</span>
             <div className="pvp-slot-pos">Modal pick</div>
@@ -389,7 +388,6 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
             {alts.map((p) =>
             <div className="pvp-alt-row" key={p.id}
             onMouseEnter={(e) => onHoverPvp(e, p)}
-            onMouseMove={(e) => onHoverPvp(e, p)}
             onMouseLeave={onLeave}>
                 <span className="pvp-alt-name">{p.name}</span>
                 <span className="pvp-alt-bar">

@@ -2,8 +2,8 @@
 // Gear moved out to its own bottom panel in the main pane.
 
 function Sidebar({ cluster, group, onCopy, heatmap }) {
-  const takes = cluster.takes || [];
-  const flex = (group.talents && group.talents.flex) || [];
+  const takes = [...(cluster.takes || [])].sort((a, b) => b.pct - a.pct);
+  const flex = [...((group.talents && group.talents.flex) || [])].sort((a, b) => b.pct - a.pct);
   const meta = window.useTalentMeta();
 
   // Resolve spellIds for the tree-node ids referenced in cluster.takes.
