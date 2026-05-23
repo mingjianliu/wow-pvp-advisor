@@ -9,11 +9,13 @@ def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
     pick_rates = {int(k): v for k, v in talents.get("pick_rates", {}).items()}
 
     def enrich(ids: list[int]) -> list[dict]:
-        return [{
+        enriched = [{
             "id": nid,
             "name": (node_map.get(nid) or {}).get("name"),
             "pct": pick_rates.get(nid),
         } for nid in ids]
+        # Sort by pick rate descending, but keep items with same pick rate in ID order
+        return sorted(enriched, key=lambda x: (-(x["pct"] or 0), x["id"]))
 
     return {
         "core": enrich(talents.get("core_nodes", [])),

@@ -158,8 +158,8 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
         "sample_size": raw["sample_size"],
         "avg_ilvl": raw["avg_ilvl"],
         "pvp_talents": [
-            {"id": f"p{i + 1}", "name": p["name"], "pct": p["pct"]}
-            for i, p in enumerate(raw["pvp_talents"])
+            {"id": p["id"], "name": p["name"], "pct": p["pct"]}
+            for p in raw["pvp_talents"]
         ],
         "talents": {
             "core": enrich(raw["talents"]["core"]) + hero_core,
