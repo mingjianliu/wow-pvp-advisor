@@ -523,7 +523,22 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   font-weight: 600;
   pointer-events: none;
 }
-.node-group.skip .node-points { display: none; }
+.node-rank-badge rect {
+  fill: #000;
+  stroke: var(--line-2);
+  stroke-width: 0.8;
+  opacity: 0.85;
+}
+.node-rank-badge text {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: #fff;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.node-group.skip .node-points,
+.node-group.skip .node-rank-badge { display: none; }
 
 .edge {
   stroke: var(--line);

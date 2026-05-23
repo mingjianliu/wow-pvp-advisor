@@ -119,12 +119,12 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
   // Center any row that contains exactly one node across the tree's column
   // span — gives the hero tree's top/bottom singletons a balanced look.
   const effectiveCol = React.useMemo(() => {
-    const rowsCount = {};
-    tree.nodes.forEach(n => { rowsCount[n.row] = (rowsCount[n.row] || 0) + 1; });
+    const rowsCountMap = {};
+    tree.nodes.forEach(n => { rowsCountMap[n.row] = (rowsCountMap[n.row] || 0) + 1; });
     const cols = tree.nodes.map(n => n.col);
     const midCol = (Math.min(...cols) + Math.max(...cols)) / 2;
-    return (n) => (rowsCount[n.row] === 1 ? midCol : n.col);
-  }, [tree.id]);
+    return (n) => (rowsCountMap[n.row] === 1 ? midCol : n.col);
+  }, [tree.id, tree.nodes]);
   const xyFor = (n) => ({
     x: PAD_X + effectiveCol(n) * COL_W,
     y: PAD_Y + n.row * ROW_H,
@@ -213,10 +213,11 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
                     extraClass="node-signature-ring"
                   />
                 )}
-                {displayRank > 0 && (
-                  <text className="node-points" x={x} y={y + 3}>
-                    {node.maxPoints > 1 ? `${displayRank}/${node.maxPoints}` : displayRank}
-                  </text>
+                {node.maxPoints > 1 && (
+                  <g className="node-rank-badge">
+                    <rect x={x + 10} y={y + 8} width={14} height={14} rx={3} />
+                    <text x={x + 17} y={y + 18.5}>{displayRank}</text>
+                  </g>
                 )}
                 <text className="node-label" x={x} y={y + 32}>
                   {truncateLabel(node.name)}
