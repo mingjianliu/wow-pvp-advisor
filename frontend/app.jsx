@@ -39,7 +39,7 @@ const TRANSLATIONS = {
     slot: 'SLOT', modal: 'Modal pick', alts: 'Alternatives',
     core: 'CORE', contested: 'CLUSTER TAKE', skip: 'SKIP',
     rankDist: 'Rank distribution', notTaken: 'Not taken in this cluster',
-    pickRate: 'Pick rate', overall: 'overall',
+    pickRate: 'Pick rate', overall: 'overall', inCluster: 'in cluster',
     variance: 'Cluster variance',
     tweaks: 'Tweaks', flexHighlight: 'Flex highlight', heatmap: 'Pick-rate heatmap',
     signature: 'Cluster signature', go: 'Go', selectSpec: 'Select Spec...', selectBracket: 'Select Bracket...',
@@ -52,7 +52,7 @@ const TRANSLATIONS = {
     slot: '槽位', modal: '主流选择', alts: '备选',
     core: '核心', contested: '流派特色', skip: '未选取',
     rankDist: '点数分布', notTaken: '此流派未选取',
-    pickRate: '选取率', overall: '总计',
+    pickRate: '选取率', overall: '总计', inCluster: '本流派',
     variance: '流派变体',
     tweaks: '设置', flexHighlight: '灵活高亮', heatmap: '热力图',
     signature: '流派特征', go: '前往', selectSpec: '选择专精...', selectBracket: '选择赛制...',
@@ -141,13 +141,13 @@ function autoClusterName(c) {
 // Derive the per-node role (core/flex/skip) and rank for a cluster.
 function deriveNodeMap(data, cluster) {
   const map = {};
-  data.talents.core.forEach((t) => map[t.id] = { role: 'core', pts: t.pts, rankDist: t.rankDist, pickRate: t.pct });
-  data.talents.flex.forEach((t) => map[t.id] = { role: 'flex', pickRate: t.pct });
+  data.talents.core.forEach((t) => map[t.id] = { role: 'core', pts: t.pts, rankDist: t.rankDist, pickRate: t.pct, global: true });
+  data.talents.flex.forEach((t) => map[t.id] = { role: 'flex', pickRate: t.pct, global: true });
   cluster.takes.forEach((t) => {
-    map[t.id] = { ...map[t.id], role: 'core', pts: t.rank, contested: true };
+    map[t.id] = { ...map[t.id], role: 'core', pts: t.rank, contested: true, pickRate: t.pct, global: false };
   });
   cluster.skips.forEach((t) => {
-    map[t.id] = { ...map[t.id], role: 'skip', contested: true };
+    map[t.id] = { ...map[t.id], role: 'skip', contested: true, pickRate: t.pct, global: false };
   });
   return map;
 }
@@ -547,7 +547,7 @@ function Tooltip({ node, state, x, y }) {
       {state ?
       <>
           <div className="tooltip-stat">
-            <span>{t('pickRate')} {isContested ? `(${t('overall')})` : ''}</span>
+            <span>{t('pickRate')} <span style={{fontSize: 10, color: 'var(--text-2)'}}>{state.global ? `(${t('overall')})` : `(${t('inCluster')})`}</span></span>
             <span className="v">{state.pickRate}%</span>
           </div>
           <div className="tooltip-bar">

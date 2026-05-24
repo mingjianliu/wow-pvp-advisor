@@ -52,7 +52,7 @@ async def fetch_top_players_async(
 
     # Solo Shuffle leaderboard is spec-specific: shuffle-{class}-{spec}
     api_bracket = bracket
-    if bracket == "shuffle":
+    if bracket == "solo-shuffle":
         api_bracket = f"shuffle-{slugify(target_class)}-{slugify(target_spec)}"
 
     leaderboard = await client.fetch_leaderboard(bracket=api_bracket)

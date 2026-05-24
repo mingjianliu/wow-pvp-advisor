@@ -295,6 +295,9 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                         result = build_page(spec, bracket, locale=locale, open_browser=False)
                         if "error" in result:
                             print(f"[Server] build_page failed: {result['error']}", flush=True)
+                            # Generate a friendly error page so it's not a raw 404
+                            error_html = f"<html><body style='background:#0a0d12;color:#ff6b6b;font-family:sans-serif;padding:40px;'><h2>Build Failed</h2><p>{result['error']}</p><a href='/pages/restoration-shaman_3v3.html' style='color:#fff'>Go Back</a></body></html>"
+                            full_path.write_text(error_html, encoding="utf-8")
                         else:
                             print(f"[Server] Successfully generated {filename}", flush=True)
                     except Exception as e:

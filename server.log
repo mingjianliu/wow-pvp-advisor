@@ -1,17 +1,5 @@
 Starting WoW PvP Advisor frontend server on http://localhost:8080...
 Server is running. Press Ctrl+C to stop.
-[Server] HEAD /pages/holy-paladin_2v2.html
-[Server] Translating: holy-paladin_2v2.html
-[Server] Triggering on-demand build for holy-paladin_2v2.html (spec=holy-paladin, bracket=2v2)...
-[Server] Successfully generated holy-paladin_2v2.html
-127.0.0.1 - - [24/May/2026 16:53:54] "HEAD /pages/holy-paladin_2v2.html HTTP/1.1" 200 -
-[Server] HEAD /pages/enhancement-shaman_3v3.html
-[Server] Translating: enhancement-shaman_3v3.html
-[Server] Triggering on-demand build for enhancement-shaman_3v3.html (spec=enhancement-shaman, bracket=3v3)...
-[Server] Successfully generated enhancement-shaman_3v3.html
-127.0.0.1 - - [24/May/2026 16:54:19] "HEAD /pages/enhancement-shaman_3v3.html HTTP/1.1" 200 -
-[Server] HEAD /pages/blood-death-knight_3v3.html
-[Server] Translating: blood-death-knight_3v3.html
-[Server] Triggering on-demand build for blood-death-knight_3v3.html (spec=blood-death-knight, bracket=3v3)...
-[Server] Successfully generated blood-death-knight_3v3.html
-127.0.0.1 - - [24/May/2026 16:55:31] "HEAD /pages/blood-death-knight_3v3.html HTTP/1.1" 200 -
+[Server] GET /pages/marksmanship-hunter_3v3.html
+[Server] Translating: marksmanship-hunter_3v3.html
+[Server] Triggering on-demand build for marksmanship-hunter_3v3.html (spec=marksmanship-hunter, bracket=3v3)...
