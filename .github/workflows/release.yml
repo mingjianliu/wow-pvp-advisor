@@ -1,0 +1,76 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"          # Trigger on tags like v1.0.0
+  workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx python-dotenv pyinstaller
+
+      - name: Build App
+        run: pyinstaller build.spec --clean --noconfirm
+
+      - name: Package Mac App
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd dist
+          zip -r wow-advisor-mac.zip "WoW Advisor.app"
+
+      - name: Verify build (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist\wow-advisor.exe")) {
+            Write-Error "Build failed: dist\wow-advisor.exe not found"
+            exit 1
+          }
+
+      - name: Upload Artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wow-advisor-windows
+          path: dist/wow-advisor.exe
+          retention-days: 7
+
+      - name: Upload Artifact (Mac)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wow-advisor-mac
+          path: dist/wow-advisor-mac.zip
+          retention-days: 7
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/wow-advisor.exe
+            dist/wow-advisor-mac.zip
+          generate_release_notes: true
