@@ -9,6 +9,7 @@ class TalentAnalysis:
     contested_nodes: set[int] = field(default_factory=set)
     pick_rates: dict[int, float] = field(default_factory=dict)
     rank_distributions: dict[int, list[float]] = field(default_factory=dict)
+    node_meta: dict[int, dict] = field(default_factory=dict)
 
 
 def analyze_talents(
@@ -16,6 +17,7 @@ def analyze_talents(
     node_ranks_list: list[dict[int, int]] | None = None,
     core_threshold: float = 0.8,
     flex_threshold: float = 0.2,
+    node_meta: dict[int, dict] | None = None,
 ) -> TalentAnalysis:
     if not node_sets:
         return TalentAnalysis()
@@ -49,6 +51,7 @@ def analyze_talents(
         contested_nodes=contested,
         pick_rates=pick_rates,
         rank_distributions=rank_distributions,
+        node_meta=node_meta or {},
     )
 
 
@@ -83,6 +86,7 @@ def summarize_talent_clusters(
     loadout_codes: list[str],
     keystone_nodes: list[int] | None = None,
     node_ranks_list: list[dict[int, int]] | None = None,
+    node_meta: dict[int, dict] | None = None,
 ) -> dict:
     """Full pipeline: analyze → cluster → summarize."""
     n = len(node_sets)
@@ -90,7 +94,7 @@ def summarize_talent_clusters(
         return {"core_nodes": [], "flex_nodes": [], "contested_nodes": [],
                 "clusters": [], "clustering_method": "variance+hamming"}
 
-    analysis = analyze_talents(node_sets, node_ranks_list=node_ranks_list)
+    analysis = analyze_talents(node_sets, node_ranks_list=node_ranks_list, node_meta=node_meta)
 
     if keystone_nodes is not None:
         decision_nodes = set(keystone_nodes)

@@ -85,3 +85,10 @@ def test_summarize_returns_expected_shape():
     assert result["clustering_method"] in ("variance+hamming", "keystone")
     assert len(result["clusters"]) == 2
     assert result["clusters"][0]["pct"] == 70.0
+
+
+def test_analyze_includes_node_meta():
+    node_sets = [{1}]
+    node_meta = {1: {"row": 0, "type": "circle"}}
+    analysis = analyze_talents(node_sets, node_meta=node_meta)
+    assert analysis.node_meta == node_meta

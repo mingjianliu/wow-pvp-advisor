@@ -4,6 +4,7 @@ from collections import Counter
 from wow_advisor.api.models import CharacterData
 from wow_advisor.processor.talents import summarize_talent_clusters
 from wow_advisor.processor.gear import aggregate_gear
+from wow_advisor.talent_tree import get_tree_structure
 
 _DEFAULT_KEYSTONE_FILE = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "keystone_talents.json")
@@ -78,11 +79,27 @@ def build_aggregation(
     loadout_codes = [p.talent.loadout_code for p in players_with_talent]
     keystone_nodes = _load_keystone_nodes(spec, keystone_file)
 
+    # Fetch tree structure to get node metadata (row, type) for clustering weights
+    tree_data = get_tree_structure(spec)
+    node_meta = {}
+    if "error" not in tree_data:
+        # Extract from main trees (class, spec)
+        for tree in tree_data.get("trees", []):
+            for node in tree.get("nodes", []):
+                node_meta[node["id"]] = {"row": node["row"], "type": node["type"]}
+        # Extract from hero trees
+        hero_trees = tree_data.get("heroTrees", {})
+        for side in ["left", "right"]:
+            hero_tree = hero_trees.get(side, {})
+            for node in hero_tree.get("nodes", []):
+                node_meta[node["id"]] = {"row": node["row"], "type": node["type"]}
+
     talent_summary = summarize_talent_clusters(
         node_sets=node_sets,
         loadout_codes=loadout_codes,
         keystone_nodes=keystone_nodes,
         node_ranks_list=node_ranks_list,
+        node_meta=node_meta,
     )
 
     # Gear and item level aggregation
