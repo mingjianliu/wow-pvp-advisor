@@ -55,7 +55,7 @@ def analyze_talents(
     )
 
 
-def _weighted_distance(
+def _weighted_jaccard_distance(
     set_a: set[int],
     ranks_a: dict[int, int],
     set_b: set[int],
@@ -63,42 +63,33 @@ def _weighted_distance(
     node_meta: dict[int, dict]
 ) -> float:
     all_nodes = set_a | set_b
-    distance = 0.0
+    weighted_intersection = 0.0
+    weighted_union = 0.0
 
     for nid in all_nodes:
         meta = node_meta.get(nid, {"row": 0, "type": "circle"})
-        row = meta.get("row", 0)
-        is_choice = meta.get("type") == "diamond"
-
-        # Base weight by row/type
-        if is_choice:
-            weight = 10.0
-        elif row >= 5:  # Apex (8-10) and Key (5-7)
-            weight = 5.0
-        else:  # Utility (1-4)
-            weight = 2.0
+        # Weights: Choice=20, Major=5, Utility=0.1
+        weight = 20.0 if meta.get("type") == "diamond" else (5.0 if meta.get("row") >= 5 else 0.1)
 
         in_a = nid in set_a
         in_b = nid in set_b
 
-        if in_a != in_b:
-            # One build has it, other doesn't
-            distance += weight
-        elif in_a and in_b:
-            # Both have it, check rank difference
-            rank_a = ranks_a.get(nid, 1)
-            rank_b = ranks_b.get(nid, 1)
-            if rank_a != rank_b:
-                distance += abs(rank_a - rank_b) * 0.5
+        if in_a and in_b:
+            rank_diff = abs(ranks_a.get(nid, 1) - ranks_b.get(nid, 1))
+            # Shared node weight reduced by rank shuffles (0.01 per rank diff)
+            weighted_intersection += max(0, weight - (rank_diff * 0.01))
+            weighted_union += weight
+        else:
+            weighted_union += weight
 
-    return distance
+    return 1.0 - (weighted_intersection / weighted_union) if weighted_union > 0 else 0.0
 
 
 def cluster_talents(
     pairs: list[tuple[set[int], int]],  # (node_set, original_index)
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
-    threshold: float = 5.0,
+    threshold: float = 0.2,
 ) -> list[list[tuple[set[int], int]]]:
     """Greedy weighted distance clustering. Returns clusters sorted by size descending."""
     assigned = [False] * len(pairs)
@@ -114,7 +105,7 @@ def cluster_talents(
                 continue
             nodes_j, idx_j = pairs[j]
             ranks_j = node_ranks_list[idx_j]
-            if _weighted_distance(nodes_i, ranks_i, nodes_j, ranks_j, node_meta) <= threshold:
+            if _weighted_jaccard_distance(nodes_i, ranks_i, nodes_j, ranks_j, node_meta) <= threshold:
                 cluster.append(pairs[j])
                 assigned[j] = True
         clusters.append(cluster)
@@ -182,7 +173,7 @@ def summarize_talent_clusters(
             group_pairs,
             node_ranks_list=node_ranks_list or [{} for _ in range(n)],
             node_meta=node_meta or {},
-            threshold=5.0,
+            threshold=0.2,
         )
         all_clusters.extend(group_clusters)
 
@@ -200,7 +191,6 @@ def summarize_talent_clusters(
         canonical_hero_set = set(hero_counts.most_common(1)[0][0])
 
         # Pick a canonical index for the loadout code
-        # We prefer an index where the decision set matches the modal one
         canonical_idx = next(
             (idx for nodes, idx in cluster if (nodes & decision_nodes) == canonical_decision_set),
             cluster[0][1],
@@ -225,6 +215,23 @@ def summarize_talent_clusters(
             )
             takes_with_ranks.append({"id": nid, "rank": modal_rank})
 
+        # NEW: Find "Internal Flex" nodes (taken by some but not all members of the cluster)
+        # This helps show variance within a broadly merged cluster.
+        internal_counts = Counter()
+        for nodes, _ in cluster:
+            internal_counts.update(nodes)
+        
+        cluster_flex = []
+        cluster_size = len(cluster)
+        for nid, count in internal_counts.items():
+            if nid in output_nodes:
+                continue # Already in takes
+            if nid in analysis.core_nodes:
+                continue # Already global core
+            pct = round(count / cluster_size * 100, 1)
+            if pct >= 10.0: # Show if at least 10% take it
+                cluster_flex.append({"id": nid, "pct": pct})
+
         cluster_summaries.append(
             {
                 "rank": rank,
@@ -232,6 +239,7 @@ def summarize_talent_clusters(
                 "pct": round(len(cluster) / n * 100, 1),
                 "canonical_code": canonical_code,
                 "takes": takes_with_ranks,
+                "flex_takes": sorted(cluster_flex, key=lambda x: x["pct"], reverse=True),
                 "skips": sorted(decision_nodes - canonical_decision_set),
             }
         )
