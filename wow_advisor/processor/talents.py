@@ -55,10 +55,6 @@ def analyze_talents(
     )
 
 
-def _hamming(a: set[int], b: set[int]) -> int:
-    return len(a.symmetric_difference(b))
-
-
 def _weighted_distance(
     set_a: set[int],
     ranks_a: dict[int, int],
@@ -99,22 +95,27 @@ def _weighted_distance(
 
 
 def cluster_talents(
-    contested_pairs: list[tuple[set[int], int]],
-    threshold: int = 2,
+    pairs: list[tuple[set[int], int]],  # (node_set, original_index)
+    node_ranks_list: list[dict[int, int]],
+    node_meta: dict[int, dict],
+    threshold: float = 5.0,
 ) -> list[list[tuple[set[int], int]]]:
-    """Greedy Hamming clustering. Returns clusters sorted by size descending."""
-    assigned = [False] * len(contested_pairs)
+    """Greedy weighted distance clustering. Returns clusters sorted by size descending."""
+    assigned = [False] * len(pairs)
     clusters: list[list[tuple[set[int], int]]] = []
-    for i, (nodes_i, idx_i) in enumerate(contested_pairs):
+    for i, (nodes_i, idx_i) in enumerate(pairs):
         if assigned[i]:
             continue
         cluster = [(nodes_i, idx_i)]
         assigned[i] = True
-        for j in range(i + 1, len(contested_pairs)):
+        ranks_i = node_ranks_list[idx_i]
+        for j in range(i + 1, len(pairs)):
             if assigned[j]:
                 continue
-            if _hamming(nodes_i, contested_pairs[j][0]) <= threshold:
-                cluster.append(contested_pairs[j])
+            nodes_j, idx_j = pairs[j]
+            ranks_j = node_ranks_list[idx_j]
+            if _weighted_distance(nodes_i, ranks_i, nodes_j, ranks_j, node_meta) <= threshold:
+                cluster.append(pairs[j])
                 assigned[j] = True
         clusters.append(cluster)
     return sorted(clusters, key=len, reverse=True)
@@ -127,68 +128,124 @@ def summarize_talent_clusters(
     node_ranks_list: list[dict[int, int]] | None = None,
     node_meta: dict[int, dict] | None = None,
 ) -> dict:
-    """Full pipeline: analyze → cluster → summarize."""
+    """Full pipeline: analyze → partition by hero → cluster → summarize."""
     n = len(node_sets)
     if n == 0:
-        return {"core_nodes": [], "flex_nodes": [], "contested_nodes": [],
-                "clusters": [], "clustering_method": "variance+hamming"}
+        return {
+            "core_nodes": [],
+            "flex_nodes": [],
+            "contested_nodes": [],
+            "clusters": [],
+            "clustering_method": "none",
+        }
 
-    analysis = analyze_talents(node_sets, node_ranks_list=node_ranks_list, node_meta=node_meta)
+    analysis = analyze_talents(
+        node_sets, node_ranks_list=node_ranks_list, node_meta=node_meta
+    )
 
     if keystone_nodes is not None:
         decision_nodes = set(keystone_nodes)
         method = "keystone"
     else:
         decision_nodes = analysis.contested_nodes
-        method = "variance+hamming"
+        method = "variance+weighted"
         # Auto-limit to the 8 most contested nodes (closest to 50% pick rate).
         # With small samples, 10+ contested nodes fragment into dozens of 1-player clusters.
         MAX_DECISION = 8
         if len(decision_nodes) > MAX_DECISION:
-            decision_nodes = set(sorted(
-                decision_nodes,
-                key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
-            )[:MAX_DECISION])
+            decision_nodes = set(
+                sorted(
+                    decision_nodes,
+                    key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
+                )[:MAX_DECISION]
+            )
 
-    contested_pairs = [(node_sets[i] & decision_nodes, i) for i in range(n)]
-    clusters = cluster_talents(contested_pairs, threshold=1)
+    # Partition by Hero Tree choice
+    hero_nodes = {
+        nid for nid, meta in (node_meta or {}).items() if meta.get("is_hero")
+    }
+    hero_groups: dict[frozenset[int], list[int]] = {}
+    for i in range(n):
+        h_set = frozenset(node_sets[i] & hero_nodes)
+        if h_set not in hero_groups:
+            hero_groups[h_set] = []
+        hero_groups[h_set].append(i)
+
+    # If no hero nodes found (e.g. low level), treat as one group
+    if not hero_nodes:
+        hero_groups = {frozenset(): list(range(n))}
+
+    all_clusters = []
+    for indices in hero_groups.values():
+        group_pairs = [(node_sets[i], i) for i in indices]
+        group_clusters = cluster_talents(
+            group_pairs,
+            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
+            node_meta=node_meta or {},
+            threshold=5.0,
+        )
+        all_clusters.extend(group_clusters)
+
+    # Sort combined clusters by size
+    clusters = sorted(all_clusters, key=len, reverse=True)
 
     cluster_summaries = []
     for rank, cluster in enumerate(clusters, 1):
-        counts = Counter(frozenset(nodes) for nodes, _ in cluster)
-        canonical_set = set(counts.most_common(1)[0][0])
+        # We find the most common set of decision nodes within this cluster
+        counts = Counter(frozenset(nodes & decision_nodes) for nodes, _ in cluster)
+        canonical_decision_set = set(counts.most_common(1)[0][0])
+
+        # We also want the hero tree set for this cluster (should be uniform since we partitioned)
+        hero_counts = Counter(frozenset(nodes & hero_nodes) for nodes, _ in cluster)
+        canonical_hero_set = set(hero_counts.most_common(1)[0][0])
+
+        # Pick a canonical index for the loadout code
+        # We prefer an index where the decision set matches the modal one
         canonical_idx = next(
-            (idx for nodes, idx in cluster if set(nodes) == canonical_set),
+            (idx for nodes, idx in cluster if (nodes & decision_nodes) == canonical_decision_set),
             cluster[0][1],
         )
-        canonical_code = loadout_codes[canonical_idx] if canonical_idx < len(loadout_codes) else ""
+        canonical_code = (
+            loadout_codes[canonical_idx] if canonical_idx < len(loadout_codes) else ""
+        )
 
         # Determine modal rank for each node in this cluster
         takes_with_ranks = []
-        for nid in sorted(canonical_set):
+        output_nodes = sorted(canonical_decision_set | canonical_hero_set)
+        for nid in output_nodes:
             node_ranks_in_cluster = [
                 node_ranks_list[idx].get(nid, 1)
                 for _, idx in cluster
                 if node_ranks_list and nid in node_ranks_list[idx]
             ]
-            modal_rank = Counter(node_ranks_in_cluster).most_common(1)[0][0] if node_ranks_in_cluster else 1
+            modal_rank = (
+                Counter(node_ranks_in_cluster).most_common(1)[0][0]
+                if node_ranks_in_cluster
+                else 1
+            )
             takes_with_ranks.append({"id": nid, "rank": modal_rank})
 
-        cluster_summaries.append({
-            "rank": rank,
-            "count": len(cluster),
-            "pct": round(len(cluster) / n * 100, 1),
-            "canonical_code": canonical_code,
-            "takes": takes_with_ranks,
-            "skips": sorted(decision_nodes - canonical_set),
-        })
+        cluster_summaries.append(
+            {
+                "rank": rank,
+                "count": len(cluster),
+                "pct": round(len(cluster) / n * 100, 1),
+                "canonical_code": canonical_code,
+                "takes": takes_with_ranks,
+                "skips": sorted(decision_nodes - canonical_decision_set),
+            }
+        )
 
     return {
         "core_nodes": sorted(analysis.core_nodes),
         "flex_nodes": sorted(analysis.flex_nodes),
         "contested_nodes": sorted(decision_nodes),
-        "pick_rates": {node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()},
-        "rank_distributions": {str(node): dist for node, dist in analysis.rank_distributions.items()},
+        "pick_rates": {
+            node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()
+        },
+        "rank_distributions": {
+            str(node): dist for node, dist in analysis.rank_distributions.items()
+        },
         "clusters": cluster_summaries,
         "clustering_method": method,
     }

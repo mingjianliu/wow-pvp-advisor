@@ -45,32 +45,39 @@ def test_analyze_empty_input():
 
 
 def test_cluster_splits_distinct_builds():
-    # 5 players take node 100, 5 take node 101 — hamming distance = 2, threshold = 1 → 2 clusters
+    # 5 players take node 100, 5 take node 101 — distance = 4.0, threshold = 1.0 → 2 clusters
     pairs = [({100}, i) for i in range(5)] + [({101}, i + 5) for i in range(5)]
-    clusters = cluster_talents(pairs, threshold=1)
+    node_ranks = [{} for _ in range(10)]
+    node_meta = {}
+    clusters = cluster_talents(pairs, node_ranks, node_meta, threshold=1.0)
     assert len(clusters) == 2
     assert sorted(len(c) for c in clusters) == [5, 5]
 
 
 def test_cluster_merges_near_identical():
-    # {100} vs {100, 101} differ by 1 node — within threshold=2 → 1 cluster
+    # {100} vs {100, 101} differ by 1 node (dist 2.0) — within threshold=2.0 → 1 cluster
     pairs = [({100}, i) for i in range(5)] + [({100, 101}, i + 5) for i in range(5)]
-    clusters = cluster_talents(pairs, threshold=2)
+    node_ranks = [{} for _ in range(10)]
+    node_meta = {}
+    clusters = cluster_talents(pairs, node_ranks, node_meta, threshold=2.0)
     assert len(clusters) == 1
 
 
 def test_cluster_sorted_by_size_descending():
     # 7 players take {100}, 3 take {101}
     pairs = [({100}, i) for i in range(7)] + [({101}, i + 7) for i in range(3)]
-    clusters = cluster_talents(pairs, threshold=1)
+    node_ranks = [{} for _ in range(10)]
+    node_meta = {}
+    clusters = cluster_talents(pairs, node_ranks, node_meta, threshold=1.0)
     assert len(clusters[0]) >= len(clusters[1])
 
 
 def test_full_pipeline_two_builds():
     node_sets = make_node_sets(10, [1, 2, 3], {10: list(range(7)), 11: list(range(7, 10))})
-    analysis = analyze_talents(node_sets)
-    contested_pairs = [(node_sets[i] & analysis.contested_nodes, i) for i in range(10)]
-    clusters = cluster_talents(contested_pairs, threshold=1)
+    node_ranks = [{} for _ in range(10)]
+    node_meta = {10: {"row": 5}, 11: {"row": 5}}  # Row 5 = weight 5.0 each -> dist 10.0 > 5.0 threshold
+    pairs = [(node_sets[i], i) for i in range(10)]
+    clusters = cluster_talents(pairs, node_ranks, node_meta, threshold=5.0)
     assert len(clusters) == 2
     sizes = sorted([len(c) for c in clusters], reverse=True)
     assert sizes == [7, 3]
@@ -78,14 +85,59 @@ def test_full_pipeline_two_builds():
 
 def test_summarize_returns_expected_shape():
     node_sets = make_node_sets(10, [1, 2, 3], {10: list(range(7)), 11: list(range(7, 10))})
+    node_meta = {10: {"row": 5}, 11: {"row": 5}}
     codes = [f"code_{i}" for i in range(10)]
-    result = summarize_talent_clusters(node_sets, codes, keystone_nodes=None)
+    result = summarize_talent_clusters(node_sets, codes, node_meta=node_meta)
     assert "core_nodes" in result
     assert "contested_nodes" in result
     assert "clusters" in result
-    assert result["clustering_method"] in ("variance+hamming", "keystone")
+    assert result["clustering_method"] == "variance+weighted"
     assert len(result["clusters"]) == 2
     assert result["clusters"][0]["pct"] == 70.0
+
+
+def test_hero_tree_split():
+    # Build A has Hero Node 100, Build B has Hero Node 101.
+    # Even if they are otherwise identical, they must split because of partitioning.
+    node_sets = [{1, 100}, {1, 101}]
+    node_meta = {
+        100: {"is_hero": True, "type": "circle", "row": 0},
+        101: {"is_hero": True, "type": "circle", "row": 0},
+    }
+    codes = ["code_A", "code_B"]
+    result = summarize_talent_clusters(node_sets, codes, node_meta=node_meta)
+    
+    # Should split into 2 clusters because they are in different hero groups
+    assert len(result["clusters"]) == 2
+
+
+def test_rank_shuffle_merge():
+    # Two builds with multiple 1/2 vs 2/2 swaps.
+    # 3 swaps = 3 * 0.5 = 1.5 weight. Threshold = 5.0. Should merge.
+    node_sets = [{1, 2, 3}, {1, 2, 3}]
+    node_ranks_list = [
+        {1: 1, 2: 1, 3: 1},
+        {1: 2, 2: 2, 3: 2}
+    ]
+    node_meta = {
+        1: {"row": 0}, 2: {"row": 0}, 3: {"row": 0}
+    }
+    pairs = [(node_sets[i], i) for i in range(2)]
+    clusters = cluster_talents(pairs, node_ranks_list, node_meta, threshold=5.0)
+    assert len(clusters) == 1
+
+
+def test_choice_node_split():
+    # Swapping one choice node (10.0 weight) should force a split (threshold 5.0)
+    node_sets = [{1, 10}, {1, 11}]
+    node_meta = {
+        10: {"type": "diamond", "row": 0},
+        11: {"type": "diamond", "row": 0}
+    }
+    node_ranks = [{} for _ in range(2)]
+    pairs = [(node_sets[i], i) for i in range(2)]
+    clusters = cluster_talents(pairs, node_ranks, node_meta, threshold=5.0)
+    assert len(clusters) == 2
 
 
 def test_analyze_includes_node_meta():

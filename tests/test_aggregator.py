@@ -136,4 +136,4 @@ def test_build_aggregation_corrupt_keystone_file(tmp_path):
         region="us",
         keystone_file=str(keystone_file),
     )
-    assert result["talents"]["clustering_method"] == "variance+hamming"
+    assert result["talents"]["clustering_method"] == "variance+weighted"
