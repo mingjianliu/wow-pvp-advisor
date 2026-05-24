@@ -21,6 +21,7 @@ frontend_datas = [
     (str(FRONTEND / "tree.jsx"),      "frontend"),
     (str(FRONTEND / "sidebar.jsx"),   "frontend"),
     (str(FRONTEND / "tweaks-panel.jsx"), "frontend"),
+    (str(FRONTEND / "talent-meta.js"), "frontend"),
 ]
 
 a = Analysis(
@@ -82,3 +83,11 @@ exe = EXE(
     argv_emulation=False,
     icon=None,      # add an .ico file here if you have one
 )
+
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        exe,
+        name='WoW Advisor.app',
+        icon=None,
+        bundle_identifier='com.wowadvisor.app',
+    )

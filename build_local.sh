@@ -2,11 +2,11 @@
 set -e
 echo "=== WoW Advisor local build ==="
 
-pip install pyinstaller -q
+./.venv/bin/pip install pyinstaller -q
 
 rm -rf build dist/wow-advisor
 
-pyinstaller build.spec --clean --noconfirm
+./.venv/bin/pyinstaller build.spec --clean --noconfirm
 
 if [ -f dist/wow-advisor ]; then
     echo ""

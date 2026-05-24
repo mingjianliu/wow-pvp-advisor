@@ -14,8 +14,9 @@ window.TalentMeta = (function () {
   const inFlight = new Set();
   const fire = () => subscribers.forEach((fn) => fn(cache));
 
+  const getWowheadLocale = () => window.location.pathname.endsWith('_zh.html') ? 4 : 0;
   const ENDPOINT = (type, id) =>
-    `https://nether.wowhead.com/tooltip/${type}/${id}?dataEnv=1&locale=0`;
+    `https://nether.wowhead.com/tooltip/${type}/${id}?dataEnv=1&locale=${getWowheadLocale()}`;
   const ICON_URL = (name) =>
     `https://wow.zamimg.com/images/wow/icons/medium/${name}.jpg`;
 
