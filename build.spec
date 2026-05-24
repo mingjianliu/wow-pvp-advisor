@@ -59,7 +59,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["fastmcp", "tkinter", "matplotlib", "numpy", "pandas"],
+    excludes=["fastmcp", "matplotlib", "numpy", "pandas"],
     noarchive=False,
 )
 
@@ -78,7 +78,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,   # keep console so users see progress/errors
+    console=False,   # Proper windowed app
     disable_windowed_traceback=False,
     argv_emulation=False,
     icon=None,      # add an .ico file here if you have one
@@ -90,4 +90,7 @@ if sys.platform == 'darwin':
         name='WoW Advisor.app',
         icon=None,
         bundle_identifier='com.wowadvisor.app',
+        info_plist={
+            'LSUIElement': True,
+        }
     )

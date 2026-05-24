@@ -93,13 +93,12 @@ def main() -> None:
         _open_browser(url)
         
         import time
-        print("\nRunning in App Mode. Server is active. Press Ctrl+C to quit.")
+        print("\nRunning in App Mode. Server is active in the background.")
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             print("\nShutting down.")
-            sys.exit(0)
 
     print(f"Building page for {args.spec!r} / {args.bracket} [{args.region}] ...")
 
