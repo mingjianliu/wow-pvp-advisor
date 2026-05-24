@@ -269,17 +269,10 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
 
     def translate_path(self, path):
         parsed_path = path.split("?")[0]
-        if parsed_path.startswith("/pages/"):
+        if parsed_path.startswith("/pages/") and parsed_path.endswith(".html"):
             filename = parsed_path.split("/")[-1]
-            return str(get_pages_dir() / filename)
-        return super().translate_path(path)
-
-    def do_GET(self):
-        # We serve from the 'frontend' directory, so /pages/... is relative to that.
-        path = self.path.split("?")[0]
-        if path.startswith("/pages/") and path.endswith(".html"):
-            filename = path.split("/")[-1]
-            print(f"[Server] Request: {filename}")
+            print(f"[Server] Translating: {filename}", flush=True)
+            
             # expected: spec_bracket.html or spec_bracket_zh.html
             match = re.match(r"^([a-z0-9-]+)_([a-z0-9-]+)(_zh)?\.html$", filename)
             if match:
@@ -290,30 +283,38 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                 
                 needs_build = not full_path.exists()
                 if not needs_build:
-                    import time
                     age = time.time() - full_path.stat().st_mtime
                     if age > 2 * 3600:
-                        print(f"[Server] {filename} is {age/3600:.1f} hours old. Rebuilding...")
+                        print(f"[Server] {filename} is old ({age/3600:.1f}h). Rebuilding...", flush=True)
                         needs_build = True
-                else:
-                    print(f"[Server] {filename} not found on disk. Building on-demand...")
-
+                
                 if needs_build:
+                    print(f"[Server] Triggering on-demand build for {filename} (spec={spec}, bracket={bracket})...", flush=True)
                     try:
                         # Ensure we don't open browser during on-demand generation
                         result = build_page(spec, bracket, locale=locale, open_browser=False)
                         if "error" in result:
-                            print(f"[Server] build_page returned error: {result['error']}")
+                            print(f"[Server] build_page failed: {result['error']}", flush=True)
                         else:
-                            print(f"[Server] Successfully generated {filename} (Path: {result.get('path')})")
+                            print(f"[Server] Successfully generated {filename}", flush=True)
                     except Exception as e:
                         import traceback
                         traceback.print_exc()
-                        print(f"[Server] Failed to build {filename}: {e}")
-            else:
-                print(f"[Server] Regex match failed for filename: {filename}")
+                        print(f"[Server] Error building {filename}: {e}", flush=True)
+            
+            return str(get_pages_dir() / filename)
+            
+        return super().translate_path(path)
 
+    def do_GET(self):
+        # Log all GET requests for debugging
+        print(f"[Server] GET {self.path}", flush=True)
         return super().do_GET()
+
+    def do_HEAD(self):
+        # Log all HEAD requests for debugging
+        print(f"[Server] HEAD {self.path}", flush=True)
+        return super().do_HEAD()
 
 
 _server_started = False

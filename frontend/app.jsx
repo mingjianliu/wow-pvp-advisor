@@ -105,7 +105,13 @@ const buildHref = (cls, spec, bracket, locale) => {
   
   const slug = specSlug + '_' + normalizeBracket(bracket);
   const suffix = (locale || getLocale()) === 'zh_CN' ? '_zh' : '';
-  return slug + suffix + '.html';
+  const filename = slug + suffix + '.html';
+  
+  // If served via local server, use absolute path to ensure on-demand gen hits the server
+  if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
+    return `/pages/${filename}`;
+  }
+  return filename;
 };
 
 function classIconSlug(cls) {
