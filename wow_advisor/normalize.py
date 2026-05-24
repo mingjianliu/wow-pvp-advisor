@@ -70,47 +70,47 @@ _BRACKET_ALIASES: dict[str, str] = {
     "blitz": "battlegrounds/blitz",
 }
 
-# Maps normalized spec slug → (WoW class name, WoW spec name) as returned by Blizzard API
-_SPEC_CLASS_MAP: dict[str, tuple[str, str]] = {
-    "restoration-shaman": ("Shaman", "Restoration"),
-    "elemental-shaman": ("Shaman", "Elemental"),
-    "enhancement-shaman": ("Shaman", "Enhancement"),
-    "restoration-druid": ("Druid", "Restoration"),
-    "balance-druid": ("Druid", "Balance"),
-    "feral-druid": ("Druid", "Feral"),
-    "guardian-druid": ("Druid", "Guardian"),
-    "holy-paladin": ("Paladin", "Holy"),
-    "retribution-paladin": ("Paladin", "Retribution"),
-    "protection-paladin": ("Paladin", "Protection"),
-    "discipline-priest": ("Priest", "Discipline"),
-    "holy-priest": ("Priest", "Holy"),
-    "shadow-priest": ("Priest", "Shadow"),
-    "mistweaver-monk": ("Monk", "Mistweaver"),
-    "windwalker-monk": ("Monk", "Windwalker"),
-    "brewmaster-monk": ("Monk", "Brewmaster"),
-    "arms-warrior": ("Warrior", "Arms"),
-    "fury-warrior": ("Warrior", "Fury"),
-    "protection-warrior": ("Warrior", "Protection"),
-    "beast-mastery-hunter": ("Hunter", "Beast Mastery"),
-    "marksmanship-hunter": ("Hunter", "Marksmanship"),
-    "survival-hunter": ("Hunter", "Survival"),
-    "affliction-warlock": ("Warlock", "Affliction"),
-    "demonology-warlock": ("Warlock", "Demonology"),
-    "destruction-warlock": ("Warlock", "Destruction"),
-    "unholy-death-knight": ("Death Knight", "Unholy"),
-    "frost-death-knight": ("Death Knight", "Frost"),
-    "blood-death-knight": ("Death Knight", "Blood"),
-    "havoc-demon-hunter": ("Demon Hunter", "Havoc"),
-    "vengeance-demon-hunter": ("Demon Hunter", "Vengeance"),
-    "arcane-mage": ("Mage", "Arcane"),
-    "fire-mage": ("Mage", "Fire"),
-    "frost-mage": ("Mage", "Frost"),
-    "subtlety-rogue": ("Rogue", "Subtlety"),
-    "assassination-rogue": ("Rogue", "Assassination"),
-    "outlaw-rogue": ("Rogue", "Outlaw"),
-    "augmentation-evoker": ("Evoker", "Augmentation"),
-    "devastation-evoker": ("Evoker", "Devastation"),
-    "preservation-evoker": ("Evoker", "Preservation"),
+# Maps normalized spec slug -> (Class ID, Spec ID, WoW class name, WoW spec name)
+_SPEC_INFO_MAP: dict[str, tuple[int, int, str, str]] = {
+    "restoration-shaman": (7, 264, "Shaman", "Restoration"),
+    "elemental-shaman": (7, 262, "Shaman", "Elemental"),
+    "enhancement-shaman": (7, 263, "Shaman", "Enhancement"),
+    "restoration-druid": (11, 105, "Druid", "Restoration"),
+    "balance-druid": (11, 102, "Druid", "Balance"),
+    "feral-druid": (11, 103, "Druid", "Feral"),
+    "guardian-druid": (11, 104, "Druid", "Guardian"),
+    "holy-paladin": (2, 65, "Paladin", "Holy"),
+    "retribution-paladin": (2, 70, "Paladin", "Retribution"),
+    "protection-paladin": (2, 66, "Paladin", "Protection"),
+    "discipline-priest": (5, 256, "Priest", "Discipline"),
+    "holy-priest": (5, 257, "Priest", "Holy"),
+    "shadow-priest": (5, 258, "Priest", "Shadow"),
+    "mistweaver-monk": (10, 270, "Monk", "Mistweaver"),
+    "windwalker-monk": (10, 269, "Monk", "Windwalker"),
+    "brewmaster-monk": (10, 268, "Monk", "Brewmaster"),
+    "arms-warrior": (1, 71, "Warrior", "Arms"),
+    "fury-warrior": (1, 72, "Warrior", "Fury"),
+    "protection-warrior": (1, 73, "Warrior", "Protection"),
+    "beast-mastery-hunter": (3, 253, "Hunter", "Beast Mastery"),
+    "marksmanship-hunter": (3, 254, "Hunter", "Marksmanship"),
+    "survival-hunter": (3, 255, "Hunter", "Survival"),
+    "affliction-warlock": (9, 265, "Warlock", "Affliction"),
+    "demonology-warlock": (9, 266, "Warlock", "Demonology"),
+    "destruction-warlock": (9, 267, "Warlock", "Destruction"),
+    "unholy-death-knight": (6, 252, "Death Knight", "Unholy"),
+    "frost-death-knight": (6, 251, "Death Knight", "Frost"),
+    "blood-death-knight": (6, 250, "Death Knight", "Blood"),
+    "havoc-demon-hunter": (12, 577, "Demon Hunter", "Havoc"),
+    "vengeance-demon-hunter": (12, 581, "Demon Hunter", "Vengeance"),
+    "arcane-mage": (8, 62, "Mage", "Arcane"),
+    "fire-mage": (8, 63, "Mage", "Fire"),
+    "frost-mage": (8, 64, "Mage", "Frost"),
+    "subtlety-rogue": (4, 261, "Rogue", "Subtlety"),
+    "assassination-rogue": (4, 259, "Rogue", "Assassination"),
+    "outlaw-rogue": (4, 260, "Rogue", "Outlaw"),
+    "augmentation-evoker": (13, 1473, "Evoker", "Augmentation"),
+    "devastation-evoker": (13, 1467, "Evoker", "Devastation"),
+    "preservation-evoker": (13, 1468, "Evoker", "Preservation"),
 }
 
 
@@ -128,4 +128,15 @@ def normalize_bracket(raw: str) -> str:
 
 def spec_to_class_spec(spec: str) -> tuple[str, str] | None:
     """Return (class_name, spec_name) as Blizzard API returns them, or None if unknown."""
-    return _SPEC_CLASS_MAP.get(spec)
+    info = _SPEC_INFO_MAP.get(spec)
+    if info:
+        return info[2], info[3]
+    return None
+
+
+def spec_to_ids(spec: str) -> tuple[int, int] | None:
+    """Return (class_id, spec_id), or None if unknown."""
+    info = _SPEC_INFO_MAP.get(spec)
+    if info:
+        return info[0], info[1]
+    return None

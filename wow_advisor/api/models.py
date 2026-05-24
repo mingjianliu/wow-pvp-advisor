@@ -45,5 +45,7 @@ class CharacterData:
     spec: str
     equipped_ilvl: int
     rating: int
+    class_id: int = 0
+    spec_id: int = 0
     talent: TalentData | None = None
     gear: list[GearSlot] = field(default_factory=list)

@@ -163,9 +163,15 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
         entry: dict = {"slot": label, "item": {"id": top["item_id"], "name": top["name"], "pct": top["pct"]}}
         enc_list = enchants_raw.get(slot_key, [])
         if enc_list:
-            ename = re.sub(r"^Enchanted:\s*Enchant [^-]+ - ", "", enc_list[0]["name"])
-            ename = re.sub(r"^Enchanted:\s*", "", ename)
-            entry["enchant"] = {"name": ename, "pct": enc_list[0]["pct"]}
+            ename = enc_list[0]["name"]
+            # Strip localized prefixes
+            ename = re.sub(r"^(Enchanted|已附魔|附魔)[:：]?\s*", "", ename)
+            ename = re.sub(r"^Enchant [^-]+ - ", "", ename)
+            entry["enchant"] = {
+                "id": enc_list[0].get("enchant_id"),
+                "name": ename,
+                "pct": enc_list[0]["pct"]
+            }
         gear_slots.append(entry)
 
     hero_core = _hero_core_nodes()

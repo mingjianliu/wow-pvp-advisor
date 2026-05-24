@@ -31,21 +31,23 @@ async def fetch_top_players_async(
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
 
-    class_spec = spec_to_class_spec(spec)
-    if class_spec is None:
+    from wow_advisor.normalize import spec_to_ids
+    ids = spec_to_ids(spec)
+    if ids is None:
         return {"error": f"Unknown spec: {spec}. Check spelling or add it to normalize.py."}
 
     # Skip API fetch if data is less than 2 hours old
-    # TODO: make aggregation locale-aware? For now we refresh if locale changes?
-    # Better: just use what's in DB if names aren't strictly required to be localized.
-    # But user wants full Chinese if selected.
     conn = get_default_db()
     store = CacheStore(conn)
-    if locale == "en_US" and not store.is_stale(spec, bracket, region, ttl_hours=2):
-        agg = store.get_aggregation(spec, bracket, region)
+    if not store.is_stale(spec, bracket, region, ttl_hours=2, locale=locale):
+        agg = store.get_aggregation(spec, bracket, region, locale=locale)
         return {"fetched": agg.get("sample_size", 0), "cached_at": agg.get("cached_at"), "spec": spec, "bracket": bracket, "skipped": True}
 
+    target_class_id, target_spec_id = ids
+    # Also get names for Solo Shuffle slug
+    class_spec = spec_to_class_spec(spec)
     target_class, target_spec = class_spec
+
     _, client = _make_client(region)
 
     # Solo Shuffle leaderboard is spec-specific: shuffle-{class}-{spec}
@@ -75,7 +77,7 @@ async def fetch_top_players_async(
             for char in results:
                 if char is None:
                     continue
-                if char.character_class == target_class and char.spec == target_spec:
+                if char.class_id == target_class_id and char.spec_id == target_spec_id:
                     matched.append(char)
                     if len(matched) >= limit:
                         break
@@ -93,7 +95,7 @@ async def fetch_top_players_async(
 
     conn = get_default_db()
     store = CacheStore(conn)
-    store.save_players(collected, spec=spec, bracket=bracket)
+    store.save_players(collected, spec=spec, bracket=bracket, locale=locale)
 
     aggregation = build_aggregation(
         players=collected,
@@ -101,7 +103,7 @@ async def fetch_top_players_async(
         bracket=bracket,
         region=region,
     )
-    store.save_aggregation(spec=spec, bracket=bracket, region=region, data=aggregation)
+    store.save_aggregation(spec=spec, bracket=bracket, region=region, data=aggregation, locale=locale)
 
     return {"fetched": len(collected), "cached_at": int(time.time()), "spec": spec, "bracket": bracket}
 

@@ -132,6 +132,26 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
         </div>
       </div>
 
+      {cluster.flex_takes && cluster.flex_takes.length > 0 && (
+        <div className="side-section">
+          <h4>{window.t('variance') || 'Cluster variance'} <span className="side-h-hint">optional takes within this group</span></h4>
+          <div className="signature-block">
+            <ul className="signature-list">
+              {cluster.flex_takes.map(t => (
+                <li key={t.id} className="sig-item flex">
+                  <div className="sig-name-row">
+                    <TalentLink t={t} className="sig-name" />
+                    <RankTag t={t} />
+                  </div>
+                  <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
+                  <span className="sig-pct">{t.pct}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       <div className="side-section">
         <h4>Legend</h4>
         <div className="legend">
@@ -205,7 +225,15 @@ function GearPanel({ group }) {
             {s.enchant ? (
               <div className="gear-card-enchant">
                 <span className="enchant-tag">{window.t('ench')}</span>
-                <span className="enchant-name">{s.enchant.name}</span>
+                {s.enchant.id ? (
+                  <a className="enchant-name"
+                     href={`https://${whDomain}/spell=${s.enchant.id}`}
+                     target="_blank"
+                     rel="noopener"
+                     data-wowhead={`spell=${s.enchant.id}${whDomainAttr}`}>{s.enchant.name}</a>
+                ) : (
+                  <span className="enchant-name">{s.enchant.name}</span>
+                )}
                 <span className="enchant-pct">{s.enchant.pct}%</span>
               </div>
             ) : (

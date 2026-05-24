@@ -4,16 +4,16 @@ from wow_advisor.normalize import normalize_spec, normalize_bracket
 from wow_advisor.tools.fetch import fetch_top_players
 
 
-def get_talent_distribution(spec: str, bracket: str, region: str = "us") -> dict:
+def get_talent_distribution(spec: str, bracket: str, region: str = "us", locale: str = "en_US") -> dict:
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
     conn = get_default_db()
     store = CacheStore(conn)
-    if store.is_stale(spec, bracket, region):
-        result = fetch_top_players(spec=spec, bracket=bracket, region=region)
+    if store.is_stale(spec, bracket, region, locale=locale):
+        result = fetch_top_players(spec=spec, bracket=bracket, region=region, locale=locale)
         if "error" in result:
             return result
-    agg = store.get_aggregation(spec, bracket, region)
+    agg = store.get_aggregation(spec, bracket, region, locale=locale)
     if agg is None:
         return {"error": f"No data for {spec} in {bracket}. Try calling fetch_top_players first."}
     return {

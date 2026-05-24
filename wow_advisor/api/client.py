@@ -38,9 +38,9 @@ def _parse_gear(equipped_items: list) -> list[GearSlot]:
     return slots
 
 
-def _parse_talents(spec_data: dict, active_spec: str) -> TalentData | None:
+def _parse_talents(spec_data: dict, spec_id: int) -> TalentData | None:
     for spec in spec_data.get("specializations", []):
-        if spec.get("specialization", {}).get("name") != active_spec:
+        if spec.get("specialization", {}).get("id") != spec_id:
             continue
         # PvP talents live at the spec level, not inside the loadout
         pvp_ids, pvp_names = [], []
@@ -215,6 +215,8 @@ class BnetClient:
             region=self._region,
             character_class=profile.get("character_class", {}).get("name", ""),
             spec=profile.get("active_spec", {}).get("name", ""),
+            class_id=profile.get("character_class", {}).get("id", 0),
+            spec_id=profile.get("active_spec", {}).get("id", 0),
             equipped_ilvl=profile.get("equipped_item_level", 0),
             rating=rating,
         )
@@ -230,7 +232,7 @@ class BnetClient:
                 self._get(client, f"{base_url}/specializations", namespace, locale=locale),
                 self._get(client, f"{base_url}/equipment", namespace, locale=locale),
             )
-        char.talent = _parse_talents(spec_data or {}, char.spec) if spec_data else None
+        char.talent = _parse_talents(spec_data or {}, char.spec_id) if spec_data else None
         char.gear = _parse_gear((equip_data or {}).get("equipped_items", []))
         return char
 
@@ -248,7 +250,8 @@ class BnetClient:
         if profile is None:
             return None
         active_spec = profile.get("active_spec", {}).get("name", "")
-        talent = _parse_talents(spec_data or {}, active_spec) if spec_data else None
+        active_spec_id = profile.get("active_spec", {}).get("id", 0)
+        talent = _parse_talents(spec_data or {}, active_spec_id) if spec_data else None
         gear = _parse_gear((equip_data or {}).get("equipped_items", []))
         return CharacterData(
             name=profile.get("name", name),
@@ -256,6 +259,8 @@ class BnetClient:
             region=self._region,
             character_class=profile.get("character_class", {}).get("name", ""),
             spec=active_spec,
+            class_id=profile.get("character_class", {}).get("id", 0),
+            spec_id=active_spec_id,
             equipped_ilvl=profile.get("equipped_item_level", 0),
             rating=rating,
             talent=talent,

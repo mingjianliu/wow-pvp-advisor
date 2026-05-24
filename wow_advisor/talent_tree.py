@@ -141,13 +141,34 @@ def get_tree_structure(spec: str, locale: str = "en_US") -> dict:
     """
     Fetch real talent tree layout from Blizzard API for any spec.
     """
-    from wow_advisor.normalize import normalize_spec
-    from wow_advisor.processor.talent_names import SPEC_IDS
+    from wow_advisor.normalize import normalize_spec, spec_to_ids
     spec_key = normalize_spec(spec)
-    spec_id  = SPEC_IDS.get(spec_key)
-    if not spec_id:
+    ids = spec_to_ids(spec_key)
+    if not ids:
         return {"error": f"Unknown spec '{spec_key}'"}
+    spec_id = ids[1]
+
     try:
-        return asyncio.run(_fetch(spec_id, locale=locale))
+        import threading
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        
+        if loop is None:
+            return asyncio.run(_fetch(spec_id, locale=locale))
+        
+        # Called from within an async context — run in a thread
+        result: dict = {}
+        def _run() -> None:
+            try:
+                result.update(asyncio.run(_fetch(spec_id, locale=locale)))
+            except Exception as e:
+                result["error"] = str(e)
+        
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join()
+        return result
     except Exception as e:
         return {"error": str(e)}

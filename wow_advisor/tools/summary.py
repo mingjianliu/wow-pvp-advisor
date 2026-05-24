@@ -49,12 +49,12 @@ def get_full_summary(spec: str, bracket: str, region: str = "us", locale: str = 
     conn = get_default_db()
     store = CacheStore(conn)
 
-    if store.is_stale(spec, bracket, region, ttl_hours=2):
+    if store.is_stale(spec, bracket, region, ttl_hours=2, locale=locale):
         result = fetch_top_players(spec=spec, bracket=bracket, region=region, locale=locale)
         if "error" in result:
             return result
 
-    agg = store.get_aggregation(spec, bracket, region)
+    agg = store.get_aggregation(spec, bracket, region, locale=locale)
     if agg is None:
         return {"error": f"No data for {spec} in {bracket}. Fetch failed."}
 
