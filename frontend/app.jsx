@@ -239,7 +239,6 @@ function App() {
                style={{ '--class-color': (CLASSES[navSelection.class] && CLASSES[navSelection.class].color) || 'var(--accent)' }} />
         </div>
         <div className="crumb">
-          <div style={{background: 'var(--accent)', color: 'var(--bg-0)', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '800', marginRight: '16px'}}>V3 ENGINE</div>
           <CrumbDrop trigger={t(navSelection.class)}>
             <div className="crumb-menu-title">{t('class')}</div>
             <div className="crumb-menu-grid">

@@ -130,30 +130,10 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             <div className="signature-empty">No flex points for this spec</div>
           )}
         </div>
-      </div>
-
-      {cluster.flex_takes && cluster.flex_takes.length > 0 && (
-        <div className="side-section">
-          <h4>{window.t('variance') || 'Cluster variance'} <span className="side-h-hint">optional takes within this group</span></h4>
-          <div className="signature-block">
-            <ul className="signature-list">
-              {cluster.flex_takes.map(t => (
-                <li key={t.id} className="sig-item flex">
-                  <div className="sig-name-row">
-                    <TalentLink t={t} className="sig-name" />
-                    <RankTag t={t} />
-                  </div>
-                  <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
-                  <span className="sig-pct">{t.pct}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
-      )}
 
-      <div className="side-section">
-        <h4>Legend</h4>
+        <div className="side-section">
+          <h4>Legend</h4>
         <div className="legend">
           <div className="legend-row"><span className="legend-dot core"></span> Core — ~100% of players take this</div>
           <div className="legend-row"><span className="legend-dot core contested-mini"></span> Cluster take — this cluster's pick of a contested talent</div>
