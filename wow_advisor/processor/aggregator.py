@@ -86,13 +86,21 @@ def build_aggregation(
         # Extract from main trees (class, spec)
         for tree in tree_data.get("trees", []):
             for node in tree.get("nodes", []):
-                node_meta[node["id"]] = {"row": node["row"], "type": node["type"]}
+                node_meta[node["id"]] = {
+                    "row": node["row"],
+                    "type": node["type"],
+                    "is_hero": False,
+                }
         # Extract from hero trees
         hero_trees = tree_data.get("heroTrees", {})
         for side in ["left", "right"]:
             hero_tree = hero_trees.get(side, {})
             for node in hero_tree.get("nodes", []):
-                node_meta[node["id"]] = {"row": node["row"], "type": node["type"]}
+                node_meta[node["id"]] = {
+                    "row": node["row"],
+                    "type": node["type"],
+                    "is_hero": True,
+                }
 
     talent_summary = summarize_talent_clusters(
         node_sets=node_sets,
