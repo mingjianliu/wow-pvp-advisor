@@ -219,9 +219,6 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
                     <text x={x + 17} y={y + 18.5}>{displayRank}</text>
                   </g>
                 )}
-                <text className="node-label" x={x} y={y + 32}>
-                  {truncateLabel(node.name)}
-                </text>
               </g>
             );
           })}
@@ -229,10 +226,6 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
       </svg>
     </div>
   );
-}
-
-function truncateLabel(s) {
-  return s.length > 14 ? s.slice(0, 13) + '…' : s;
 }
 
 window.TalentTree = TalentTree;

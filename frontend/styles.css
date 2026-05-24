@@ -498,31 +498,6 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .tree-svg.show-signature .node-group.contested-take .node-signature-ring { opacity: 0.85; }
 .tree-svg.show-signature .node-group.contested-take .node-shape { stroke: var(--accent); }
 
-.node-label {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  fill: var(--text-1);
-  text-anchor: middle;
-  pointer-events: none;
-  letter-spacing: 0.02em;
-  transition: opacity 0.15s;
-}
-.node-group.skip .node-label { fill: var(--text-3); }
-.node-group.core .node-label { fill: var(--text-0); }
-.node-group.flex .node-label { fill: var(--flex); }
-
-/* === Label visibility policy ===
-   The icon itself identifies the talent, so we hide labels on the boring
-   ~100%-take core nodes and let them surface on hover.  Labels stay visible
-   for the interesting cases: cluster-takes, rank-flex, flex, and skipped
-   nodes (so you can see which talents the cluster passed on).             */
-.node-group.core .node-label { opacity: 0; }
-.node-group.core.contested-take .node-label,
-.node-group.core.rank-flex     .node-label { opacity: 1; }
-.node-group.flex .node-label,
-.node-group.skip .node-label { opacity: 1; }
-.node-group:hover .node-label { opacity: 1; }
-
 /* === Pick-rate ring ===
    Drawn outside the node shape; encodes pickRate as an arc length.
    Hidden when pickRate ≥ 99.5% (closed circle would just be noise).      */
