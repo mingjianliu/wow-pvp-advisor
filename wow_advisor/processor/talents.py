@@ -229,11 +229,11 @@ def summarize_talent_clusters(
     all_clusters = []
     for indices in hero_groups.values():
         group_pairs = [(node_sets[i], i) for i in indices]
-        group_clusters = cluster_talents(
+        group_clusters = cluster_talents_hac(
             group_pairs,
             node_ranks_list=node_ranks_list or [{} for _ in range(n)],
             node_meta=node_meta or {},
-            threshold=0.2,
+            threshold=0.3,
         )
         all_clusters.extend(group_clusters)
 
