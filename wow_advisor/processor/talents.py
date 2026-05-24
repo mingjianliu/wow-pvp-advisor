@@ -85,6 +85,66 @@ def _weighted_jaccard_distance(
     return 1.0 - (weighted_intersection / weighted_union) if weighted_union > 0 else 0.0
 
 
+def cluster_talents_hac(
+    pairs: list[tuple[set[int], int]],
+    node_ranks_list: list[dict[int, int]],
+    node_meta: dict[int, dict],
+    threshold: float = 0.3,
+) -> list[list[tuple[set[int], int]]]:
+    """
+    Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
+    with Complete Linkage and Weighted Jaccard Distance.
+    """
+    if not pairs:
+        return []
+
+    # Every point starts as its own cluster (a list containing one pair and its original index)
+    # We store (pair, original_index) to look up node_ranks
+    clusters = [[(pairs[i], i)] for i in range(len(pairs))]
+    
+    while len(clusters) > 1:
+        best_dist = float('inf')
+        best_pair = (None, None)
+        
+        for i in range(len(clusters)):
+            for j in range(i + 1, len(clusters)):
+                # Complete Linkage: max distance between all members of clusters
+                max_d = 0.0
+                for (p_a, idx_a) in clusters[i]:
+                    for (p_b, idx_b) in clusters[j]:
+                        d = _weighted_jaccard_distance(
+                            p_a[0], node_ranks_list[idx_a],
+                            p_b[0], node_ranks_list[idx_b],
+                            node_meta
+                        )
+                        if d > max_d:
+                            max_d = d
+                            # Optimization: if max_d already exceeds current best_dist, 
+                            # we can stop checking this cluster pair
+                            if max_d >= best_dist:
+                                break
+                    if max_d >= best_dist:
+                        break
+                
+                if max_d < best_dist:
+                    best_dist = max_d
+                    best_pair = (i, j)
+        
+        if best_dist > threshold:
+            break
+            
+        i, j = best_pair
+        clusters[i].extend(clusters[j])
+        clusters.pop(j)
+        
+    # Unwrap (pair, index) back to just pair for the return value
+    final_clusters = []
+    for c in clusters:
+        final_clusters.append([p for p, idx in c])
+        
+    return sorted(final_clusters, key=len, reverse=True)
+
+
 def cluster_talents(
     pairs: list[tuple[set[int], int]],  # (node_set, original_index)
     node_ranks_list: list[dict[int, int]],
