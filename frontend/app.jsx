@@ -42,7 +42,7 @@ const BRACKETS = ['2v2', '3v3', 'Solo Shuffle', 'RBG', 'Blitz'];
 const TRANSLATIONS = {
   'en_US': {
     class: 'Class', spec: 'Spec', bracket: 'Bracket',
-    share: 'Share', count: 'Count', takes: 'Takes', flex: 'Flex', minor: 'minor',
+    share: 'Share', count: 'Count', takes: 'Takes', flex: 'Flex',
     global: 'GLOBAL', same: 'same across all clusters', pvp: 'PvP Talents',
     slot: 'SLOT', modal: 'Modal pick', alts: 'Alternatives',
     core: 'CORE', contested: 'CLUSTER TAKE', skip: 'SKIP',
@@ -54,7 +54,7 @@ const TRANSLATIONS = {
   },
   'zh_CN': {
     class: '职业', spec: '专精', bracket: '赛制',
-    share: '占比', count: '人数', takes: '核心', flex: '灵活', minor: '次要',
+    share: '占比', count: '人数', takes: '核心', flex: '灵活',
     global: '全局', same: '所有流派通用', pvp: 'PvP 天赋',
     slot: '槽位', modal: '主流选择', alts: '备选',
     core: '核心', contested: '流派特色', skip: '未选取',
@@ -192,9 +192,7 @@ function App() {
     () => [...data.clusters].sort((a, b) => b.pct - a.pct),
     [data]
   );
-  // Only display clusters with 2+ players; single-player outliers are noise.
-  const majorClusters = useMemo(() => clusters.filter((c) => c.count >= 2), [clusters]);
-  const minorCount = clusters.length - majorClusters.length;
+  const majorClusters = clusters;
 
   const [activeRank, setActiveRank] = useState(majorClusters[0].rank);
   useEffect(() => {
@@ -335,16 +333,12 @@ function App() {
               <span><span className="pct">{c.pct}%</span></span>
               <span>n={c.count}</span>
             </span>
+            {c.count === 1 && <span className="tab-unique">UNIQUE</span>}
             <span className="tab-bar">
               <span className="tab-bar-fill" style={{ width: `${Math.min(100, c.pct * 4)}%` }}></span>
             </span>
           </button>
         )}
-        {minorCount > 0 &&
-        <div className="tab tab-minor" title={`${minorCount} more clusters with n=1 (outliers)`}>
-            +{minorCount} {t('minor')}
-          </div>
-        }
       </nav>
 
       <main className="main">
@@ -557,4 +551,12 @@ function Tooltip({ node, state, x, y }) {
 
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);me="tooltip-stat">
+          <span>{t('notTaken')}</span>
+        </div>
+      }
+    </div>);
+
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);;
