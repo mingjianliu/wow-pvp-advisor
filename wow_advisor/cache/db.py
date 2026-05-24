@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS players (
     name TEXT NOT NULL,
     realm TEXT NOT NULL,
     region TEXT NOT NULL DEFAULT 'us',
+    locale TEXT NOT NULL DEFAULT 'en_US',
     character_class TEXT,
     spec TEXT,
     bracket TEXT,
@@ -30,17 +31,20 @@ CREATE TABLE IF NOT EXISTS player_loadouts (
 CREATE TABLE IF NOT EXISTS aggregations (
     spec TEXT NOT NULL,
     bracket TEXT NOT NULL,
-    region TEXT NOT NULL,
+    region TEXT NOT NULL DEFAULT 'us',
+    locale TEXT NOT NULL DEFAULT 'en_US',
     computed_at INTEGER NOT NULL,
     data TEXT NOT NULL,
-    PRIMARY KEY (spec, bracket, region)
+    PRIMARY KEY (spec, bracket, region, locale)
 );
 
 CREATE TABLE IF NOT EXISTS talent_node_cache (
-    spec          TEXT PRIMARY KEY,
+    spec          TEXT NOT NULL,
+    locale        TEXT NOT NULL DEFAULT 'en_US',
     nodes_json    TEXT NOT NULL,
     last_modified TEXT,
-    checked_at    INTEGER NOT NULL
+    checked_at    INTEGER NOT NULL,
+    PRIMARY KEY (spec, locale)
 );
 
 CREATE INDEX IF NOT EXISTS idx_players_spec_bracket_region ON players(spec, bracket, region);

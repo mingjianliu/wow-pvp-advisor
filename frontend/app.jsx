@@ -39,6 +39,58 @@ const CLASSES = {
 };
 const BRACKETS = ['2v2', '3v3', 'Solo Shuffle', 'RBG', 'Blitz'];
 
+const TRANSLATIONS = {
+  'en_US': {
+    class: 'Class', spec: 'Spec', bracket: 'Bracket',
+    share: 'Share', count: 'Count', takes: 'Takes', flex: 'Flex', minor: 'minor',
+    global: 'GLOBAL', same: 'same across all clusters', pvp: 'PvP Talents',
+    slot: 'SLOT', modal: 'Modal pick', alts: 'Alternatives',
+    core: 'CORE', contested: 'CLUSTER TAKE', skip: 'SKIP',
+    rankDist: 'Rank distribution', notTaken: 'Not taken in this cluster',
+    pickRate: 'Pick rate', overall: 'overall',
+    tweaks: 'Tweaks', flexHighlight: 'Flex highlight', heatmap: 'Pick-rate heatmap',
+    signature: 'Cluster signature', go: 'Go', selectSpec: 'Select Spec...', selectBracket: 'Select Bracket...',
+  },
+  'zh_CN': {
+    class: '职业', spec: '专精', bracket: '赛制',
+    share: '占比', count: '人数', takes: '核心', flex: '灵活', minor: '次要',
+    global: '全局', same: '所有流派通用', pvp: 'PvP 天赋',
+    slot: '槽位', modal: '主流选择', alts: '备选',
+    core: '核心', contested: '流派特色', skip: '未选取',
+    rankDist: '点数分布', notTaken: '此流派未选取',
+    pickRate: '选取率', overall: '总计',
+    tweaks: '设置', flexHighlight: '灵活高亮', heatmap: '热力图',
+    signature: '流派特征', go: '前往', selectSpec: '选择专精...', selectBracket: '选择赛制...',
+    
+    // Classes
+    'Death Knight': '死亡骑士', 'Demon Hunter': '恶魔猎手', 'Druid': '德鲁伊', 'Evoker': '唤魔师',
+    'Hunter': '猎人', 'Mage': '法师', 'Monk': '武僧', 'Paladin': '圣骑士', 'Priest': '牧师',
+    'Rogue': '潜行者', 'Shaman': '萨满祭司', 'Warlock': '术士', 'Warrior': '战士',
+
+    // Specs
+    'Blood': '鲜血', 'Frost': '冰霜', 'Unholy': '邪恶',
+    'Havoc': '浩劫', 'Vengeance': '复仇',
+    'Balance': '平衡', 'Feral': '野性', 'Guardian': '守护', 'Restoration': '恢复',
+    'Devastation': '湮灭', 'Preservation': '恩护', 'Augmentation': '增辉',
+    'Beast Mastery': '野兽控制', 'Marksmanship': '射击', 'Survival': '生存',
+    'Arcane': '奥术', 'Fire': '火焰',
+    'Brewmaster': '酒仙', 'Mistweaver': '织雾', 'Windwalker': '踏风',
+    'Holy': '神圣', 'Protection': '防护', 'Retribution': '惩戒',
+    'Discipline': '戒律', 'Shadow': '暗影',
+    'Assassination': '奇袭', 'Outlaw': '狂徒', 'Subtlety': '敏锐',
+    'Elemental': '元素', 'Enhancement': '增强',
+    'Affliction': '痛苦', 'Demonology': '恶魔学识', 'Destruction': '毁灭',
+    'Arms': '武器', 'Fury': '狂怒',
+    
+    // Brackets
+    'Solo Shuffle': '单排轮斗', 'Blitz': '战场闪电战',
+  }
+};
+
+const getLocale = () => window.location.pathname.endsWith('_zh.html') ? 'zh_CN' : 'en_US';
+const t = (key) => (TRANSLATIONS[getLocale()] || TRANSLATIONS['en_US'])[key] || key;
+window.t = t;
+
 const slugify = (s) => s.toLowerCase().replace(/ /g, '-');
 
 const normalizeBracket = (b) => {
@@ -48,10 +100,12 @@ const normalizeBracket = (b) => {
   return low.replace(/ /g, '-');
 };
 
-const buildHref = (cls, spec, bracket) => {
+const buildHref = (cls, spec, bracket, locale = null) => {
+  const loc = locale || getLocale();
   const specSlug = `${slugify(spec)}-${slugify(cls)}`;
   const bracketSlug = normalizeBracket(bracket);
-  const filename = `${specSlug}_${bracketSlug}.html`;
+  const suffix = loc === 'zh_CN' ? '_zh' : '';
+  const filename = `${specSlug}_${bracketSlug}${suffix}.html`;
   // If served via local server, use absolute path to ensure on-demand gen hits the server
   if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
     return `/pages/${filename}`;
@@ -185,8 +239,8 @@ function App() {
                style={{ '--class-color': (CLASSES[navSelection.class] && CLASSES[navSelection.class].color) || 'var(--accent)' }} />
         </div>
         <div className="crumb">
-          <CrumbDrop trigger={navSelection.class}>
-            <div className="crumb-menu-title">Class</div>
+          <CrumbDrop trigger={t(navSelection.class)}>
+            <div className="crumb-menu-title">{t('class')}</div>
             <div className="crumb-menu-grid">
               {Object.entries(CLASSES).map(([cls, info]) =>
                 <a key={cls}
@@ -197,7 +251,7 @@ function App() {
                    }}
                    className={`crumb-menu-item ${cls === navSelection.class ? 'current' : ''}`}>
                   <span className="cls-dot" style={{ background: info.color }}></span>
-                  <span className="cls-name" style={{ color: info.color }}>{cls}</span>
+                  <span className="cls-name" style={{ color: info.color }}>{t(cls)}</span>
                 </a>
               )}
             </div>
@@ -205,8 +259,8 @@ function App() {
           <span className="sep">/</span>
 
           {navSelection.class ? (
-            <CrumbDrop trigger={navSelection.spec || <span className="select-hint">Select Spec...</span>} active={!navSelection.spec}>
-              <div className="crumb-menu-title">Spec · {navSelection.class}</div>
+            <CrumbDrop trigger={navSelection.spec ? t(navSelection.spec) : <span className="select-hint">{t('selectSpec')}</span>} active={!navSelection.spec}>
+              <div className="crumb-menu-title">{t('spec')} · {t(navSelection.class)}</div>
               {(CLASSES[navSelection.class] ? CLASSES[navSelection.class].specs : []).map((sp) =>
                 <a key={sp}
                    href="#"
@@ -216,19 +270,19 @@ function App() {
                    }}
                    className={`crumb-menu-item ${sp === navSelection.spec ? 'current' : ''}`}>
                   <span className="cls-dot" style={{ background: CLASSES[navSelection.class].color }}></span>
-                  <span>{sp}</span>
+                  <span>{t(sp)}</span>
                 </a>
               )}
             </CrumbDrop>
           ) : (
-            <span className="crumb-trigger disabled">Spec</span>
+            <span className="crumb-trigger disabled">{t('spec')}</span>
           )}
 
           <span className="sep">/</span>
 
           {navSelection.spec ? (
-            <CrumbDrop trigger={navSelection.bracket || <span className="select-hint">Select Bracket...</span>} active={!navSelection.bracket}>
-              <div className="crumb-menu-title">Bracket</div>
+            <CrumbDrop trigger={navSelection.bracket ? t(navSelection.bracket) : <span className="select-hint">{t('selectBracket')}</span>} active={!navSelection.bracket}>
+              <div className="crumb-menu-title">{t('bracket')}</div>
               {BRACKETS.map((b) =>
                 <a key={b}
                    href={isNavigating ? buildHref(navSelection.class, navSelection.spec, b) : "#"}
@@ -237,19 +291,29 @@ function App() {
                      setNavSelection({ ...navSelection, bracket: b });
                    }}
                    className={`crumb-menu-item ${b === navSelection.bracket ? 'current' : ''}`}>
-                  <span className="bracket-tag">{b}</span>
+                  <span className="bracket-tag">{t(b)}</span>
                 </a>
               )}
             </CrumbDrop>
           ) : (
-            <span className="crumb-trigger disabled">Bracket</span>
+            <span className="crumb-trigger disabled">{t('bracket')}</span>
           )}
 
           {isNavigating && (
             <a className="nav-go-btn" href={buildHref(navSelection.class, navSelection.spec, navSelection.bracket)}>
-              Go →
+              {t('go')} →
             </a>
           )}
+        </div>
+
+        <div className="topbar-right">
+          <div className="lang-toggle">
+            <a href={buildHref(data.specLabel.class, data.specLabel.spec, data.bracket, 'en_US')}
+               className={`lang-btn ${getLocale() === 'en_US' ? 'active' : ''}`}>EN</a>
+            <span className="lang-sep">|</span>
+            <a href={buildHref(data.specLabel.class, data.specLabel.spec, data.bracket, 'zh_CN')}
+               className={`lang-btn ${getLocale() === 'zh_CN' ? 'active' : ''}`}>ZH</a>
+          </div>
         </div>
 
       </header>
@@ -276,7 +340,7 @@ function App() {
         )}
         {minorCount > 0 &&
         <div className="tab tab-minor" title={`${minorCount} more clusters with n=1 (outliers)`}>
-            +{minorCount} minor
+            +{minorCount} {t('minor')}
           </div>
         }
       </nav>
@@ -365,10 +429,10 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
   return (
     <div className="pvp-panel" data-screen-label="PvP talents (global)">
       <div className="pvp-head">
-        <h3>PvP Talents</h3>
+        <h3>{t('pvp')}</h3>
         <div className="stat">
-          <span style={{ color: 'var(--flex)', marginRight: 8, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.12em' }}>GLOBAL</span>
-          <span>same across all clusters · n={data.sample_size.toLocaleString()}</span>
+          <span style={{ color: 'var(--flex)', marginRight: 8, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.12em' }}>{t('global')}</span>
+          <span>{t('same')} · n={data.sample_size.toLocaleString()}</span>
         </div>
       </div>
       <div className="pvp-grid">
@@ -376,14 +440,14 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
         <div className="pvp-slot" key={p.id}
         onMouseEnter={(e) => onHoverPvp(e, p)}
         onMouseLeave={onLeave}>
-            <span className="pvp-slot-tag">SLOT {i + 1}</span>
-            <div className="pvp-slot-pos">Modal pick</div>
+            <span className="pvp-slot-tag">{t('slot')} {i + 1}</span>
+            <div className="pvp-slot-pos">{t('modal')}</div>
             <div className="pvp-slot-name">{p.name}</div>
             <div className="pvp-slot-pct">{p.pct}<span className="unit">%</span></div>
           </div>
         )}
         <div className="pvp-alts">
-          <div className="pvp-alts-head">Alternatives · {alts.length}</div>
+          <div className="pvp-alts-head">{t('alts')} · {alts.length}</div>
           <div className="pvp-alts-list">
             {alts.map((p) =>
             <div className="pvp-alt-row" key={p.id}
@@ -423,9 +487,9 @@ function Tooltip({ node, state, x, y }) {
   const displayRank = state ? rankDist ? window.modalRank(state) : state.pts : 0;
   const rankFlex = state && window.isRankFlex(node, state);
 
-  let tag = 'SKIP';
-  if (role === 'core') tag = rankFlex ? 'CORE · RANK-FLEX' : isContested ? 'CLUSTER TAKE' : 'CORE';else
-  if (role === 'flex') tag = 'FLEX';
+  let tag = t('skip');
+  if (role === 'core') tag = rankFlex ? `${t('core')} · RANK-FLEX` : isContested ? t('contested') : t('core');else
+  if (role === 'flex') tag = t('flex');
 
   return (
     <div className="tooltip" style={tooltipStyle}>
@@ -445,7 +509,7 @@ function Tooltip({ node, state, x, y }) {
       {state ?
       <>
           <div className="tooltip-stat">
-            <span>Pick rate {isContested ? '(overall)' : ''}</span>
+            <span>{t('pickRate')} {isContested ? `(${t('overall')})` : ''}</span>
             <span className="v">{state.pickRate}%</span>
           </div>
           <div className="tooltip-bar">
@@ -453,7 +517,7 @@ function Tooltip({ node, state, x, y }) {
           </div>
           {rankDist ?
         <>
-              <div className="tooltip-rank-title">Rank distribution</div>
+              <div className="tooltip-rank-title">{t('rankDist')}</div>
               {rankDist.map((pct, i) => {
             const modalI = displayRank - 1;
             return (
@@ -471,7 +535,7 @@ function Tooltip({ node, state, x, y }) {
             if (skipPct < 0.5) return null;
             return (
               <div className="tooltip-rank-row">
-                    <span className="lbl">skip</span>
+                    <span className="lbl">{t('skip')}</span>
                     <span className="bar">
                       <span className="fill" style={{ width: `${skipPct}%`, background: 'var(--text-3)' }}></span>
                     </span>
@@ -484,7 +548,7 @@ function Tooltip({ node, state, x, y }) {
         </> :
 
       <div className="tooltip-stat">
-          <span>Not taken in this cluster</span>
+          <span>{t('notTaken')}</span>
         </div>
       }
     </div>);

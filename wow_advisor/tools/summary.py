@@ -42,7 +42,7 @@ def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
     }
 
 
-def get_full_summary(spec: str, bracket: str, region: str = "us") -> dict:
+def get_full_summary(spec: str, bracket: str, region: str = "us", locale: str = "en_US") -> dict:
     """Single-call summary: auto-fetches if stale, returns gear + named talents + PvP talents."""
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
@@ -50,7 +50,7 @@ def get_full_summary(spec: str, bracket: str, region: str = "us") -> dict:
     store = CacheStore(conn)
 
     if store.is_stale(spec, bracket, region, ttl_hours=2):
-        result = fetch_top_players(spec=spec, bracket=bracket, region=region)
+        result = fetch_top_players(spec=spec, bracket=bracket, region=region, locale=locale)
         if "error" in result:
             return result
 
@@ -63,7 +63,7 @@ def get_full_summary(spec: str, bracket: str, region: str = "us") -> dict:
         from wow_advisor.processor.talent_names import TalentNameCache
         from wow_advisor.tools.fetch import _make_client
         _, client = _make_client(region)
-        node_map = TalentNameCache(conn).resolve(spec, client)
+        node_map = TalentNameCache(conn).resolve(spec, client, locale=locale)
     except Exception:
         pass
 

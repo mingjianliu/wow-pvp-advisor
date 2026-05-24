@@ -9,22 +9,22 @@ class CacheStore:
         self._conn = conn
 
     def save_players(
-        self, players: list[CharacterData], spec: str, bracket: str
+        self, players: list[CharacterData], spec: str, bracket: str, locale: str = "en_US"
     ) -> None:
         if not players:
             return
         region = players[0].region if players else "us"
         self._conn.execute(
-            "DELETE FROM players WHERE spec=? AND bracket=? AND region=?",
-            (spec, bracket, region),
+            "DELETE FROM players WHERE spec=? AND bracket=? AND region=? AND locale=?",
+            (spec, bracket, region, locale),
         )
         now = int(time.time())
         for p in players:
             cur = self._conn.execute(
                 """INSERT INTO players
-                   (name, realm, region, character_class, spec, bracket, rating, equipped_ilvl, fetched_at)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
-                (p.name, p.realm, p.region, p.character_class, spec, bracket,
+                   (name, realm, region, locale, character_class, spec, bracket, rating, equipped_ilvl, fetched_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (p.name, p.realm, p.region, locale, p.character_class, spec, bracket,
                  p.rating, p.equipped_ilvl, now),
             )
             pid = cur.lastrowid
@@ -57,7 +57,7 @@ class CacheStore:
         self._conn.commit()
 
     def get_players(
-        self, spec: str, bracket: str, region: str = "us"
+        self, spec: str, bracket: str, region: str = "us", locale: str = "en_US"
     ) -> list[CharacterData]:
         rows = self._conn.execute(
             """SELECT p.name, p.realm, p.region, p.character_class, p.spec,
@@ -66,9 +66,9 @@ class CacheStore:
                       l.hero_node_ids, l.node_ranks, l.pvp_talent_ids, l.pvp_talent_names, l.gear
                FROM players p
                LEFT JOIN player_loadouts l ON p.id = l.player_id
-               WHERE p.spec=? AND p.bracket=? AND p.region=?
+               WHERE p.spec=? AND p.bracket=? AND p.region=? AND p.locale=?
                ORDER BY p.rating DESC""",
-            (spec, bracket, region),
+            (spec, bracket, region, locale),
         ).fetchall()
         result = []
         for r in rows:
@@ -100,21 +100,21 @@ class CacheStore:
         return result
 
     def save_aggregation(
-        self, spec: str, bracket: str, region: str, data: dict
+        self, spec: str, bracket: str, region: str, data: dict, locale: str = "en_US"
     ) -> None:
         self._conn.execute(
-            """INSERT OR REPLACE INTO aggregations (spec, bracket, region, computed_at, data)
-               VALUES (?,?,?,?,?)""",
-            (spec, bracket, region, int(time.time()), json.dumps(data)),
+            """INSERT OR REPLACE INTO aggregations (spec, bracket, region, locale, computed_at, data)
+               VALUES (?,?,?,?,?,?)""",
+            (spec, bracket, region, locale, int(time.time()), json.dumps(data)),
         )
         self._conn.commit()
 
     def get_aggregation(
-        self, spec: str, bracket: str, region: str
+        self, spec: str, bracket: str, region: str, locale: str = "en_US"
     ) -> dict | None:
         row = self._conn.execute(
-            "SELECT data, computed_at FROM aggregations WHERE spec=? AND bracket=? AND region=?",
-            (spec, bracket, region),
+            "SELECT data, computed_at FROM aggregations WHERE spec=? AND bracket=? AND region=? AND locale=?",
+            (spec, bracket, region, locale),
         ).fetchone()
         if not row:
             return None
@@ -123,11 +123,11 @@ class CacheStore:
         return result
 
     def is_stale(
-        self, spec: str, bracket: str, region: str, ttl_hours: int = 24
+        self, spec: str, bracket: str, region: str, ttl_hours: int = 24, locale: str = "en_US"
     ) -> bool:
         row = self._conn.execute(
-            "SELECT computed_at FROM aggregations WHERE spec=? AND bracket=? AND region=?",
-            (spec, bracket, region),
+            "SELECT computed_at FROM aggregations WHERE spec=? AND bracket=? AND region=? AND locale=?",
+            (spec, bracket, region, locale),
         ).fetchone()
         if not row:
             return True

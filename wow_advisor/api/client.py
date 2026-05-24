@@ -86,7 +86,7 @@ class BnetClient:
         self._base = _API_BASE.format(region=region)
         self._semaphore = asyncio.Semaphore(_CONCURRENCY)
 
-    async def _get(self, client: httpx.AsyncClient, url: str, namespace: str) -> dict | None:
+    async def _get(self, client: httpx.AsyncClient, url: str, namespace: str, locale: str = "en_US") -> dict | None:
         token = await self._auth.get_token()
         for attempt in range(3):
             try:
@@ -94,7 +94,7 @@ class BnetClient:
                     resp = await client.get(
                         url,
                         headers=_headers(token, namespace),
-                        params={"locale": "en_US"},
+                        params={"locale": locale},
                         timeout=10.0,
                     )
                 if resp.status_code == 404:
@@ -111,7 +111,7 @@ class BnetClient:
         return None
 
     async def _get_static(
-        self, url: str, namespace: str, if_modified_since: str | None = None
+        self, url: str, namespace: str, if_modified_since: str | None = None, locale: str = "en_US"
     ) -> httpx.Response:
         """GET for static game data. Returns the raw Response (caller handles 304)."""
         token = await self._auth.get_token()
@@ -122,14 +122,14 @@ class BnetClient:
             return await client.get(
                 url,
                 headers=headers,
-                params={"locale": "en_US"},
+                params={"locale": locale},
                 timeout=10.0,
             )
 
-    async def fetch_talent_tree_id(self, spec_id: int) -> tuple[int, str | None]:
+    async def fetch_talent_tree_id(self, spec_id: int, locale: str = "en_US") -> tuple[int, str | None]:
         """Returns (tree_id, last_modified) for the given spec_id."""
         url = f"{self._base}/data/wow/talent-tree/index"
-        resp = await self._get_static(url, f"static-{self._region}")
+        resp = await self._get_static(url, f"static-{self._region}", locale=locale)
         resp.raise_for_status()
         last_modified = resp.headers.get("Last-Modified")
         for entry in resp.json().get("spec_talent_trees", []):
@@ -144,6 +144,7 @@ class BnetClient:
         tree_id: int,
         spec_id: int,
         if_modified_since: str | None = None,
+        locale: str = "en_US",
     ) -> tuple[dict[int, dict], str | None, bool]:
         """
         Returns (nodes, last_modified, was_modified).
@@ -151,7 +152,7 @@ class BnetClient:
         nodes maps node_id → {name, row, col, type, max_rank, icon, children}.
         """
         url = f"{self._base}/data/wow/talent-tree/{tree_id}/playable-specialization/{spec_id}"
-        resp = await self._get_static(url, f"static-{self._region}", if_modified_since=if_modified_since)
+        resp = await self._get_static(url, f"static-{self._region}", if_modified_since=if_modified_since, locale=locale)
         if resp.status_code == 304:
             return {}, None, False
         resp.raise_for_status()
@@ -200,12 +201,12 @@ class BnetClient:
         return entries
 
     async def fetch_character_spec(
-        self, client: httpx.AsyncClient, name: str, realm: str, rating: int
+        self, client: httpx.AsyncClient, name: str, realm: str, rating: int, locale: str = "en_US"
     ) -> CharacterData | None:
         """Cheap spec-only fetch: profile endpoint only (no talents/gear)."""
         namespace = f"profile-{self._region}"
         base_url = f"{self._base}/profile/wow/character/{realm}/{name.lower()}"
-        profile = await self._get(client, base_url, namespace)
+        profile = await self._get(client, base_url, namespace, locale=locale)
         if profile is None:
             return None
         return CharacterData(
@@ -219,15 +220,15 @@ class BnetClient:
         )
 
     async def fetch_character_details(
-        self, name: str, realm: str, char: CharacterData
+        self, name: str, realm: str, char: CharacterData, locale: str = "en_US"
     ) -> CharacterData:
         """Fetch talents + gear for a character whose spec is already known."""
         namespace = f"profile-{self._region}"
         base_url = f"{self._base}/profile/wow/character/{realm}/{name.lower()}"
         async with httpx.AsyncClient() as client:
             spec_data, equip_data = await asyncio.gather(
-                self._get(client, f"{base_url}/specializations", namespace),
-                self._get(client, f"{base_url}/equipment", namespace),
+                self._get(client, f"{base_url}/specializations", namespace, locale=locale),
+                self._get(client, f"{base_url}/equipment", namespace, locale=locale),
             )
         char.talent = _parse_talents(spec_data or {}, char.spec) if spec_data else None
         char.gear = _parse_gear((equip_data or {}).get("equipped_items", []))

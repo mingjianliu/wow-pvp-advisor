@@ -26,6 +26,7 @@ async def fetch_top_players_async(
     bracket: str,
     region: str = "us",
     limit: int = 50,
+    locale: str = "en_US",
 ) -> dict:
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
@@ -35,9 +36,12 @@ async def fetch_top_players_async(
         return {"error": f"Unknown spec: {spec}. Check spelling or add it to normalize.py."}
 
     # Skip API fetch if data is less than 2 hours old
+    # TODO: make aggregation locale-aware? For now we refresh if locale changes?
+    # Better: just use what's in DB if names aren't strictly required to be localized.
+    # But user wants full Chinese if selected.
     conn = get_default_db()
     store = CacheStore(conn)
-    if not store.is_stale(spec, bracket, region, ttl_hours=2):
+    if locale == "en_US" and not store.is_stale(spec, bracket, region, ttl_hours=2):
         agg = store.get_aggregation(spec, bracket, region)
         return {"fetched": agg.get("sample_size", 0), "cached_at": agg.get("cached_at"), "spec": spec, "bracket": bracket, "skipped": True}
 
@@ -65,7 +69,7 @@ async def fetch_top_players_async(
                 break
             batch = leaderboard[i:i + batch_size]
             results = await asyncio.gather(*[
-                client.fetch_character_spec(http_client, e.name, e.realm, e.rating)
+                client.fetch_character_spec(http_client, e.name, e.realm, e.rating, locale=locale)
                 for e in batch
             ])
             for char in results:
@@ -83,7 +87,7 @@ async def fetch_top_players_async(
 
     # Phase 2: fetch full talent + gear for matched players only (2 API calls each).
     collected: list[CharacterData] = await asyncio.gather(*[
-        client.fetch_character_details(name=c.name, realm=c.realm, char=c)
+        client.fetch_character_details(name=c.name, realm=c.realm, char=c, locale=locale)
         for c in matched
     ])
 
@@ -107,9 +111,10 @@ def fetch_top_players(
     bracket: str,
     region: str = "us",
     limit: int = 50,
+    locale: str = "en_US",
 ) -> dict:
     """Synchronous wrapper for MCP tool use."""
-    return asyncio.run(fetch_top_players_async(spec=spec, bracket=bracket, region=region, limit=limit))
+    return asyncio.run(fetch_top_players_async(spec=spec, bracket=bracket, region=region, limit=limit, locale=locale))
 
 
 async def _scan_full_leaderboard(bracket: str, region: str) -> int:

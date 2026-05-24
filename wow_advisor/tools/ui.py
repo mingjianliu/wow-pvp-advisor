@@ -67,8 +67,16 @@ _GEAR_SLOT_LABELS: dict[str, str] = {
     "main_hand": "Weapon", "off_hand": "Off-hand",
 }
 
+_GEAR_SLOT_LABELS_ZH: dict[str, str] = {
+    "head": "头部", "neck": "项链", "shoulder": "肩部", "back": "背部",
+    "chest": "胸部", "wrist": "护腕", "hands": "手部", "waist": "腰部",
+    "legs": "腿部", "feet": "脚部", "finger_1": "戒指 1", "finger_2": "戒指 2",
+    "trinket_1": "饰品 1", "trinket_2": "饰品 2",
+    "main_hand": "主手", "off_hand": "副手",
+}
 
-def _make_cluster_data(raw: dict, tree: dict) -> dict:
+
+def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
     """Transform get_full_summary + get_tree_structure output into CLUSTER_DATA shape."""
     spec = raw["spec"]
 
@@ -146,7 +154,8 @@ def _make_cluster_data(raw: dict, tree: dict) -> dict:
 
     enchants_raw = raw.get("enchants", {})
     gear_slots = []
-    for slot_key, label in _GEAR_SLOT_LABELS.items():
+    slot_labels = _GEAR_SLOT_LABELS_ZH if locale == "zh_CN" else _GEAR_SLOT_LABELS
+    for slot_key, label in slot_labels.items():
         items = raw["gear"].get(slot_key, [])
         if not items:
             continue
@@ -222,9 +231,11 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path.startswith("/pages/") and path.endswith(".html"):
             filename = path.split("/")[-1]
-            match = re.match(r"^([a-z0-9-]+)_([a-z0-9-]+)\.html$", filename)
+            # expected: spec_bracket.html or spec_bracket_zh.html
+            match = re.match(r"^([a-z0-9-]+)_([a-z0-9-]+)(_zh)?\.html$", filename)
             if match:
-                spec, bracket = match.groups()
+                spec, bracket, is_zh = match.groups()
+                locale = "zh_CN" if is_zh else "en_US"
                 pages_dir = get_pages_dir()
                 full_path = pages_dir / filename
                 
@@ -239,8 +250,8 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                 if needs_build:
                     try:
                         # Ensure we don't open browser during on-demand generation
-                        build_page(spec, bracket, open_browser=False)
-                        print(f"[Server] Successfully rebuilt {filename}")
+                        build_page(spec, bracket, locale=locale, open_browser=False)
+                        print(f"[Server] Successfully generated {filename}")
                     except Exception as e:
                         import traceback
                         traceback.print_exc()
@@ -296,7 +307,7 @@ def _open_browser(url: str) -> None:
         subprocess.Popen(["xdg-open", url])
 
 
-def build_page(spec: str, bracket: str, region: str = "us", open_browser: bool = True) -> dict:
+def build_page(spec: str, bracket: str, region: str = "us", locale: str = "en_US", open_browser: bool = True) -> dict:
     """Build a self-contained HTML page for a spec+bracket.
 
     Fetches summary + tree structure, bundles everything inline, and writes
@@ -309,19 +320,20 @@ def build_page(spec: str, bracket: str, region: str = "us", open_browser: bool =
     spec = normalize_spec(spec)
     bracket = normalize_bracket(bracket)
 
-    raw = get_full_summary(spec=spec, bracket=bracket, region=region)
+    raw = get_full_summary(spec=spec, bracket=bracket, region=region, locale=locale)
     if "error" in raw:
         return raw
 
-    tree = get_tree_structure(spec=spec)
+    tree = get_tree_structure(spec=spec, locale=locale)
     if "error" in tree:
         return tree
 
-    cluster_data = _make_cluster_data(raw, tree)
+    cluster_data = _make_cluster_data(raw, tree, locale=locale)
     html = _bundle_html(cluster_data, tree)
 
     pages_dir = get_pages_dir()
-    filename = f"{spec}_{bracket}.html"
+    suffix = "_zh" if locale == "zh_CN" else ""
+    filename = f"{spec}_{bracket}{suffix}.html"
     out_path = pages_dir / filename
     out_path.write_text(html, encoding="utf-8")
 

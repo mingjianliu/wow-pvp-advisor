@@ -65,20 +65,20 @@ def _build(nodes: list[dict]) -> dict:
     return {"nodes": result, "edges": edges}
 
 
-async def _fetch(spec_id: int) -> dict:
+async def _fetch(spec_id: int, locale: str = "en_US") -> dict:
     auth = _get_auth()
     token = await auth.get_token()
     headers = {"Authorization": f"Bearer {token}", "Battlenet-Namespace": "static-us"}
     async with httpx.AsyncClient(timeout=30) as client:
         spec_r = await client.get(
             f"https://us.api.blizzard.com/data/wow/playable-specialization/{spec_id}",
-            headers=headers, params={"locale": "en_US"},
+            headers=headers, params={"locale": locale},
         )
         spec_data = spec_r.json()
         href = spec_data.get("spec_talent_tree", {}).get("key", {}).get("href", "")
         if not href:
             raise ValueError(f"No talent tree href for spec {spec_id}")
-        tree_r = await client.get(href, headers=headers, params={"locale": "en_US"})
+        tree_r = await client.get(href, headers=headers, params={"locale": locale})
         tree = tree_r.json()
 
     # The spec endpoint lists the 2 hero trees valid for THIS spec (by id).
@@ -114,17 +114,22 @@ async def _fetch(spec_id: int) -> dict:
     left_name   = unique_heroes[0]["name"] if len(unique_heroes) > 0 else "Hero A"
     right_name  = unique_heroes[1]["name"] if len(unique_heroes) > 1 else "Hero B"
 
+    # Labels translated if Chinese
+    class_label = "职业天赋" if locale == "zh_CN" else "Class Tree"
+    spec_label = "专精天赋" if locale == "zh_CN" else "Spec Tree"
+    hero_label = "英雄" if locale == "zh_CN" else "Hero"
+
     return {
         "trees": [
-            {"id": "class", "label": "Class Tree", **class_built},
-            {"id": "spec",  "label": "Spec Tree",  **spec_built},
+            {"id": "class", "label": class_label, **class_built},
+            {"id": "spec",  "label": spec_label,  **spec_built},
         ],
         "heroTrees": {
-            "left":  {"id": "hero_left",  "label": f"Hero · {left_name}",
+            "left":  {"id": "hero_left",  "label": f"{hero_label} · {left_name}",
                       "heroName": left_name,
                       "nodeIds": [n["id"] for n in left_built["nodes"]],
                       **left_built},
-            "right": {"id": "hero_right", "label": f"Hero · {right_name}",
+            "right": {"id": "hero_right", "label": f"{hero_label} · {right_name}",
                       "heroName": right_name,
                       "nodeIds": [n["id"] for n in right_built["nodes"]],
                       **right_built},
@@ -132,16 +137,9 @@ async def _fetch(spec_id: int) -> dict:
     }
 
 
-def get_tree_structure(spec: str) -> dict:
+def get_tree_structure(spec: str, locale: str = "en_US") -> dict:
     """
     Fetch real talent tree layout from Blizzard API for any spec.
-
-    Returns:
-      trees:     [class_tree, spec_tree]
-      heroTrees: {left: {..., nodeIds, heroName}, right: {..., nodeIds, heroName}}
-
-    Hero trees are the 2 available to this spec, taken from the tree API's
-    hero_talent_nodes arrays — no ID-range heuristics. Correct for all 39 specs.
     """
     from wow_advisor.normalize import normalize_spec
     from wow_advisor.processor.talent_names import SPEC_IDS
@@ -150,6 +148,6 @@ def get_tree_structure(spec: str) -> dict:
     if not spec_id:
         return {"error": f"Unknown spec '{spec_key}'"}
     try:
-        return asyncio.run(_fetch(spec_id))
+        return asyncio.run(_fetch(spec_id, locale=locale))
     except Exception as e:
         return {"error": str(e)}
