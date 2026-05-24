@@ -933,7 +933,7 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .tooltip-rank-row .bar {
   flex: 1; height: 4px; background: var(--bg-3); border-radius: 2px; overflow: hidden;
 }
-.tooltip-rank-row .fill { height: 100%; background: var(--flex); }
+.tooltip-rank-row .fill { display: block; height: 100%; background: var(--flex); }
 .tooltip-rank-row .fill.modal { background: var(--core); }
 .tooltip-rank-row .pct {
   font-family: var(--font-mono); color: var(--text-0); min-width: 30px; text-align: right;

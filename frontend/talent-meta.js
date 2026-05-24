@@ -20,72 +20,44 @@ window.TalentMeta = (function () {
   const ICON_URL = (name) =>
     `https://wow.zamimg.com/images/wow/icons/medium/${name}.jpg`;
 
-  function fetchOne(id, type = 'spell') {
-    const key = `${type}:${id}`;
-    if (cache[key] || inFlight.has(key)) return;
-    inFlight.add(key);
+  return {
+    subscribe: (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); },
+    get: (id) => cache[id],
+    getCache: () => cache,
 
-    fetch(ENDPOINT(type, id))
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((json) => {
-        const tooltipHtml = sanitize(json.tooltip || '');
-        cache[key] = {
-          name: json.name || '',
-          icon: json.icon ? ICON_URL(json.icon) : null,
-          descHtml: tooltipHtml,
-        };
-        inFlight.delete(key);
-        fire();
-      })
-      .catch(() => {
-        inFlight.delete(key);
-        // If 'spell' failed, try 'pvp-talent' (some pvp talents use a different namespace)
-        if (type === 'spell') {
-          fetchOne(id, 'pvp-talent');
-        }
+    preload: (ids) => {
+      ids.forEach((id) => {
+        if (cache[id] || inFlight.has(id)) return;
+        // Don't try to fetch 'ench-xxx' from network if not in cache (they are server-prefetched only)
+        if (typeof id === 'string' && id.startsWith('ench-')) return;
+        
+        inFlight.add(id);
+        fetch(ENDPOINT('spell', id))
+          .then((r) => r.json())
+          .then((data) => {
+            cache[id] = { ...cache[id], icon: ICON_URL(data.icon) };
+            inFlight.delete(id);
+            fire();
+          }).catch(() => inFlight.delete(id));
       });
-  }
+    },
 
-  // Strip the parts of Wowhead's tooltip HTML we don't want to show in our
-  // own popup (the name — we already render it; the leading icon block;
-  // sell-price / drop-from / sold-by chunks the widget appends for items).
-  function sanitize(html) {
-    if (!html) return '';
-    const wrap = document.createElement('div');
-    wrap.innerHTML = html;
-    wrap.querySelectorAll('.whtt-name, .whtt-tooltip-icon').forEach((n) => n.remove());
-    wrap.querySelectorAll('a[href^="/"]').forEach((a) => {
-      a.setAttribute('href', 'https://www.wowhead.com' + a.getAttribute('href'));
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener');
-    });
-    return wrap.innerHTML;
-  }
-
-  function preload(ids, type = 'spell') {
-    ids.forEach((id) => { if (id) fetchOne(id, type); });
-  }
-
-  function get(id, type = 'spell') {
-    if (!id) return null;
-    return cache[`${type}:${id}`] || (type === 'spell' ? cache[`pvp-talent:${id}`] : null);
-  }
-
-  function subscribe(fn) {
-    subscribers.add(fn);
-    return () => subscribers.delete(fn);
-  }
-
-  return { preload, get, subscribe, fetchDesc: fetchOne };
+    fetchDesc: (id) => {
+      if (cache[id]?.descHtml || inFlight.has(`desc-${id}`)) return;
+      inFlight.add(`desc-${id}`);
+      fetch(ENDPOINT('spell', id))
+        .then((r) => r.json())
+        .then((data) => {
+          cache[id] = { ...cache[id], name: data.name, descHtml: data.tooltip };
+          inFlight.delete(`desc-${id}`);
+          fire();
+        }).catch(() => inFlight.delete(`desc-${id}`));
+    }
+  };
 })();
 
-// React hook — re-renders the calling component when the cache updates.
-window.useTalentMeta = function () {
-  const [, setTick] = React.useState(0);
-  React.useEffect(() => {
-    return window.TalentMeta.subscribe(() => {
-      setTick((t) => t + 1);
-    });
-  }, []);
-  return window.TalentMeta;
+window.useTalentMeta = () => {
+  const [data, setData] = React.useState(window.__talentMetaCache);
+  React.useEffect(() => window.TalentMeta.subscribe(setData), []);
+  return { get: (id) => data[id] };
 };

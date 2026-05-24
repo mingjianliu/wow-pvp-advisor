@@ -130,10 +130,30 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             <div className="signature-empty">No flex points for this spec</div>
           )}
         </div>
-        </div>
+      </div>
 
+      {cluster.flex_takes && cluster.flex_takes.length > 0 && (
         <div className="side-section">
-          <h4>Legend</h4>
+          <h4>{window.t('variance')} <span className="side-h-hint">optional takes within this group</span></h4>
+          <div className="signature-block">
+            <ul className="signature-list">
+              {cluster.flex_takes.map(t => (
+                <li key={t.id} className="sig-item flex">
+                  <div className="sig-name-row">
+                    <TalentLink t={t} className="sig-name" />
+                    <RankTag t={t} />
+                  </div>
+                  <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
+                  <span className="sig-pct">{t.pct}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      <div className="side-section">
+        <h4>Legend</h4>
         <div className="legend">
           <div className="legend-row"><span className="legend-dot core"></span> Core — ~100% of players take this</div>
           <div className="legend-row"><span className="legend-dot core contested-mini"></span> Cluster take — this cluster's pick of a contested talent</div>
@@ -176,6 +196,7 @@ function GearPanel({ group }) {
   const isZh = window.location.pathname.endsWith('_zh.html');
   const whDomain = isZh ? 'cn.wowhead.com' : 'www.wowhead.com';
   const whDomainAttr = isZh ? '&domain=cn' : '';
+  const meta = window.useTalentMeta();
   
   return (
     <div className="gear-panel" data-screen-label="Gear">
@@ -187,7 +208,11 @@ function GearPanel({ group }) {
         </div>
       </div>
       <ul className="gear-grid">
-        {group.gear.slots.map(s => (
+        {group.gear.slots.map(s => {
+          const enchMeta = s.enchant && s.enchant.id ? meta.get(`ench-${s.enchant.id}`) : null;
+          const enchIcon = enchMeta && enchMeta.icon;
+
+          return (
           <li className="gear-card" key={s.slot}>
             <div className="gear-card-head">
               <span className="gear-card-slot">{s.slot}</span>
@@ -205,12 +230,13 @@ function GearPanel({ group }) {
             {s.enchant ? (
               <div className="gear-card-enchant">
                 <span className="enchant-tag">{window.t('ench')}</span>
+                {enchIcon && <img className="sig-icon" src={enchIcon} alt="" style={{width: 12, height: 12, borderRadius: 2}} />}
                 {s.enchant.id ? (
                   <a className="enchant-name"
-                     href={`https://${whDomain}/spell=${s.enchant.id}`}
+                     href={`https://${whDomain}/ench=${s.enchant.id}`}
                      target="_blank"
                      rel="noopener"
-                     data-wowhead={`spell=${s.enchant.id}${whDomainAttr}`}>{s.enchant.name}</a>
+                     data-wowhead={`ench=${s.enchant.id}${whDomainAttr}`}>{s.enchant.name}</a>
                 ) : (
                   <span className="enchant-name">{s.enchant.name}</span>
                 )}
@@ -223,7 +249,8 @@ function GearPanel({ group }) {
               </div>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

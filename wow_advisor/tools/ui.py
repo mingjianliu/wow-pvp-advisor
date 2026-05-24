@@ -4,6 +4,7 @@ Build a self-contained HTML page for a spec+bracket and write it to frontend/pag
 Entry point: build_page(spec, bracket, region) -> {"path": str, "url": str}
 """
 
+import asyncio
 import json
 import platform
 import re
@@ -81,10 +82,13 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
     spec = raw["spec"]
 
     id_to_name: dict[int, str] = {}
+    id_to_spellid: dict[int, int] = {}
     for sub in tree["trees"] + [tree["heroTrees"]["left"], tree["heroTrees"]["right"]]:
         for n in sub["nodes"]:
             if n.get("name"):
                 id_to_name[n["id"]] = n["name"]
+            if n.get("spellId"):
+                id_to_spellid[n["id"]] = n["spellId"]
 
     hero_ids: set[int] = (
         {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
@@ -134,21 +138,44 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
     clusters = []
     for c in raw["talents"]["clusters"]:
         takes = [
-            {"id": t["id"], "name": id_to_name.get(t["id"], t.get("name") or ""), "pct": t["pct"]}
+            {
+                "id": t["id"], 
+                "name": id_to_name.get(t["id"], t.get("name") or ""), 
+                "pct": t.get("pct", 100.0),
+                "spellId": id_to_spellid.get(t["id"])
+            }
             for t in strip_hero(c["takes"])
             if id_to_name.get(t["id"], t.get("name"))
         ]
         skips = [
-            {"id": t["id"], "name": id_to_name.get(t["id"], t.get("name") or ""), "pct": t["pct"]}
+            {
+                "id": t["id"], 
+                "name": id_to_name.get(t["id"], t.get("name") or ""), 
+                "pct": t.get("pct", 0.0),
+                "spellId": id_to_spellid.get(t["id"])
+            }
             for t in strip_hero(c["skips"])
             if id_to_name.get(t["id"], t.get("name"))
         ]
+        # Enrich flex_takes (internal cluster variance)
+        flex_takes = [
+            {
+                "id": t["id"], 
+                "name": id_to_name.get(t["id"], ""), 
+                "pct": t["pct"],
+                "spellId": id_to_spellid.get(t["id"])
+            }
+            for t in c.get("flex_takes", [])
+            if id_to_name.get(t["id"])
+        ]
+
         clusters.append({
             "rank": c["rank"],
             "pct": c["pct"],
             "count": c["count"],
             "canonical_code": c["canonical_code"],
             "takes": takes,
+            "flex_takes": flex_takes,
             "skips": skips,
         })
 
@@ -196,7 +223,7 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
     }
 
 
-def _bundle_html(cluster_data: dict, tree: dict) -> str:
+def _bundle_html(cluster_data: dict, tree: dict, prefetched_meta: dict | None = None) -> str:
     """Inline all frontend assets into a single self-contained HTML page."""
     template = (get_frontend_dir() / "index.html").read_text()
     styles_css = (get_frontend_dir() / "styles.css").read_text()
@@ -206,22 +233,30 @@ def _bundle_html(cluster_data: dict, tree: dict) -> str:
         "window.CLUSTER_DATA = " + json.dumps(cluster_data, indent=2) + ";\n\n"
         "window.CLUSTER_DATA.tree = " + json.dumps(tree, indent=2) + ";\n"
     )
+    if prefetched_meta:
+        data_js += "\nwindow.__talentMetaCache = " + json.dumps(prefetched_meta, indent=2) + ";\n"
 
     html = template
-    html = html.replace(
-        '<link rel="stylesheet" href="styles.css" />',
-        f"<style>\n{styles_css}\n</style>",
-    )
-    html = html.replace(
-        '<script src="tree-data.js"></script>\n  <script src="data.js"></script>',
-        f"<script>\n{data_js}\n</script>",
-    )
+    
+    # Use simple literal replacement for fixed patterns (ignoring leading whitespace)
+    def robust_replace(content, pattern, replacement):
+        match = re.search(pattern, content, flags=re.DOTALL)
+        if match:
+            return content.replace(match.group(0), replacement)
+        return content
+
+    # Replace CSS
+    html = robust_replace(html, r'<link rel="stylesheet" href="styles\.css"\s*/>', f"<style>\n{styles_css}\n</style>")
+    
+    # Replace data scripts
+    html = robust_replace(html, r'<script src="tree-data\.js"></script>\s*<script src="data\.js"></script>', f"<script>\n{data_js}\n</script>")
+    
+    # Replace JSX components
     for jsx_file in ["talent-meta.js", "tweaks-panel.jsx", "tree.jsx", "sidebar.jsx", "app.jsx"]:
         src = (get_frontend_dir() / jsx_file).read_text()
-        html = html.replace(
-            f'<script type="text/babel" src="{jsx_file}"></script>',
-            f'<script type="text/babel">\n{src}\n</script>',
-        )
+        pattern = fr'<script type="text/babel" src="{re.escape(jsx_file)}"></script>'
+        html = robust_replace(html, pattern, f'<script type="text/babel">\n{src}\n</script>')
+        
     return html
 
 
@@ -244,6 +279,7 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path.startswith("/pages/") and path.endswith(".html"):
             filename = path.split("/")[-1]
+            print(f"[Server] Request: {filename}")
             # expected: spec_bracket.html or spec_bracket_zh.html
             match = re.match(r"^([a-z0-9-]+)_([a-z0-9-]+)(_zh)?\.html$", filename)
             if match:
@@ -259,16 +295,23 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                     if age > 2 * 3600:
                         print(f"[Server] {filename} is {age/3600:.1f} hours old. Rebuilding...")
                         needs_build = True
+                else:
+                    print(f"[Server] {filename} not found on disk. Building on-demand...")
 
                 if needs_build:
                     try:
                         # Ensure we don't open browser during on-demand generation
-                        build_page(spec, bracket, locale=locale, open_browser=False)
-                        print(f"[Server] Successfully generated {filename}")
+                        result = build_page(spec, bracket, locale=locale, open_browser=False)
+                        if "error" in result:
+                            print(f"[Server] build_page returned error: {result['error']}")
+                        else:
+                            print(f"[Server] Successfully generated {filename} (Path: {result.get('path')})")
                     except Exception as e:
                         import traceback
                         traceback.print_exc()
                         print(f"[Server] Failed to build {filename}: {e}")
+            else:
+                print(f"[Server] Regex match failed for filename: {filename}")
 
         return super().do_GET()
 
@@ -320,6 +363,9 @@ def _open_browser(url: str) -> None:
         subprocess.Popen(["xdg-open", url])
 
 
+from wow_advisor.api.wowhead import prefetch_tooltips
+
+
 def build_page(spec: str, bracket: str, region: str = "us", locale: str = "en_US", open_browser: bool = True) -> dict:
     """Build a self-contained HTML page for a spec+bracket.
 
@@ -342,11 +388,54 @@ def build_page(spec: str, bracket: str, region: str = "us", locale: str = "en_US
         return tree
 
     cluster_data = _make_cluster_data(raw, tree, locale=locale)
-    html = _bundle_html(cluster_data, tree)
+    
+    # Pre-fetch Wowhead tooltips for instant hovers
+    spell_ids = set()
+    for t in tree.get("trees", []):
+        spell_ids.update(n.get("spellId") for n in t.get("nodes", []) if n.get("spellId"))
+    for ht in tree.get("heroTrees", {}).values():
+        spell_ids.update(n.get("spellId") for n in ht.get("nodes", []) if n.get("spellId"))
+    for pvp in raw.get("pvp_talents", []):
+        spell_ids.add(pvp.get("id"))
+    
+    ench_ids = set()
+    for slot in raw.get("enchants", {}).values():
+        for e in slot:
+            if e.get("enchant_id"):
+                ench_ids.add(e["enchant_id"])
+    
+    # Run async fetches synchronously
+    tooltips = asyncio.run(prefetch_tooltips(list(spell_ids), type_str="spell", locale=locale))
+    ench_tips = asyncio.run(prefetch_tooltips(list(ench_ids), type_str="ench", locale=locale))
+    
+    # Merge into a single meta cache
+    meta_cache = {}
+    for sid, data in tooltips.items():
+        meta_cache[sid] = {
+            "name": data.get("name"),
+            "icon": f"https://wow.zamimg.com/images/wow/icons/medium/{data.get('icon')}.jpg" if data.get("icon") else None,
+            "descHtml": data.get("tooltip")
+        }
+    for eid, data in ench_tips.items():
+        meta_cache[f"ench-{eid}"] = {
+            "name": data.get("name"),
+            "icon": f"https://wow.zamimg.com/images/wow/icons/medium/{data.get('icon')}.jpg" if data.get("icon") else None,
+            "descHtml": data.get("tooltip")
+        }
+
+    html = _bundle_html(cluster_data, tree, prefetched_meta=meta_cache)
 
     pages_dir = get_pages_dir()
     suffix = "_zh" if locale == "zh_CN" else ""
-    filename = f"{spec}_{bracket}{suffix}.html"
+    
+    # Unify bracket naming with frontend (solo-shuffle, blitz)
+    bracket_slug = bracket
+    if "shuffle" in bracket:
+        bracket_slug = "solo-shuffle"
+    elif "blitz" in bracket:
+        bracket_slug = "blitz"
+    
+    filename = f"{spec}_{bracket_slug}{suffix}.html"
     out_path = pages_dir / filename
     out_path.write_text(html, encoding="utf-8")
 

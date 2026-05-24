@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS talent_node_cache (
     PRIMARY KEY (spec, locale)
 );
 
+CREATE TABLE IF NOT EXISTS tooltips (
+    type       TEXT NOT NULL,
+    id         INTEGER NOT NULL,
+    locale_id  INTEGER NOT NULL,
+    data_json  TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (type, id, locale_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_players_spec_bracket_region ON players(spec, bracket, region);
 CREATE INDEX IF NOT EXISTS idx_loadouts_player_id ON player_loadouts(player_id);
 """

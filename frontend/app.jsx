@@ -1,11 +1,3 @@
-// Main app — composes topbar, cluster tabs, tree pane, global PvP panel,
-// sidebar (Cluster Signature), bottom Gear panel, tooltip, and tweaks panel.
-//
-// Wired to the flat backend shape (one bracket per CLUSTER_DATA):
-//   data.spec, data.bracket, data.specLabel, data.sample_size, data.avg_ilvl,
-//   data.pvp_talents, data.talents.{core|flex|contested}, data.clusters,
-//   data.gear.{avg_ilvl, slots}
-
 const { useState, useEffect, useMemo } = React;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -48,6 +40,7 @@ const TRANSLATIONS = {
     core: 'CORE', contested: 'CLUSTER TAKE', skip: 'SKIP',
     rankDist: 'Rank distribution', notTaken: 'Not taken in this cluster',
     pickRate: 'Pick rate', overall: 'overall',
+    variance: 'Cluster variance',
     tweaks: 'Tweaks', flexHighlight: 'Flex highlight', heatmap: 'Pick-rate heatmap',
     signature: 'Cluster signature', go: 'Go', selectSpec: 'Select Spec...', selectBracket: 'Select Bracket...',
     gear: 'Gear', avgIlvl: 'avg ilvl', topPick: 'top pick per slot', ench: 'ENCH', noEnch: 'no enchant',
@@ -60,6 +53,7 @@ const TRANSLATIONS = {
     core: '核心', contested: '流派特色', skip: '未选取',
     rankDist: '点数分布', notTaken: '此流派未选取',
     pickRate: '选取率', overall: '总计',
+    variance: '流派变体',
     tweaks: '设置', flexHighlight: '灵活高亮', heatmap: '热力图',
     signature: '流派特征', go: '前往', selectSpec: '选择专精...', selectBracket: '选择赛制...',
     gear: '装备', avgIlvl: '平均装等', topPick: '部位最佳选择', ench: '附魔', noEnch: '无附魔',
@@ -83,9 +77,9 @@ const TRANSLATIONS = {
     'Elemental': '元素', 'Enhancement': '增强',
     'Affliction': '痛苦', 'Demonology': '恶魔学识', 'Destruction': '毁灭',
     'Arms': '武器', 'Fury': '狂怒',
-    
+
     // Brackets
-    'Solo Shuffle': '单排轮斗', 'Blitz': '战场闪电战',
+    '2v2': '2v2', '3v3': '3v3', 'Solo Shuffle': '单排轮斗', 'RBG': '评级战场', 'Blitz': '战场闪电战',
   }
 };
 
@@ -93,30 +87,32 @@ const getLocale = () => window.location.pathname.endsWith('_zh.html') ? 'zh_CN' 
 const t = (key) => (TRANSLATIONS[getLocale()] || TRANSLATIONS['en_US'])[key] || key;
 window.t = t;
 
-const slugify = (s) => s.toLowerCase().replace(/ /g, '-');
-
 const normalizeBracket = (b) => {
-  const low = b.toLowerCase();
-  if (low.includes('shuffle')) return 'shuffle';
-  if (low.includes('blitz')) return 'blitz';
-  return low.replace(/ /g, '-');
+  if (b === 'Solo Shuffle' || b === 'shuffle') return 'solo-shuffle';
+  if (b === 'Blitz' || b === 'battlegrounds/blitz') return 'blitz';
+  return b.toLowerCase();
 };
 
-const buildHref = (cls, spec, bracket, locale = null) => {
-  const loc = locale || getLocale();
-  const specSlug = `${slugify(spec)}-${slugify(cls)}`;
-  const bracketSlug = normalizeBracket(bracket);
-  const suffix = loc === 'zh_CN' ? '_zh' : '';
-  const filename = `${specSlug}_${bracketSlug}${suffix}.html`;
-  // If served via local server, use absolute path to ensure on-demand gen hits the server
-  if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
-    return `/pages/${filename}`;
+const buildHref = (cls, spec, bracket, locale) => {
+  if (!cls || !spec || !bracket) return '#';
+  
+  // Normalize spec to slug: spec-class (e.g. restoration-shaman)
+  let specSlug = spec.toLowerCase().replace(/ /g, '-');
+  const classSlug = cls.toLowerCase().replace(/ /g, '-');
+  if (!specSlug.includes(classSlug)) {
+    specSlug = `${specSlug}-${classSlug}`;
   }
-  return filename;
+  
+  const slug = specSlug + '_' + normalizeBracket(bracket);
+  const suffix = (locale || getLocale()) === 'zh_CN' ? '_zh' : '';
+  return slug + suffix + '.html';
 };
 
-// Wowhead serves class icons keyed by squashed lowercase names ("deathknight", "demonhunter", "shaman", ...)
-const classIconSlug = (cls) => cls.toLowerCase().replace(/[\s-]/g, '');
+function classIconSlug(cls) {
+  if (!cls) return 'unknown';
+  return cls.toLowerCase().replace(/[\s-]/g, '');
+}
+
 const classIconUrl = (cls) =>
   `https://wow.zamimg.com/images/wow/icons/large/classicon_${classIconSlug(cls)}.jpg`;
 
@@ -129,36 +125,26 @@ function CrumbDrop({ trigger, active, align, children }) {
 
 }
 
-
-// === Auto-name a cluster by its 1–2 most defining contested takes ==========
-// "Most defining" = lowest global pick rate among takes (most selective choice).
-function autoClusterName(cluster) {
-  const takes = (cluster.takes || []).
-  filter((t) => t.name && t.pct >= 20 && t.pct <= 80).
-  sort((a, b) => a.pct - b.pct);
-  if (!takes.length) return `#${cluster.rank}`;
-  const word1 = (name) => name.split(' ')[0];
-  if (takes.length === 1) return word1(takes[0].name);
-  return word1(takes[0].name) + ' + ' + word1(takes[1].name);
+function autoClusterName(c) {
+  if (c.name) return c.name;
+  if (!c.takes || c.takes.length === 0) return 'Static';
+  // Use top 2 distinguishing talents as the name
+  return c.takes.slice(0, 2).map((t) => t.name.split(' ')[0]).join(' + ');
 }
 
-// === Derive per-cluster tree-node state =====================================
-// Global core → core; global flex → flex; cluster.takes → core+contested.
-// Everything else → not in map (renders as skip).
+// Derive the per-node role (core/flex/skip) and rank for a cluster.
 function deriveNodeMap(data, cluster) {
   const map = {};
-  (data.talents.core || []).forEach((t) => {
-    map[t.id] = { role: 'core', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, rankDist: t.rankDist };
+  data.talents.core.forEach((t) => map[t.id] = { role: 'core', pts: t.pts, rankDist: t.rankDist, pickRate: t.pct });
+  data.talents.flex.forEach((t) => map[t.id] = { role: 'flex', pickRate: t.pct });
+  cluster.takes.forEach((t) => {
+    map[t.id] = { ...map[t.id], role: 'core', pts: t.rank, contested: true };
   });
-  (data.talents.flex || []).forEach((t) => {
-    map[t.id] = { role: 'flex', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, rankDist: t.rankDist };
-  });
-  (cluster.takes || []).forEach((t) => {
-    map[t.id] = { role: 'core', pts: t.pts || 1, pickRate: t.pct, sourceName: t.name, contested: true, rankDist: t.rankDist };
+  cluster.skips.forEach((t) => {
+    map[t.id] = { ...map[t.id], role: 'skip', contested: true };
   });
   return map;
 }
-
 
 // Pick the hero tree whose nodeIds have the most overlap with the cluster's
 // core+takes node IDs. Falls back to the right tree (Totemic for Resto Shaman).
@@ -170,8 +156,32 @@ function selectHeroTree(data, nodeMap) {
   heroTrees.left : heroTrees.right;
 }
 
+function useTweaks(initial) {
+  const [v, setV] = useState(() => {
+    try {
+      const saved = localStorage.getItem('wow-advisor-tweaks');
+      return saved ? JSON.parse(saved) : initial;
+    } catch (e) {return initial;}
+  });
+  const set = (k, val) => setV((prev) => {
+    const next = { ...prev, [k]: val };
+    localStorage.setItem('wow-advisor-tweaks', JSON.stringify(next));
+    return next;
+  });
+  return [v, set];
+}
+
 function App() {
   const data = window.CLUSTER_DATA;
+  
+  // Immediately merge prefetched data into the persistent meta cache 
+  // so it's ready before the first render.
+  if (window.__talentMetaCache) {
+    const cache = window.TalentMeta.getCache();
+    Object.keys(window.__talentMetaCache).forEach(id => {
+      if (!cache[id]) cache[id] = window.__talentMetaCache[id];
+    });
+  }
 
   // Navigation builder state for the breadcrumbs
   const [navSelection, setNavSelection] = useState({
@@ -194,17 +204,32 @@ function App() {
   );
   const majorClusters = clusters;
 
-  const [activeRank, setActiveRank] = useState(majorClusters[0].rank);
+  const [activeRank, setActiveRank] = useState(null);
   useEffect(() => {
-    if (!majorClusters.find((c) => c.rank === activeRank)) setActiveRank(majorClusters[0].rank);
+    if (majorClusters.length > 0) {
+      if (activeRank === null || !majorClusters.find((c) => c.rank === activeRank)) {
+        setActiveRank(majorClusters[0].rank);
+      }
+    }
   }, [majorClusters, activeRank]);
 
-  const cluster = clusters.find((c) => c.rank === activeRank) || clusters[0];
+  const cluster = majorClusters.find((c) => c.rank === activeRank) || majorClusters[0];
 
   // Derived node-state map for the active cluster.
-  const nodeMap = useMemo(() => deriveNodeMap(data, cluster), [data, cluster]);
-  const clusterForRenderer = { ...cluster, nodes: nodeMap, name: autoClusterName(cluster) };
-  const heroTree = useMemo(() => selectHeroTree(data, nodeMap), [data, nodeMap]);
+  const nodeMap = useMemo(() => {
+    if (!cluster) return {};
+    return deriveNodeMap(data, cluster);
+  }, [data, cluster]);
+
+  const clusterForRenderer = useMemo(() => {
+    if (!cluster) return null;
+    return { ...cluster, nodes: nodeMap, name: autoClusterName(cluster) };
+  }, [cluster, nodeMap]);
+
+  const heroTree = useMemo(() => {
+    if (!cluster || !nodeMap) return null;
+    return selectHeroTree(data, nodeMap);
+  }, [data, nodeMap, cluster]);
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [tip, setTip] = useState(null);
@@ -215,12 +240,15 @@ function App() {
     function onKey(e) {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       const idx = majorClusters.findIndex((c) => c.rank === activeRank);
+      if (idx === -1) return;
       if (e.key === 'ArrowRight') setActiveRank(majorClusters[(idx + 1) % majorClusters.length].rank);else
       if (e.key === 'ArrowLeft') setActiveRank(majorClusters[(idx - 1 + majorClusters.length) % majorClusters.length].rank);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [clusters, activeRank]);
+  }, [majorClusters, activeRank]);
+
+  if (!cluster) return <div className="loading">Loading cluster data...</div>;
 
   const onCopy = () => {
     navigator.clipboard.writeText(cluster.canonical_code).catch(() => {});
@@ -230,10 +258,9 @@ function App() {
 
   return (
     <div className="app" data-screen-label="Talent cluster picker">
-      <header className="topbar" data-comment-anchor="51655c5842-header-111-7">
+      <header className="topbar">
         <div className="brand">
           <img className="brand-mark"
-               data-comment-anchor="23de2b0743-div-113-11"
                src={classIconUrl(navSelection.class)}
                alt={navSelection.class}
                style={{ '--class-color': (CLASSES[navSelection.class] && CLASSES[navSelection.class].color) || 'var(--accent)' }} />
@@ -466,8 +493,17 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
 function Tooltip({ node, state, x, y }) {
   const meta = window.useTalentMeta();
   const sid = node && node.spellId;
-  const m = sid && meta.get(sid);
-  React.useEffect(() => { if (sid) window.TalentMeta.fetchDesc(sid); }, [sid]);
+  const cacheKey = node && node.isEnchant ? `ench-${sid}` : sid;
+  const m = cacheKey && meta.get(cacheKey);
+
+  React.useEffect(() => { 
+    if (cacheKey && !m?.descHtml) {
+      // Only trigger fetch if NOT prefetched (though most are now)
+      if (typeof cacheKey !== 'string' || !cacheKey.startsWith('ench-')) {
+        window.TalentMeta.fetchDesc(cacheKey);
+      }
+    }
+  }, [cacheKey, m?.descHtml]);
 
   const role = state ? state.role : 'skip';
   const isContested = state && state.contested;
@@ -551,12 +587,15 @@ function Tooltip({ node, state, x, y }) {
 
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);me="tooltip-stat">
-          <span>{t('notTaken')}</span>
-        </div>
-      }
-    </div>);
-
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+} catch (e) {
+  console.error("React Render Error:", e);
+  document.getElementById('root').innerHTML = `
+    <div style="padding: 40px; color: #ff6b6b; font-family: sans-serif;">
+      <h2>React Render Error</h2>
+      <pre style="background: #1a1a1a; padding: 20px; border-radius: 8px; overflow: auto;">${e.stack || e.message}</pre>
+      <p>Check the browser console for details.</p>
+    </div>
+  `;
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);;
