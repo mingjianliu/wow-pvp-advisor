@@ -4,6 +4,7 @@ from wow_advisor.processor.talents import (
     analyze_talents,
     cluster_talents,
     summarize_talent_clusters,
+    _weighted_distance,
 )
 
 
@@ -92,3 +93,61 @@ def test_analyze_includes_node_meta():
     node_meta = {1: {"row": 0, "type": "circle"}}
     analysis = analyze_talents(node_sets, node_meta=node_meta)
     assert analysis.node_meta == node_meta
+def test_weighted_distance_basic():
+    set_a = {1}
+    ranks_a = {1: 1}
+    set_b = set()
+    ranks_b = {}
+    node_meta = {1: {"row": 0, "type": "circle"}}  # Utility node
+    
+    # Distance should be 2.0 for utility node difference
+    assert _weighted_distance(set_a, ranks_a, set_b, ranks_b, node_meta) == 2.0
+
+
+def test_weighted_distance_node_types():
+    set_a = {1, 2, 3}
+    ranks_a = {1: 1, 2: 1, 3: 1}
+    set_b = set()
+    ranks_b = {}
+    node_meta = {
+        1: {"row": 0, "type": "circle"},   # Utility: 2.0
+        2: {"row": 5, "type": "circle"},   # Major: 5.0
+        3: {"row": 0, "type": "diamond"},  # Choice: 10.0
+    }
+    
+    # Each node missing in B
+    assert _weighted_distance({1}, {1: 1}, set_b, ranks_b, node_meta) == 2.0
+    assert _weighted_distance({2}, {2: 1}, set_b, ranks_b, node_meta) == 5.0
+    assert _weighted_distance({3}, {3: 1}, set_b, ranks_b, node_meta) == 10.0
+
+
+def test_weighted_distance_rank_difference():
+    set_a = {1}
+    ranks_a = {1: 2}
+    set_b = {1}
+    ranks_b = {1: 1}
+    node_meta = {1: {"row": 0, "type": "circle"}}
+    
+    # Both have it, rank diff 1 -> 1 * 0.5 = 0.5
+    assert _weighted_distance(set_a, ranks_a, set_b, ranks_b, node_meta) == 0.5
+    
+    # Rank diff 2 -> 2 * 0.5 = 1.0
+    assert _weighted_distance({1}, {1: 3}, {1}, {1: 1}, node_meta) == 1.0
+
+
+def test_weighted_distance_combination():
+    # Node 1: Both have it, rank diff 1 (0.5)
+    # Node 2: Only A has it, Major (5.0)
+    # Node 3: Only B has it, Choice (10.0)
+    # Total: 0.5 + 5.0 + 10.0 = 15.5
+    set_a = {1, 2}
+    ranks_a = {1: 2, 2: 1}
+    set_b = {1, 3}
+    ranks_b = {1: 1, 3: 1}
+    node_meta = {
+        1: {"row": 0, "type": "circle"},
+        2: {"row": 5, "type": "circle"},
+        3: {"row": 0, "type": "diamond"},
+    }
+    
+    assert _weighted_distance(set_a, ranks_a, set_b, ranks_b, node_meta) == 15.5

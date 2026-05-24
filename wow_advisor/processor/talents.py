@@ -59,6 +59,45 @@ def _hamming(a: set[int], b: set[int]) -> int:
     return len(a.symmetric_difference(b))
 
 
+def _weighted_distance(
+    set_a: set[int],
+    ranks_a: dict[int, int],
+    set_b: set[int],
+    ranks_b: dict[int, int],
+    node_meta: dict[int, dict]
+) -> float:
+    all_nodes = set_a | set_b
+    distance = 0.0
+
+    for nid in all_nodes:
+        meta = node_meta.get(nid, {"row": 0, "type": "circle"})
+        row = meta.get("row", 0)
+        is_choice = meta.get("type") == "diamond"
+
+        # Base weight by row/type
+        if is_choice:
+            weight = 10.0
+        elif row >= 5:  # Apex (8-10) and Key (5-7)
+            weight = 5.0
+        else:  # Utility (1-4)
+            weight = 2.0
+
+        in_a = nid in set_a
+        in_b = nid in set_b
+
+        if in_a != in_b:
+            # One build has it, other doesn't
+            distance += weight
+        elif in_a and in_b:
+            # Both have it, check rank difference
+            rank_a = ranks_a.get(nid, 1)
+            rank_b = ranks_b.get(nid, 1)
+            if rank_a != rank_b:
+                distance += abs(rank_a - rank_b) * 0.5
+
+    return distance
+
+
 def cluster_talents(
     contested_pairs: list[tuple[set[int], int]],
     threshold: int = 2,
