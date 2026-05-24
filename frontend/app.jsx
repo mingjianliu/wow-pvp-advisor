@@ -50,6 +50,7 @@ const TRANSLATIONS = {
     pickRate: 'Pick rate', overall: 'overall',
     tweaks: 'Tweaks', flexHighlight: 'Flex highlight', heatmap: 'Pick-rate heatmap',
     signature: 'Cluster signature', go: 'Go', selectSpec: 'Select Spec...', selectBracket: 'Select Bracket...',
+    gear: 'Gear', avgIlvl: 'avg ilvl', topPick: 'top pick per slot', ench: 'ENCH', noEnch: 'no enchant',
   },
   'zh_CN': {
     class: '职业', spec: '专精', bracket: '赛制',
@@ -61,6 +62,7 @@ const TRANSLATIONS = {
     pickRate: '选取率', overall: '总计',
     tweaks: '设置', flexHighlight: '灵活高亮', heatmap: '热力图',
     signature: '流派特征', go: '前往', selectSpec: '选择专精...', selectBracket: '选择赛制...',
+    gear: '装备', avgIlvl: '平均装等', topPick: '部位最佳选择', ench: '附魔', noEnch: '无附魔',
     
     // Classes
     'Death Knight': '死亡骑士', 'Demon Hunter': '恶魔猎手', 'Druid': '德鲁伊', 'Evoker': '唤魔师',

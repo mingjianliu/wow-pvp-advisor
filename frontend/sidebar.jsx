@@ -74,28 +74,28 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
       <div className="side-section">
         <div className="kpi-row">
           <div className="kpi">
-            <div className="kpi-label">Share</div>
+            <div className="kpi-label">{window.t('share')}</div>
             <div className="kpi-value">{cluster.pct}<span className="pct">%</span></div>
           </div>
           <div className="kpi">
-            <div className="kpi-label">Count</div>
+            <div className="kpi-label">{window.t('count')}</div>
             <div className="kpi-value">{cluster.count}</div>
           </div>
           <div className="kpi">
-            <div className="kpi-label">Takes</div>
+            <div className="kpi-label">{window.t('takes')}</div>
             <div className="kpi-value">{takes.length}</div>
           </div>
           <div className="kpi">
-            <div className="kpi-label">Flex</div>
+            <div className="kpi-label">{window.t('flex')}</div>
             <div className="kpi-value" style={{color:'var(--flex)'}}>{flex.length}</div>
           </div>
         </div>
       </div>
 
       <div className="side-section">
-        <h4>Cluster signature <span className="side-h-hint">contested talents this cluster picks</span></h4>
+        <h4>{window.t('signature')} <span className="side-h-hint">contested talents this cluster picks</span></h4>
         <div className="signature-block">
-          <div className="signature-row-head"><span className="dot-take"></span> Takes <span className="num">{takes.length}</span></div>
+          <div className="signature-row-head"><span className="dot-take"></span> {window.t('takes')} <span className="num">{takes.length}</span></div>
           <ul className="signature-list">
             {takes.map(t => (
               <li key={t.id} className="sig-item take">
@@ -109,9 +109,9 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
             ))}
           </ul>
           <div className="signature-row-head" style={{marginTop:14}}>
-            <span className="dot-flex"></span> Flex points
+            <span className="dot-flex"></span> {window.t('flex')}
             <span className="num">{flex.length}</span>
-            <span className="signature-row-hint">global · varies, doesn't change playstyle</span>
+            <span className="signature-row-hint">{window.t('global')} · varies</span>
           </div>
           {flex.length > 0 ? (
             <ul className="signature-list">
@@ -173,13 +173,17 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
 // Bottom panel — full-width gear grid. Lives below the trees / PvP in the main pane.
 function GearPanel({ group }) {
   if (!group.gear || !group.gear.slots) return null;
+  const isZh = window.location.pathname.endsWith('_zh.html');
+  const whDomain = isZh ? 'cn.wowhead.com' : 'www.wowhead.com';
+  const whDomainAttr = isZh ? '&domain=cn' : '';
+  
   return (
     <div className="gear-panel" data-screen-label="Gear">
       <div className="gear-panel-head">
-        <h3>Gear</h3>
+        <h3>{window.t('gear')}</h3>
         <div className="stat">
-          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>GLOBAL</span>
-          <span>avg ilvl <span className="num">{group.gear.avg_ilvl}</span> · top pick per slot · n={group.sample_size.toLocaleString()}</span>
+          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>{window.t('global')}</span>
+          <span>{window.t('avgIlvl')} <span className="num">{group.gear.avg_ilvl}</span> · {window.t('topPick')} · n={group.sample_size.toLocaleString()}</span>
         </div>
       </div>
       <ul className="gear-grid">
@@ -191,23 +195,23 @@ function GearPanel({ group }) {
             </div>
             {s.item.id ? (
               <a className="gear-card-item"
-                 href={`https://www.wowhead.com/item=${s.item.id}`}
+                 href={`https://${whDomain}/item=${s.item.id}`}
                  target="_blank"
                  rel="noopener"
-                 data-wowhead={`item=${s.item.id}`}>{s.item.name}</a>
+                 data-wowhead={`item=${s.item.id}${whDomainAttr}`}>{s.item.name}</a>
             ) : (
               <span className="gear-card-item">{s.item.name}</span>
             )}
             {s.enchant ? (
               <div className="gear-card-enchant">
-                <span className="enchant-tag">ENCH</span>
+                <span className="enchant-tag">{window.t('ench')}</span>
                 <span className="enchant-name">{s.enchant.name}</span>
                 <span className="enchant-pct">{s.enchant.pct}%</span>
               </div>
             ) : (
               <div className="gear-card-enchant placeholder">
                 <span className="enchant-tag dim">—</span>
-                <span className="enchant-name dim">no enchant</span>
+                <span className="enchant-name dim">{window.t('noEnch')}</span>
               </div>
             )}
           </li>
