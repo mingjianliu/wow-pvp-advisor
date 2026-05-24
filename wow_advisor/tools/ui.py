@@ -226,6 +226,13 @@ import threading
 class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
     """Handler that generates reports on-demand if they are missing."""
 
+    def translate_path(self, path):
+        parsed_path = path.split("?")[0]
+        if parsed_path.startswith("/pages/"):
+            filename = parsed_path.split("/")[-1]
+            return str(get_pages_dir() / filename)
+        return super().translate_path(path)
+
     def do_GET(self):
         # We serve from the 'frontend' directory, so /pages/... is relative to that.
         path = self.path.split("?")[0]
