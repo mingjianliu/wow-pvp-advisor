@@ -1,0 +1,25 @@
+# Implementation TODO: Documentation Audit and Reorganization
+
+- [x] **Task 1: Update `BACKLOG.md`**
+    - Mark "Talent node IDs are not human-readable" as resolved.
+    - Mark "Talent clusters are fragmented" as resolved (HAC).
+    - Mark "Talent name lookup" in TODO as fully completed.
+    - Add/update items regarding `CURRENT_SEASON_ID` automation and `BNET_REGION` wiring.
+- [ ] **Task 2: Update `docs/mcp-tools.md`**
+    - Add `get_full_summary_tool`, `get_tree_structure_tool`, and `build_page_tool`.
+    - Update algorithm descriptions to HAC.
+    - Remove "Node IDs only" limitation.
+- [ ] **Task 3: Update `README.md` (Features & Algorithms)**
+    - Add `get_full_summary_tool` as primary tool.
+    - Update clustering section to HAC.
+- [ ] **Task 4: Archive Completed Plans/Specs**
+    - Move `docs/superpowers/plans/2026-05-24-*.md` to `docs/archive/plans/`.
+    - Move `docs/superpowers/specs/2026-05-24-*.md` to `docs/archive/specs/`.
+- [x] **Task 5: Clean Root Directory**
+    - Move `debug_clustering.py` and `debug_clustering_v2.py` to `scripts/`.
+- [ ] **Task 6: Git Hygiene**
+    - Update `.gitignore` to include `*.log` and `app_output.txt`.
+- [ ] **Task 7: Create `GEMINI.md`**
+    - Mandates and tool mappings for Gemini CLI.
+- [ ] **Task 8: Update `README.md` (Tool Compatibility)**
+    - Add Gemini/Agy setup sections.
