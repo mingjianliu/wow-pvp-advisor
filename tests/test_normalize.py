@@ -31,8 +31,8 @@ def test_normalize_bracket_3v3():
 
 
 def test_normalize_bracket_solo():
-    assert normalize_bracket("solo") == "shuffle"
-    assert normalize_bracket("solo shuffle") == "shuffle"
+    assert normalize_bracket("solo") == "solo-shuffle"
+    assert normalize_bracket("solo shuffle") == "solo-shuffle"
 
 
 def test_normalize_bracket_2v2():

@@ -38,9 +38,18 @@ def _parse_gear(equipped_items: list) -> list[GearSlot]:
     return slots
 
 
-def _parse_talents(spec_data: dict, spec_id: int) -> TalentData | None:
+def _parse_talents(spec_data: dict, spec_id: int, spec_name: str | None = None) -> TalentData | None:
     for spec in spec_data.get("specializations", []):
-        if spec.get("specialization", {}).get("id") != spec_id:
+        s_info = spec.get("specialization", {})
+        matched = False
+        if s_info.get("id") and spec_id and s_info.get("id") == spec_id:
+            matched = True
+        elif s_info.get("name") and spec_name and s_info.get("name").lower() == spec_name.lower():
+            matched = True
+        elif not spec_id and s_info.get("name") and spec_name and s_info.get("name").lower() == spec_name.lower():
+            matched = True
+
+        if not matched:
             continue
         # PvP talents live at the spec level, not inside the loadout
         pvp_ids, pvp_names = [], []
@@ -232,7 +241,7 @@ class BnetClient:
                 self._get(client, f"{base_url}/specializations", namespace, locale=locale),
                 self._get(client, f"{base_url}/equipment", namespace, locale=locale),
             )
-        char.talent = _parse_talents(spec_data or {}, char.spec_id) if spec_data else None
+        char.talent = _parse_talents(spec_data or {}, char.spec_id, char.spec) if spec_data else None
         char.gear = _parse_gear((equip_data or {}).get("equipped_items", []))
         return char
 
@@ -251,7 +260,7 @@ class BnetClient:
             return None
         active_spec = profile.get("active_spec", {}).get("name", "")
         active_spec_id = profile.get("active_spec", {}).get("id", 0)
-        talent = _parse_talents(spec_data or {}, active_spec_id) if spec_data else None
+        talent = _parse_talents(spec_data or {}, active_spec_id, active_spec) if spec_data else None
         gear = _parse_gear((equip_data or {}).get("equipped_items", []))
         return CharacterData(
             name=profile.get("name", name),
