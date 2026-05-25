@@ -153,6 +153,50 @@ def test_analyze_includes_node_meta():
     node_meta = {1: {"row": 0, "type": "circle"}}
     analysis = analyze_talents(node_sets, node_meta=node_meta)
     assert analysis.node_meta == node_meta
+
+
+def test_rank_distribution_normalization_relative_to_pickers():
+    # 10 players total. 5 take node 1.
+    # Among those 5: 3 take rank 1, 2 take rank 2.
+    # Global pick rate is 50%.
+    # Rank distribution SHOULD be: [60%, 40%] (among pickers), NOT [30%, 20%].
+    node_sets = [{1}] * 5 + [set()] * 5
+    node_ranks_list = [{1: 1}] * 3 + [{1: 2}] * 2 + [{}] * 5
+
+    analysis = analyze_talents(node_sets, node_ranks_list=node_ranks_list)
+
+    # Node 1 dist
+    dist = analysis.rank_distributions.get(1)
+    assert dist == [60.0, 40.0]
+
+    # Verify pick rate is still 0.5
+    assert analysis.pick_rates.get(1) == 0.5
+
+
+def test_hero_talents_excluded_from_skips():
+    # Node 100 is Hero node. Node 200 is contested non-hero node.
+    # Cluster chooses Hero node 100 but skips 200.
+    # In summarize_talent_clusters, hero node 101 (from other tree) should NOT be in skips.
+    node_sets = [{100}, {100}]
+    node_meta = {
+        100: {"is_hero": True, "type": "circle", "row": 0},
+        101: {"is_hero": True, "type": "circle", "row": 0},
+        200: {"type": "circle", "row": 5},  # Contested
+    }
+    # Player 3 took 200, making it contested
+    full_node_sets = node_sets + [{200}]
+    codes = ["A", "B", "C"]
+
+    result = summarize_talent_clusters(full_node_sets, codes, node_meta=node_meta)
+
+    # Cluster 1 (the 2 players taking 100)
+    c1 = result["clusters"][0]
+    skip_ids = [s["id"] for s in c1["skips"]]
+
+    assert 200 in skip_ids
+    assert 101 not in skip_ids
+
+
 def test_weighted_jaccard_distance_basic():
     set_a = {1}
     ranks_a = {1: 1}

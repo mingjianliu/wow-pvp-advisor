@@ -42,7 +42,9 @@ def analyze_talents(
             max_r = max(ranks_seen)
             counts = Counter(ranks_seen)
             # list index i corresponds to rank i+1
-            dist = [round(counts.get(r, 0) / n * 100, 1) for r in range(1, max_r + 1)]
+            # Denominator is pick_counts[node] to show distribution among those who took it
+            pick_count = pick_counts[node]
+            dist = [round(counts.get(r, 0) / pick_count * 100, 1) for r in range(1, max_r + 1)]
             rank_distributions[node] = dist
 
     return TalentAnalysis(
@@ -325,7 +327,10 @@ def summarize_talent_clusters(
                 "canonical_code": canonical_code,
                 "takes": takes_with_ranks,
                 "flex_takes": sorted(cluster_flex, key=lambda x: x["pct"], reverse=True),
-                "skips": [{"id": nid, "pickers": cluster_pickers[nid]} for nid in sorted(decision_nodes - canonical_decision_set)],
+                "skips": [
+                    {"id": nid, "pickers": cluster_pickers[nid]}
+                    for nid in sorted(decision_nodes - canonical_decision_set - hero_nodes)
+                ],
             }
         )
 
