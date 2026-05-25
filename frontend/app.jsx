@@ -617,6 +617,22 @@ function App() {
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [activePlayer]);
 
+  // Click outside tooltip (pop-up panel) to hide it immediately
+  useEffect(() => {
+    if (!tip) return;
+
+    function handleTooltipOutsideClick(e) {
+      if (e.target.closest(".tooltip")) return;
+
+      if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
+      setTip(null);
+      tipRef.current = null;
+    }
+
+    document.addEventListener("click", handleTooltipOutsideClick);
+    return () => document.removeEventListener("click", handleTooltipOutsideClick);
+  }, [tip]);
+
   if (!cluster) return <div className="loading">Loading cluster data...</div>;
 
   const onCopy = () => {
