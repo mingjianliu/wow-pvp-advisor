@@ -1,6 +1,6 @@
 # WoW PvP Advisor
 
-Fetches top-50 WoW PvP player data (talents, gear, enchants) and exposes it as an MCP server for Claude Code.
+Fetches top-50 WoW PvP player data (talents, gear, enchants) and exposes it as an MCP server for AI agents (Claude Code, Gemini CLI, Antigravity, etc.).
 
 ## Setup
 
@@ -18,8 +18,9 @@ cp .env.example .env
 # Edit .env: add your BNET_CLIENT_ID and BNET_CLIENT_SECRET
 ```
 
-### 3. Register MCP server in Claude Code
+## MCP Registration
 
+### Claude Code
 Add to `~/.claude/settings.json`:
 
 ```json
@@ -35,6 +36,27 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
+### Gemini CLI
+Add to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "wow-advisor": {
+      "command": "/Users/mingjianliu/code/wow-talent-gear-collector/.venv/bin/python",
+      "args": [
+        "/Users/mingjianliu/code/wow-talent-gear-collector/mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+### Antigravity CLI
+Antigravity automatically detects MCP servers if the project is open. Ensure your project is added to Antigravity.
+
+---
+
 Replace `/Users/mingjianliu/code/wow-talent-gear-collector` with your project path if different. Find it with `pwd` inside the project directory.
 
 The `.env` file is loaded by `mcp_server.py` at startup — no need to pass env vars in settings.
@@ -48,10 +70,11 @@ python cli.py talents "resto shaman" 3v3  # Just talents
 python cli.py gear "resto shaman" 3v3     # Just gear
 ```
 
-### 5. Ask Claude Code
+### 5. Usage
 
-Once the MCP server is registered, open a new Claude Code session and ask:
+Once the MCP server is registered, you can use it with any compatible agent (Claude Code, Gemini CLI, etc.).
 
+**Example questions:**
 - **"Give me a full summary for Restoration Shaman in 3v3"** (Uses `get_full_summary_tool` for a complete picture)
 - "What talents should I run as Restoration Shaman in 3v3?"
 - "What trinkets are top Resto Shamans using?"
