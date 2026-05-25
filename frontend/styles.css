@@ -916,6 +916,40 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 }
 
 /* Tooltip — rank distribution */
+.tooltip-pickers {
+  margin-top: 12px;
+  border-top: 1px dashed var(--line-2);
+  padding-top: 8px;
+}
+.tooltip-pickers-title {
+  font-family: var(--font-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-2); margin-bottom: 4px;
+}
+.tooltip-pickers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 80px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.tooltip-picker-link {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-1);
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid var(--line);
+}
+.tooltip-picker-link:hover {
+  background: var(--bg-3);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .tooltip-rank-title {
   font-family: var(--font-mono); font-size: 9px;
   text-transform: uppercase; letter-spacing: 0.1em;

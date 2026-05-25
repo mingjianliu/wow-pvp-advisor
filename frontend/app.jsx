@@ -141,14 +141,19 @@ function autoClusterName(c) {
 // Derive the per-node role (core/flex/skip) and rank for a cluster.
 function deriveNodeMap(data, cluster) {
   const map = {};
-  data.talents.core.forEach((t) => map[t.id] = { role: 'core', pts: t.pts, rankDist: t.rankDist, pickRate: t.pct, global: true });
-  data.talents.flex.forEach((t) => map[t.id] = { role: 'flex', pickRate: t.pct, global: true });
+  data.talents.core.forEach((t) => map[t.id] = { role: 'core', pts: t.pts, rankDist: t.rankDist, pickRate: t.pct, global: true, pickers: t.pickers });
+  data.talents.flex.forEach((t) => map[t.id] = { role: 'flex', pickRate: t.pct, global: true, pickers: t.pickers });
   cluster.takes.forEach((t) => {
-    map[t.id] = { ...map[t.id], role: 'core', pts: t.rank, contested: true, pickRate: t.pct, global: false };
+    map[t.id] = { ...map[t.id], role: 'core', pts: t.rank, contested: true, pickRate: t.pct, global: false, pickers: t.pickers };
   });
   cluster.skips.forEach((t) => {
-    map[t.id] = { ...map[t.id], role: 'skip', contested: true, pickRate: t.pct, global: false };
+    map[t.id] = { ...map[t.id], role: 'skip', contested: true, pickRate: t.pct, global: false, pickers: t.pickers };
   });
+  if (cluster.flex_takes) {
+    cluster.flex_takes.forEach((t) => {
+      map[t.id] = { ...map[t.id], role: 'flex', contested: true, pickRate: t.pct, global: false, pickers: t.pickers };
+    });
+  }
   return map;
 }
 
@@ -253,6 +258,19 @@ function App() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [tip, setTip] = useState(null);
   const [toast, setToast] = useState(null);
+  
+  const hideTipTimeout = React.useRef(null);
+  const handleHover = (tipData) => {
+    if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
+    setTip(tipData);
+  };
+  const handleLeave = () => {
+    if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
+    hideTipTimeout.current = setTimeout(() => setTip(null), 300);
+  };
+  const handleTooltipEnter = () => {
+    if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
+  };
 
   // Keyboard nav — ← / → between clusters.
   useEffect(() => {
@@ -407,14 +425,14 @@ function App() {
                   flexStyle={tweaks.flexStyle}
                   heatmap={tweaks.heatmap}
                   showSignature={tweaks.showSignature}
-                  onHover={setTip}
-                  onLeave={() => setTip(null)} />
+                  onHover={handleHover}
+                  onLeave={handleLeave} />
                 
                 </div>
               )}
             </div>
 
-            <GlobalPvpPanel data={data} onHover={setTip} onLeave={() => setTip(null)} />
+            <GlobalPvpPanel data={data} onHover={handleHover} onLeave={handleLeave} />
             <GearPanel group={data} />
           </div>
         </section>
@@ -427,7 +445,7 @@ function App() {
         
       </main>
 
-      {tip && <Tooltip {...tip} />}
+      {tip && <Tooltip {...tip} onEnter={handleTooltipEnter} onLeave={handleLeave} region={data.region} />}
       {toast && <div className="copy-toast">✓ {toast}</div>}
 
       <TweaksPanel title="Tweaks">
@@ -509,7 +527,7 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
 
 }
 
-function Tooltip({ node, state, x, y }) {
+function Tooltip({ node, state, x, y, onEnter, onLeave, region }) {
   const meta = window.useTalentMeta();
   const sid = node && node.spellId;
   const cacheKey = node && node.isEnchant ? `ench-${sid}` : sid;
@@ -542,8 +560,10 @@ function Tooltip({ node, state, x, y }) {
   if (role === 'core') tag = rankFlex ? `${t('core')} · RANK-FLEX` : isContested ? t('contested') : t('core');else
   if (role === 'flex') tag = t('flex');
 
+  const armoryBase = `https://worldofwarcraft.blizzard.com/en-${region}/character/${region}/`;
+
   return (
-    <div className="tooltip" style={tooltipStyle}>
+    <div className="tooltip" style={tooltipStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
       <div className="tooltip-head">
         {m && m.icon ? <img className="tooltip-icon" src={m.icon} alt="" /> : null}
         <span className="tooltip-name">{node.name}</span>
@@ -566,6 +586,18 @@ function Tooltip({ node, state, x, y }) {
           <div className="tooltip-bar">
             <div className="tooltip-bar-fill" style={{ width: `${state.pickRate}%` }}></div>
           </div>
+          {state.pickers && state.pickers.length > 0 && state.pickRate < 100 && (
+            <div className="tooltip-pickers">
+              <div className="tooltip-pickers-title">Players picking this:</div>
+              <div className="tooltip-pickers-list">
+                {state.pickers.map((p, i) => (
+                  <a key={i} href={`${armoryBase}${p.r}/${p.n.toLowerCase()}`} target="_blank" rel="noopener noreferrer" className="tooltip-picker-link">
+                    {p.n}-{p.r}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
           {rankDist ?
         <>
               <div className="tooltip-rank-title">{t('rankDist')}</div>

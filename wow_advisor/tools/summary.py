@@ -20,6 +20,8 @@ def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
             }
             if isinstance(item, dict) and "rank" in item:
                 entry["pts"] = item["rank"]
+            if isinstance(item, dict) and "pickers" in item:
+                entry["pickers"] = item["pickers"]
             
             dist = rank_dists.get(str(nid))
             if dist:

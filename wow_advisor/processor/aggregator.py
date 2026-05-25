@@ -102,12 +102,15 @@ def build_aggregation(
                     "is_hero": True,
                 }
 
+    player_info = [{"name": p.name, "realm": p.realm, "region": p.region} for p in players_with_talent]
+
     talent_summary = summarize_talent_clusters(
         node_sets=node_sets,
         loadout_codes=loadout_codes,
         keystone_nodes=keystone_nodes,
         node_ranks_list=node_ranks_list,
         node_meta=node_meta,
+        player_info=player_info,
     )
 
     # Gear and item level aggregation

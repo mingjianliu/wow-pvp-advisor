@@ -178,6 +178,7 @@ def summarize_talent_clusters(
     keystone_nodes: list[int] | None = None,
     node_ranks_list: list[dict[int, int]] | None = None,
     node_meta: dict[int, dict] | None = None,
+    player_info: list[dict] | None = None,
 ) -> dict:
     """Full pipeline: analyze → partition by hero → cluster → summarize."""
     n = len(node_sets)
@@ -193,6 +194,14 @@ def summarize_talent_clusters(
     analysis = analyze_talents(
         node_sets, node_ranks_list=node_ranks_list, node_meta=node_meta
     )
+    
+    global_pickers = defaultdict(list)
+    if player_info:
+        for i, nodes in enumerate(node_sets):
+            p = player_info[i]
+            p_obj = {"n": p["name"], "r": p["realm"]}
+            for nid in nodes:
+                global_pickers[nid].append(p_obj)
 
     if keystone_nodes is not None:
         decision_nodes = set(keystone_nodes)
@@ -259,6 +268,14 @@ def summarize_talent_clusters(
             loadout_codes[canonical_idx] if canonical_idx < len(loadout_codes) else ""
         )
 
+        cluster_pickers = defaultdict(list)
+        if player_info:
+            for nodes, idx in cluster:
+                p = player_info[idx]
+                p_obj = {"n": p["name"], "r": p["realm"]}
+                for nid in nodes:
+                    cluster_pickers[nid].append(p_obj)
+
         # Determine modal rank for each node in this cluster
         takes_with_ranks = []
         output_nodes = sorted(canonical_decision_set | canonical_hero_set)
@@ -273,7 +290,11 @@ def summarize_talent_clusters(
                 if node_ranks_in_cluster
                 else 1
             )
-            takes_with_ranks.append({"id": nid, "rank": modal_rank})
+            takes_with_ranks.append({
+                "id": nid, 
+                "rank": modal_rank,
+                "pickers": cluster_pickers[nid]
+            })
 
         # NEW: Find "Internal Flex" nodes (taken by some but not all members of the cluster)
         # This helps show variance within a broadly merged cluster.
@@ -290,7 +311,11 @@ def summarize_talent_clusters(
                 continue # Already global core
             pct = round(count / cluster_size * 100, 1)
             if pct >= 10.0: # Show if at least 10% take it
-                cluster_flex.append({"id": nid, "pct": pct})
+                cluster_flex.append({
+                    "id": nid, 
+                    "pct": pct,
+                    "pickers": cluster_pickers[nid]
+                })
 
         cluster_summaries.append(
             {
@@ -300,13 +325,13 @@ def summarize_talent_clusters(
                 "canonical_code": canonical_code,
                 "takes": takes_with_ranks,
                 "flex_takes": sorted(cluster_flex, key=lambda x: x["pct"], reverse=True),
-                "skips": sorted(decision_nodes - canonical_decision_set),
+                "skips": [{"id": nid, "pickers": cluster_pickers[nid]} for nid in sorted(decision_nodes - canonical_decision_set)],
             }
         )
 
     return {
-        "core_nodes": sorted(analysis.core_nodes),
-        "flex_nodes": sorted(analysis.flex_nodes),
+        "core_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(analysis.core_nodes)],
+        "flex_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(analysis.flex_nodes)],
         "contested_nodes": sorted(decision_nodes),
         "pick_rates": {
             node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()

@@ -97,13 +97,16 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
 
     def enrich(talent_list: list[dict]) -> list[dict]:
         return [
-            {**t, "name": t.get("name") or id_to_name.get(t["id"])}
+            {
+                **t, 
+                "name": t.get("name") or id_to_name.get(t["id"])
+            }
             for t in talent_list
             if (t.get("name") or id_to_name.get(t["id"])) and t["id"] not in hero_ids
         ]
 
     def strip_hero(lst: list[dict]) -> list[dict]:
-        return [t for t in lst if t["id"] not in hero_ids]
+        return [t for t in lst if (t["id"] if isinstance(t, dict) else t) not in hero_ids]
 
     def _hero_core_nodes() -> list[dict]:
         """Return the dominant hero tree's nodes as core entries.
@@ -142,7 +145,8 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
                 "id": t["id"], 
                 "name": id_to_name.get(t["id"], t.get("name") or ""), 
                 "pct": t.get("pct", 100.0),
-                "spellId": id_to_spellid.get(t["id"])
+                "spellId": id_to_spellid.get(t["id"]),
+                "pickers": t.get("pickers", [])
             }
             for t in strip_hero(c["takes"])
             if id_to_name.get(t["id"], t.get("name"))
@@ -152,7 +156,8 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
                 "id": t["id"], 
                 "name": id_to_name.get(t["id"], t.get("name") or ""), 
                 "pct": t.get("pct", 0.0),
-                "spellId": id_to_spellid.get(t["id"])
+                "spellId": id_to_spellid.get(t["id"]),
+                "pickers": t.get("pickers", [])
             }
             for t in strip_hero(c["skips"])
             if id_to_name.get(t["id"], t.get("name"))
@@ -163,7 +168,8 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
                 "id": t["id"], 
                 "name": id_to_name.get(t["id"], ""), 
                 "pct": t["pct"],
-                "spellId": id_to_spellid.get(t["id"])
+                "spellId": id_to_spellid.get(t["id"]),
+                "pickers": t.get("pickers", [])
             }
             for t in c.get("flex_takes", [])
             if id_to_name.get(t["id"])
