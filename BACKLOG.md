@@ -2,11 +2,9 @@
 
 ## Bugs
 
-- [ ] **Talent node IDs are not human-readable** — the MCP tool returns raw numeric node IDs (e.g. `[81039, 81073]`). Claude has to interpret them without names. Consider adding a talent node name lookup via the Blizzard static API (`/data/wow/playable-specialization/{specId}`) and caching the mapping in SQLite.
+- [x] **Talent node IDs are not human-readable** — (RESOLVED) Implemented `TalentNameCache` to map node IDs to names via the Blizzard static API. Integrated with MCP tools and HTML reports.
 
-- [ ] **Talent clusters are fragmented** — with threshold=1 in `summarize_talent_clusters`, builds differing by just 1 node are in separate clusters, producing many small groups (top cluster 8%). Consider tuning the threshold or implementing the keystone fallback for known specs.
-
-- [ ] **`BNET_REGION` env var is documented but not wired** — `.env.example` lists it but `_make_client` in `tools/fetch.py` uses the `region` parameter passed by the caller (defaulting to `"us"`). Should fall back to `os.environ.get("BNET_REGION", "us")` so the env var actually does something.
+- [x] **Talent clusters are fragmented** — (RESOLVED) Implemented Agglomerative Hierarchical Clustering (HAC) with weighted Jaccard distance to group similar builds effectively.
 
 - [ ] **`enchant_name` contains "Enchanted: " prefix** — display strings from the Blizzard API always start with "Enchanted: Enchant Slot - Name". Could strip to just "Name" for cleaner output.
 
@@ -23,8 +21,8 @@
 
 ## TODO
 
-- [ ] **Season ID auto-detection** — `CURRENT_SEASON_ID = 41` is hardcoded in `client.py`. Should query `/data/wow/pvp-season/index` on startup and use `current_season.id` automatically, so it doesn't break at each new season.
-
+- [ ] **Automate `CURRENT_SEASON_ID` detection** — Replace hardcoded `CURRENT_SEASON_ID = 41` in `wow_advisor/api/client.py` with an automated lookup via `/data/wow/pvp-season/index` on startup.
+- [ ] **Wire `BNET_REGION` environment variable** — Ensure `wow_advisor/api/client.py` and `tools/fetch.py` respect the `BNET_REGION` env var if no region is explicitly provided via CLI/MCP.
 - [ ] **Expose `scan_limit` via CLI and MCP** — currently hardcoded to scan the full leaderboard. For common specs (Warrior, Mage) you hit 50 players quickly; for rare specs you scan everything. A user-configurable limit would help.
 
 - [x] **Talent name lookup** — add `wow_advisor/processor/talent_names.py` that fetches from Blizzard's static API (`/data/wow/playable-specialization/{specId}`) and maps node IDs → names. Cache in `data/talent_names.json`. Makes the MCP output immediately readable.
