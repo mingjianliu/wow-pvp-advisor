@@ -545,6 +545,7 @@ function App() {
       console.error("Invalid player details clicked:", p);
       return;
     }
+    const found = (data.players || []).find(
       (pl) =>
         pl.name.toLowerCase() === pName.toLowerCase() &&
         pl.realm.toLowerCase() === pRealm.toLowerCase(),
@@ -589,6 +590,32 @@ function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [majorClusters, activeRank]);
+
+  // Click outside player inspect panels to return to cluster view
+  useEffect(() => {
+    if (!activePlayer) return;
+
+    function handleOutsideClick(e) {
+      // Ignore clicks on player links
+      if (e.target.closest(".tooltip-picker-link")) return;
+      if (e.target.closest(".btn-armory-link")) return;
+
+      // Ignore if clicking inside any player detail widgets
+      const isSidebar = e.target.closest(".sidebar");
+      const isGearPanel = e.target.closest(".gear-panel");
+      const isBanner = e.target.closest(".player-view-banner");
+      const isTopbar = e.target.closest(".topbar");
+      const isTweaks = e.target.closest(".tweaks-panel");
+
+      if (!isSidebar && !isGearPanel && !isBanner && !isTopbar && !isTweaks) {
+        console.log("Clicked outside player details, returning to cluster view");
+        setActivePlayer(null);
+      }
+    }
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [activePlayer]);
 
   if (!cluster) return <div className="loading">Loading cluster data...</div>;
 
