@@ -154,12 +154,25 @@ function deriveNodeMap(data, cluster) {
 
 // Pick the hero tree whose nodeIds have the most overlap with the cluster's
 // core+takes node IDs. Falls back to the right tree (Totemic for Resto Shaman).
+// Also overrides the pickRate of the selected hero tree's nodes to 100% for this cluster.
 function selectHeroTree(data, nodeMap) {
   const heroTrees = data.tree && data.tree.heroTrees;
   if (!heroTrees) return null;
   const dominated = (ht) => ht.nodeIds.filter((id) => nodeMap[id]).length;
-  return dominated(heroTrees.left) >= dominated(heroTrees.right) ?
-  heroTrees.left : heroTrees.right;
+  const selected = dominated(heroTrees.left) >= dominated(heroTrees.right) ?
+    heroTrees.left : heroTrees.right;
+  
+  // Override nodeMap for the selected hero tree so tooltips show 100% (in cluster)
+  selected.nodeIds.forEach(id => {
+    if (nodeMap[id]) {
+      nodeMap[id] = { ...nodeMap[id], pickRate: 100.0, global: false };
+    } else {
+      // If it wasn't even in global core (rare, but possible if hero tree is totally new)
+      nodeMap[id] = { role: 'core', pts: 1, pickRate: 100.0, global: false };
+    }
+  });
+  
+  return selected;
 }
 
 function useTweaks(initial) {

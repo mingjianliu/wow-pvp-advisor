@@ -3,3 +3,11 @@ Server is running. Press Ctrl+C to stop.
 [Server] GET /pages/marksmanship-hunter_3v3.html
 [Server] Translating: marksmanship-hunter_3v3.html
 [Server] Triggering on-demand build for marksmanship-hunter_3v3.html (spec=marksmanship-hunter, bracket=3v3)...
+[Server] Successfully generated marksmanship-hunter_3v3.html
+127.0.0.1 - - [24/May/2026 19:10:49] "GET /pages/marksmanship-hunter_3v3.html HTTP/1.1" 200 -
+[Server] GET /pages/marksmanship-hunter_3v3.html
+[Server] Translating: marksmanship-hunter_3v3.html
+127.0.0.1 - - [24/May/2026 19:22:10] "GET /pages/marksmanship-hunter_3v3.html HTTP/1.1" 200 -
+[Server] GET /pages/marksmanship-hunter_3v3.html
+[Server] Translating: marksmanship-hunter_3v3.html
+[Server] Triggering on-demand build for marksmanship-hunter_3v3.html (spec=marksmanship-hunter, bracket=3v3)...
