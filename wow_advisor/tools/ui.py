@@ -11,7 +11,8 @@ import re
 import socket
 import subprocess
 import time
-from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 
 from wow_advisor._paths import get_frontend_dir, get_pages_dir
 from wow_advisor.normalize import normalize_spec, normalize_bracket

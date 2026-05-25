@@ -5,6 +5,9 @@ import os
 # Add the project root to sys.path so we can import wow_advisor
 sys.path.append(os.getcwd())
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from wow_advisor.tools.ui import _ensure_server
 
 print("Starting WoW PvP Advisor frontend server on http://localhost:8080...")
