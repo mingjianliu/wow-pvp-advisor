@@ -420,8 +420,7 @@ function App() {
           role: "core",
           pts: pts,
           pickRate: 100,
-          global: false,
-          pickers: [activePlayer],
+          pickers: [{ n: activePlayer.name, r: activePlayer.realm }],
         };
       });
       return map;
@@ -540,10 +539,15 @@ function App() {
 
   const handlePlayerClick = (p) => {
     console.log("Player clicked:", p);
-    const found = (data.players || []).find(
+    const pName = p.n || p.name;
+    const pRealm = p.r || p.realm;
+    if (!pName || !pRealm) {
+      console.error("Invalid player details clicked:", p);
+      return;
+    }
       (pl) =>
-        pl.name.toLowerCase() === p.n.toLowerCase() &&
-        pl.realm.toLowerCase() === p.r.toLowerCase(),
+        pl.name.toLowerCase() === pName.toLowerCase() &&
+        pl.realm.toLowerCase() === pRealm.toLowerCase(),
     );
     if (found) {
       console.log("Player found:", found);
@@ -1132,7 +1136,7 @@ function Tooltip({
                       }}
                       className="tooltip-picker-link"
                     >
-                      {p.n}-{p.r}
+                      {(p.n || p.name)}-{(p.r || p.realm)}
                     </a>
                   ))}
                 </div>
