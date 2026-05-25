@@ -553,7 +553,8 @@ function App() {
           onHover={handleHover}
           onLeave={handleLeave}
           activePlayer={activePlayer}
-          setActivePlayer={setActivePlayer} />
+          setActivePlayer={setActivePlayer}
+          nodeMap={nodeMap} />
         
       </main>
 
@@ -593,7 +594,7 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
   const onHoverPvp = (e, p) => {
     onHover({
       node: { name: p.name, spellId: p.id, maxPoints: 1 },
-      state: { role: 'core', pts: 1, pickRate: p.pct },
+      state: { role: 'core', pts: 1, pickRate: p.pct, pickers: p.pickers || [] },
       x: e.clientX, y: e.clientY
     });
   };

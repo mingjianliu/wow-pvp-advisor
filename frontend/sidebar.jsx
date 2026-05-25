@@ -1,7 +1,7 @@
 // Right sidebar — cluster summary, signature (takes + flex), legend, build code + copy.
 // Gear moved out to its own bottom panel in the main pane.
 
-function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlayer, setActivePlayer }) {
+function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlayer, setActivePlayer, nodeMap }) {
   const takes = [...(cluster.takes || [])].sort((a, b) => b.pct - a.pct);
   const flex = [...((group.talents && group.talents.flex) || [])].sort((a, b) => b.pct - a.pct);
   const meta = window.useTalentMeta();
@@ -35,6 +35,23 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
     flex.forEach(t => { if (t.spellId) ids.push(t.spellId); });
     if (ids.length) window.TalentMeta.preload(ids);
   }, [cluster.rank, nodeMetaById]);
+
+  const handleMouseEnterTalent = (e, t) => {
+    const nodeMeta = nodeMetaById[t.id] || {};
+    const sid = t.spellId || (nodeMeta && nodeMeta.spellId);
+    const st = (nodeMap && nodeMap[t.id]) || {
+      role: 'flex',
+      pts: t.pts || 1,
+      pickRate: t.pct,
+      pickers: t.pickers || []
+    };
+    onHover({
+      node: { id: t.id, name: t.name, spellId: sid, maxPoints: nodeMeta.maxPoints || 1 },
+      state: st,
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
 
   if (activePlayer) {
     const pvpTalents = activePlayer.talent?.pvp_talent_names || [];
@@ -101,7 +118,7 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
     );
   }
 
-  const TalentLink = ({ t, className }) => {
+  const TalentLink = ({ t, className, onMouseEnter, onMouseLeave }) => {
     const nodeMeta = nodeMetaById[t.id] || {};
     const sid = t.spellId || (nodeMeta && nodeMeta.spellId);
     const m = sid && meta.get(sid);
@@ -110,7 +127,15 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
       ? <img className="sig-icon" src={icon} alt="" loading="lazy" />
       : <span className="sig-icon placeholder"></span>;
     if (!sid) {
-      return <span className={className}>{Iconlet}<span className="sig-text">{t.name}</span></span>;
+      return (
+        <span 
+          className={className}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          {Iconlet}<span className="sig-text">{t.name}</span>
+        </span>
+      );
     }
     return (
       <a
@@ -118,7 +143,8 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
         href={`https://www.wowhead.com/spell=${sid}`}
         target="_blank"
         rel="noopener"
-        data-wowhead={`spell=${sid}`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >{Iconlet}<span className="sig-text">{t.name}</span></a>
     );
   };
@@ -165,7 +191,7 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
             {takes.map(t => (
               <li key={t.id} className="sig-item take">
                 <div className="sig-name-row">
-                  <TalentLink t={t} className="sig-name" />
+                  <TalentLink t={t} className="sig-name" onMouseEnter={(e) => handleMouseEnterTalent(e, t)} onMouseLeave={onLeave} />
                   <RankTag t={t} />
                 </div>
                 <span className="sig-bar"><span className="sig-bar-fill" style={{width: `${t.pct}%`}}></span></span>
@@ -183,7 +209,7 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
               {flex.map(t => (
                 <li key={t.id} className="sig-item flex">
                   <div className="sig-name-row">
-                    <TalentLink t={t} className="sig-name" />
+                    <TalentLink t={t} className="sig-name" onMouseEnter={(e) => handleMouseEnterTalent(e, t)} onMouseLeave={onLeave} />
                     <RankTag t={t} />
                   </div>
                   <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
@@ -205,7 +231,7 @@ function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlay
               {cluster.flex_takes.map(t => (
                 <li key={t.id} className="sig-item flex">
                   <div className="sig-name-row">
-                    <TalentLink t={t} className="sig-name" />
+                    <TalentLink t={t} className="sig-name" onMouseEnter={(e) => handleMouseEnterTalent(e, t)} onMouseLeave={onLeave} />
                     <RankTag t={t} />
                   </div>
                   <span className="sig-bar"><span className="sig-bar-fill flex" style={{width: `${t.pct}%`}}></span></span>
