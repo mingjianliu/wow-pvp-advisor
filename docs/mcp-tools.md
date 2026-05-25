@@ -1,6 +1,6 @@
 # MCP Tools Design Reference
 
-These are the 4 tools exposed by `mcp_server.py`. Each section covers purpose, inputs, outputs, behavior, known limitations, and future work.
+These are the 7 tools exposed by `mcp_server.py`. Each section covers purpose, inputs, outputs, behavior, known limitations, and future work.
 
 ---
 
@@ -12,7 +12,8 @@ The data entry point. Hits the Blizzard Battle.net API to find and cache the top
 
 ### When it's called automatically
 
-`get_talent_distribution_tool` and `get_gear_summary_tool` auto-call this if their cache is older than 2 hours.
+- `get_full_summary_tool` and `build_page_tool` auto-call this if cache is older than **2 hours**.
+- `get_talent_distribution_tool` and `get_gear_summary_tool` auto-call this if cache is older than **24 hours**.
 
 ### Inputs
 
@@ -90,7 +91,7 @@ Returns how top players are distributing their talent points — which talents a
 
 ### What it does
 
-Checks `is_stale(spec, bracket, region, ttl_hours=2)`. If stale, calls `fetch_top_players` first. Returns the `talents` section of the cached aggregation.
+Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_top_players` first. Returns the `talents` section of the cached aggregation.
 
 ### Output
 
@@ -102,46 +103,49 @@ Checks `is_stale(spec, bracket, region, ttl_hours=2)`. If stale, calls `fetch_to
   "sample_size": 50,
   "cached_at": 1779046010,
   "talents": {
-    "core_nodes": [81018, 81021, ...],
-    "flex_nodes": [81019, 103427, ...],
-    "contested_nodes": [81039, 81073, ...],
+    "core_nodes": [{"id": 81018, "pickers": [...]}, ...],
+    "flex_nodes": [{"id": 81019, "pickers": [...]}, ...],
+    "contested_nodes": [{"id": 81039, "pickers": [...]}, ...],
     "clusters": [
       {
         "rank": 1,
-        "count": 8,
-        "pct": 16.0,
+        "count": 22,
+        "pct": 44.0,
         "canonical_code": "BAQAAAAAAAAAAAAkU...",
-        "takes": [81039, 81073],
-        "skips": [81038, 81043]
+        "takes": [{"id": 81039, "rank": 1, "pickers": [...]}, ...],
+        "flex_takes": [{"id": 103427, "pct": 20.0, "pickers": [...]}, ...],
+        "skips": [{"id": 81038, "pickers": [...]}, ...]
       }
     ],
-    "clustering_method": "variance+hamming"
+    "clustering_method": "variance+weighted"
   }
 }
 ```
 
 **Node classifications:**
 
-- `core_nodes` — picked by ≥80% of players. Not a meaningful decision point.
-- `flex_nodes` — picked by ≤20% of players. Situational or unpopular.
-- `contested_nodes` — picked by 20–80% of players. These are the actual build-defining choices.
+- `core_nodes` — picked by ≥80% of players.
+- `flex_nodes` — picked by ≤20% of players.
+- `contested_nodes` — picked by 20–80% of players.
 
-**Clusters:** Builds are grouped using greedy Hamming distance clustering (threshold=1) on the contested node set only. Each cluster has a canonical talent export code that can be imported into the game client.
+**Clusters:** Builds are grouped using **Agglomerative Hierarchical Clustering (HAC)** with Complete Linkage and Weighted Jaccard Distance. This method accounts for both node selection and rank (points spent).
 
-**`clustering_method`:** `"variance+hamming"` (automatic) or `"keystone"` (if `data/keystone_talents.json` has an override for this spec).
+- `takes` — modal talent choices for this cluster.
+- `flex_takes` — internal cluster variance (talents taken by some but not all members of the cluster).
+- `skips` — modal talents NOT taken by this cluster.
+
+**`clustering_method`:** `"variance+weighted"` (default HAC) or `"keystone"` (if forced by `data/keystone_talents.json`).
 
 ### Known limitations
 
-- **Node IDs, not names**: output is numeric node IDs. Claude must infer talent names from context. See BACKLOG: talent node name lookup.
-- **Fragmented clusters**: with threshold=1 and many contested nodes, clusters can be small (top cluster 8% in early Midnight S1). This is partly a data-sparsity issue (50 players, high build diversity in early season) and partly a tuning issue.
-- **Clustering is greedy and order-dependent**: a "bridge" build equidistant between two clusters gets absorbed into whichever it encounters first.
+- **Fragmented clusters**: if build diversity is extremely high, clusters can still be small.
+- **Node IDs only**: `get_talent_distribution_tool` returns raw node IDs. Use `get_full_summary_tool` for a version with human-readable names.
 
 ### Future work
 
-- Map node IDs → human-readable talent names via Blizzard static API
-- Add `data/keystone_talents.json` entries for common specs to force cleaner clusters
+- Map node IDs → human-readable talent names (implemented in `get_full_summary_tool`)
+- Add more `data/keystone_talents.json` entries to force cleaner clusters
 - Expose clustering threshold as a parameter
-- Return the talent export code in a format directly importable to WoW (already present as `canonical_code`)
 
 ---
 
@@ -207,7 +211,131 @@ Items within each slot are sorted by pick rate descending. Slots with no players
 
 ---
 
-## 4. `get_player_details_tool`
+## 4. `get_full_summary_tool`
+
+### Purpose
+
+The primary entry point for a comprehensive overview of a spec's current meta. Returns gear, enchants, pvp talents, and clustered talents in a single call, with **human-readable names** resolved for all IDs.
+
+### Inputs
+
+| Parameter | Type | Default  | Description      |
+| --------- | ---- | -------- | ---------------- |
+| `spec`    | str  | required | Spec name        |
+| `bracket` | str  | required | PvP bracket      |
+| `region`  | str  | `"us"`   | `"us"` or `"eu"` |
+
+### What it does
+
+Checks `is_stale(spec, bracket, region, ttl_hours=2)`. If stale, calls `fetch_top_players` first. 
+1. Retrieves the aggregated data from cache.
+2. Resolves all numeric talent Node IDs into names (e.g., `81018` → `"Riptide"`) by hitting the Blizzard static API.
+3. Enriches the output with pick rates and rank distributions.
+
+### Output
+
+```json
+{
+  "spec": "restoration-shaman",
+  "bracket": "3v3",
+  "talents": {
+    "core": [{"id": 81018, "name": "Riptide", "pct": 100.0}, ...],
+    "flex": [...],
+    "contested": [...],
+    "clusters": [
+      {
+        "rank": 1,
+        "pct": 44.0,
+        "takes": [{"id": 81039, "name": "Healing Stream Totem", "pts": 2, "pct": 98.0}, ...]
+      }
+    ]
+  },
+  "gear": { ... },
+  "pvp_talents": [{"id": 210, "name": "Grounding Totem", "pct": 85.0}, ...]
+}
+```
+
+### Known limitations
+
+- **Resolution overhead**: the first time a spec is resolved, it may take 1-2 seconds to fetch name data from Blizzard. Subsequent calls are cached in the `talent_names` table.
+
+---
+
+## 5. `get_tree_structure_tool`
+
+### Purpose
+
+Returns the hierarchical layout of the talent tree for a spec. This is used by the frontend to render a visual tree where nodes are colored by pick rate.
+
+### Inputs
+
+| Parameter | Type | Default  | Description |
+| --------- | ---- | -------- | ----------- |
+| `spec`    | str  | required | Spec name   |
+
+### What it does
+
+Parses the Blizzard talent tree definition. It groups nodes into "Class", "Spec", and "Hero" trees. For Hero trees, it correctly identifies the two available sub-trees (e.g., Totemic vs Farseer for Restoration Shaman).
+
+### Output
+
+```json
+{
+  "spec": "restoration-shaman",
+  "trees": [
+    {
+      "name": "Shaman",
+      "nodes": [{"id": 81018, "pos": {"x": 3000, "y": 400}, "type": "circle", "name": "Riptide", "spellId": 61295}, ...]
+    },
+    { "name": "Restoration", "nodes": [...] }
+  ],
+  "heroTrees": {
+    "left": { "name": "Totemic", "nodes": [...] },
+    "right": { "name": "Farseer", "nodes": [...] }
+  }
+}
+```
+
+---
+
+## 6. `build_page_tool`
+
+### Purpose
+
+Generates a beautiful, interactive, self-contained HTML report for a spec and bracket.
+
+### Inputs
+
+| Parameter | Type | Default  | Description      |
+| --------- | ---- | -------- | ---------------- |
+| `spec`    | str  | required | Spec name        |
+| `bracket` | str  | required | PvP bracket      |
+| `region`  | str  | `"us"`   | `"us"` or `"eu"` |
+
+### What it does
+
+1. Calls `get_full_summary_tool` and `get_tree_structure_tool`.
+2. Bundles the data with a React-based frontend template.
+3. Inlines all CSS and JS to create a single standalone `.html` file.
+4. Writes the file to `frontend/pages/{spec}_{bracket}.html`.
+5. Returns the local URL and file path.
+
+### Output
+
+```json
+{
+  "path": "/.../frontend/pages/restoration-shaman_3v3.html",
+  "url": "http://localhost:8080/pages/restoration-shaman_3v3.html",
+  "spec": "restoration-shaman",
+  "bracket": "3v3",
+  "sample_size": 50,
+  "clusters": 3
+}
+```
+
+---
+
+## 7. `get_player_details_tool`
 
 ### Purpose
 
