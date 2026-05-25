@@ -217,7 +217,7 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
         "sample_size": raw["sample_size"],
         "avg_ilvl": raw["avg_ilvl"],
         "pvp_talents": [
-            {"id": p["id"], "name": p["name"], "pct": p["pct"]}
+            {"id": p["id"], "name": p["name"], "pct": p["pct"], "pickers": p.get("pickers", [])}
             for p in raw["pvp_talents"]
         ],
         "talents": {

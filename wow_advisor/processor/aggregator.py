@@ -27,15 +27,21 @@ def _load_keystone_nodes(spec: str, keystone_file: str) -> list[int] | None:
 def _aggregate_pvp_talents(players_with_talent: list[CharacterData]) -> list[dict]:
     """Calculate frequency of PvP talents across players with talent data."""
     pvp_counts: Counter = Counter()
+    pvp_pickers: dict[tuple[str, int], list[dict]] = {}
     valid_pvp_player_count = 0
 
     for player in players_with_talent:
         talent = player.talent
         if talent and talent.pvp_talent_names and talent.pvp_talent_ids:
             valid_pvp_player_count += 1
+            p_obj = {"n": player.name, "r": player.realm}
             # zip() truncates to the shortest list if lengths happen to mismatch
             for name, tid in zip(talent.pvp_talent_names, talent.pvp_talent_ids):
-                pvp_counts[(name, tid)] += 1
+                key = (name, tid)
+                pvp_counts[key] += 1
+                if key not in pvp_pickers:
+                    pvp_pickers[key] = []
+                pvp_pickers[key].append(p_obj)
 
     denominator = valid_pvp_player_count or 1
     pvp_summary = [
@@ -44,6 +50,7 @@ def _aggregate_pvp_talents(players_with_talent: list[CharacterData]) -> list[dic
             "id": tid,
             "count": count,
             "pct": round(count / denominator * 100, 1),
+            "pickers": pvp_pickers[(name, tid)],
         }
         for (name, tid), count in pvp_counts.items()
     ]
