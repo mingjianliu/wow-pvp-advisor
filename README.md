@@ -42,22 +42,24 @@ The `.env` file is loaded by `mcp_server.py` at startup — no need to pass env 
 ### 4. Test manually first
 
 ```bash
-python cli.py fetch "resto shaman" 3v3
-python cli.py talents "resto shaman" 3v3
-python cli.py gear "resto shaman" 3v3
+python cli.py summary "resto shaman" 3v3  # All-in-one report (recommended)
+python cli.py fetch "resto shaman" 3v3    # Force a refresh
+python cli.py talents "resto shaman" 3v3  # Just talents
+python cli.py gear "resto shaman" 3v3     # Just gear
 ```
 
 ### 5. Ask Claude Code
 
 Once the MCP server is registered, open a new Claude Code session and ask:
 
+- **"Give me a full summary for Restoration Shaman in 3v3"** (Uses `get_full_summary_tool` for a complete picture)
 - "What talents should I run as Restoration Shaman in 3v3?"
 - "What trinkets are top Resto Shamans using?"
 - "What's the most common gear setup for arms warriors in 3v3?"
 
 ## Talent clustering
 
-Top player builds are clustered automatically:
+Top player builds are clustered automatically using **Agglomerative Hierarchical Clustering (HAC)** with Weighted Jaccard Distance. This accounts for both *which* talents are taken and *how many points* are spent in each.
 
 - **Core talents** (≥80% pick rate): everyone takes these — not a decision point
 - **Contested talents** (20-80%): these define the build variants
