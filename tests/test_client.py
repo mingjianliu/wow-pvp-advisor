@@ -3,7 +3,6 @@ import respx
 import httpx
 from unittest.mock import AsyncMock
 from wow_advisor.api.client import BnetClient
-from wow_advisor.api.models import LeaderboardEntry, CharacterData
 
 
 @pytest.fixture

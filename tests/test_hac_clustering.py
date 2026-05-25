@@ -1,4 +1,3 @@
-import pytest
 from wow_advisor.processor.talents import cluster_talents_hac
 
 def test_hac_clustering_basic():

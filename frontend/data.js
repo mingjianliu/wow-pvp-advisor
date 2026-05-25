@@ -1,3604 +1,3057 @@
 // Auto-generated — Restoration Shaman 3v3 US, n=50
 
 window.CLUSTER_DATA = {
-  "spec": "restoration-shaman",
-  "specLabel": {
-    "class": "Shaman",
-    "spec": "Restoration"
+  spec: "restoration-shaman",
+  specLabel: {
+    class: "Shaman",
+    spec: "Restoration",
   },
-  "bracket": "3v3",
-  "sample_size": 50,
-  "avg_ilvl": 248,
-  "pvp_talents": [
+  bracket: "3v3",
+  sample_size: 50,
+  avg_ilvl: 248,
+  pvp_talents: [
     {
-      "id": "p1",
-      "name": "Grounding Totem",
-      "pct": 92.0
+      id: "p1",
+      name: "Grounding Totem",
+      pct: 92.0,
     },
     {
-      "id": "p2",
-      "name": "Rain Dance",
-      "pct": 80.0
+      id: "p2",
+      name: "Rain Dance",
+      pct: 80.0,
     },
     {
-      "id": "p3",
-      "name": "Static Field Totem",
-      "pct": 40.0
+      id: "p3",
+      name: "Static Field Totem",
+      pct: 40.0,
     },
     {
-      "id": "p4",
-      "name": "Storm Conduit",
-      "pct": 38.0
+      id: "p4",
+      name: "Storm Conduit",
+      pct: 38.0,
     },
     {
-      "id": "p5",
-      "name": "Lightning Lasso",
-      "pct": 38.0
+      id: "p5",
+      name: "Lightning Lasso",
+      pct: 38.0,
     },
     {
-      "id": "p6",
-      "name": "Burrow",
-      "pct": 4.0
+      id: "p6",
+      name: "Burrow",
+      pct: 4.0,
     },
     {
-      "id": "p7",
-      "name": "Master of the Elements",
-      "pct": 4.0
+      id: "p7",
+      name: "Master of the Elements",
+      pct: 4.0,
     },
     {
-      "id": "p8",
-      "name": "Counterstrike Totem",
-      "pct": 4.0
-    }
+      id: "p8",
+      name: "Counterstrike Totem",
+      pct: 4.0,
+    },
   ],
-  "talents": {
-    "core": [
+  talents: {
+    core: [
       {
-        "id": 80976,
-        "name": "Primal Tide Core",
-        "pct": 82.0
+        id: 80976,
+        name: "Primal Tide Core",
+        pct: 82.0,
       },
       {
-        "id": 81018,
-        "name": "Living Stream",
-        "pct": 100.0
+        id: 81018,
+        name: "Living Stream",
+        pct: 100.0,
       },
       {
-        "id": 81021,
-        "name": "Water Totem Mastery",
-        "pct": 100.0
+        id: 81021,
+        name: "Water Totem Mastery",
+        pct: 100.0,
       },
       {
-        "id": 81022,
-        "name": "Healing Stream Totem",
-        "pct": 100.0
+        id: 81022,
+        name: "Healing Stream Totem",
+        pct: 100.0,
       },
       {
-        "id": 81027,
-        "name": "Riptide",
-        "pct": 100.0
+        id: 81027,
+        name: "Riptide",
+        pct: 100.0,
       },
       {
-        "id": 81031,
-        "name": "Ancestral Reach",
-        "pct": 84.0
+        id: 81031,
+        name: "Ancestral Reach",
+        pct: 84.0,
       },
       {
-        "id": 81032,
-        "name": "Ascendance",
-        "pct": 100.0
+        id: 81032,
+        name: "Ascendance",
+        pct: 100.0,
       },
       {
-        "id": 81033,
-        "name": "First Ascendant",
-        "pct": 100.0
+        id: 81033,
+        name: "First Ascendant",
+        pct: 100.0,
       },
       {
-        "id": 81037,
-        "name": "Deluge",
-        "pct": 100.0
+        id: 81037,
+        name: "Deluge",
+        pct: 100.0,
       },
       {
-        "id": 81040,
-        "name": "Healing Rain",
-        "pct": 92.0
+        id: 81040,
+        name: "Healing Rain",
+        pct: 92.0,
       },
       {
-        "id": 81041,
-        "name": "Spirit Link Totem",
-        "pct": 100.0
+        id: 81041,
+        name: "Spirit Link Totem",
+        pct: 100.0,
       },
       {
-        "id": 81042,
-        "name": "Coalescing Water",
-        "pct": 92.0
+        id: 81042,
+        name: "Coalescing Water",
+        pct: 92.0,
       },
       {
-        "id": 81044,
-        "name": "Tidal Waves",
-        "pct": 98.0
+        id: 81044,
+        name: "Tidal Waves",
+        pct: 98.0,
       },
       {
-        "id": 81046,
-        "name": "Earthweaver",
-        "pct": 92.0
+        id: 81046,
+        name: "Earthweaver",
+        pct: 92.0,
       },
       {
-        "id": 81047,
-        "name": "White Water",
-        "pct": 100.0
+        id: 81047,
+        name: "White Water",
+        pct: 100.0,
       },
       {
-        "id": 81048,
-        "name": "Quickstream",
-        "pct": 100.0
+        id: 81048,
+        name: "Quickstream",
+        pct: 100.0,
       },
       {
-        "id": 81049,
-        "name": "Earthliving Weapon",
-        "pct": 100.0
+        id: 81049,
+        name: "Earthliving Weapon",
+        pct: 100.0,
       },
       {
-        "id": 81050,
-        "name": "Improved Earthliving Weapon",
-        "pct": 94.0
+        id: 81050,
+        name: "Improved Earthliving Weapon",
+        pct: 94.0,
       },
       {
-        "id": 81051,
-        "name": "Deeply Rooted Elements",
-        "pct": 100.0
+        id: 81051,
+        name: "Deeply Rooted Elements",
+        pct: 100.0,
       },
       {
-        "id": 81052,
-        "name": "Undercurrent",
-        "pct": 96.0
+        id: 81052,
+        name: "Undercurrent",
+        pct: 96.0,
       },
       {
-        "id": 81055,
-        "name": "Echo of the Elements",
-        "pct": 100.0
+        id: 81055,
+        name: "Echo of the Elements",
+        pct: 100.0,
       },
       {
-        "id": 81073,
-        "name": "Improved Purify Spirit",
-        "pct": 80.0
+        id: 81073,
+        name: "Improved Purify Spirit",
+        pct: 80.0,
       },
       {
-        "id": 92675,
-        "name": "Unleash Life",
-        "pct": 100.0
+        id: 92675,
+        name: "Unleash Life",
+        pct: 100.0,
       },
       {
-        "id": 94859,
-        "name": "Oversized Totems",
-        "pct": 90.0
+        id: 94859,
+        name: "Oversized Totems",
+        pct: 90.0,
       },
       {
-        "id": 94866,
-        "name": "Pulse Capacitor",
-        "pct": 90.0
+        id: 94866,
+        name: "Pulse Capacitor",
+        pct: 90.0,
       },
       {
-        "id": 94871,
-        "name": "Imbuement Mastery",
-        "pct": 90.0
+        id: 94871,
+        name: "Imbuement Mastery",
+        pct: 90.0,
       },
       {
-        "id": 94872,
-        "name": "Splitstream",
-        "pct": 90.0
+        id: 94872,
+        name: "Splitstream",
+        pct: 90.0,
       },
       {
-        "id": 94874,
-        "name": "Amplification Core",
-        "pct": 90.0
+        id: 94874,
+        name: "Amplification Core",
+        pct: 90.0,
       },
       {
-        "id": 94877,
-        "name": "Surging Totem",
-        "pct": 90.0
+        id: 94877,
+        name: "Surging Totem",
+        pct: 90.0,
       },
       {
-        "id": 94879,
-        "name": "Whirling Elements",
-        "pct": 90.0
+        id: 94879,
+        name: "Whirling Elements",
+        pct: 90.0,
       },
       {
-        "id": 94881,
-        "name": "Totemic Coordination",
-        "pct": 90.0
+        id: 94881,
+        name: "Totemic Coordination",
+        pct: 90.0,
       },
       {
-        "id": 94882,
-        "name": "Lively Totems",
-        "pct": 90.0
+        id: 94882,
+        name: "Lively Totems",
+        pct: 90.0,
       },
       {
-        "id": 94890,
-        "name": "Totemic Rebound",
-        "pct": 90.0
+        id: 94890,
+        name: "Totemic Rebound",
+        pct: 90.0,
       },
       {
-        "id": 94891,
-        "name": "Wind Barrier",
-        "pct": 90.0
+        id: 94891,
+        name: "Wind Barrier",
+        pct: 90.0,
       },
       {
-        "id": 103429,
-        "name": "Ancestral Vigor",
-        "pct": 94.0
+        id: 103429,
+        name: "Ancestral Vigor",
+        pct: 94.0,
       },
       {
-        "id": 103430,
-        "name": "Earthen Harmony",
-        "pct": 98.0
+        id: 103430,
+        name: "Earthen Harmony",
+        pct: 98.0,
       },
       {
-        "id": 103432,
-        "name": "Torrent",
-        "pct": 98.0
+        id: 103432,
+        name: "Torrent",
+        pct: 98.0,
       },
       {
-        "id": 103579,
-        "name": "Capacitor Totem",
-        "pct": 98.0
+        id: 103579,
+        name: "Capacitor Totem",
+        pct: 98.0,
       },
       {
-        "id": 103581,
-        "name": "Spirit Wolf",
-        "pct": 100.0
+        id: 103581,
+        name: "Spirit Wolf",
+        pct: 100.0,
       },
       {
-        "id": 103582,
-        "name": "Brimming with Life",
-        "pct": 80.0
+        id: 103582,
+        name: "Brimming with Life",
+        pct: 80.0,
       },
       {
-        "id": 103584,
-        "name": "Spiritwalker's Grace",
-        "pct": 100.0
+        id: 103584,
+        name: "Spiritwalker's Grace",
+        pct: 100.0,
       },
       {
-        "id": 103586,
-        "name": "Elemental Warding",
-        "pct": 100.0
+        id: 103586,
+        name: "Elemental Warding",
+        pct: 100.0,
       },
       {
-        "id": 103588,
-        "name": "Chain Heal",
-        "pct": 100.0
+        id: 103588,
+        name: "Chain Heal",
+        pct: 100.0,
       },
       {
-        "id": 103590,
-        "name": "Healing Stream Totem",
-        "pct": 100.0
+        id: 103590,
+        name: "Healing Stream Totem",
+        pct: 100.0,
       },
       {
-        "id": 103591,
-        "name": "Spirit Walk",
-        "pct": 100.0
+        id: 103591,
+        name: "Spirit Walk",
+        pct: 100.0,
       },
       {
-        "id": 103593,
-        "name": "Therazane's Resilience",
-        "pct": 100.0
+        id: 103593,
+        name: "Therazane's Resilience",
+        pct: 100.0,
       },
       {
-        "id": 103596,
-        "name": "Earth Shield",
-        "pct": 100.0
+        id: 103596,
+        name: "Earth Shield",
+        pct: 100.0,
       },
       {
-        "id": 103598,
-        "name": "Lava Burst",
-        "pct": 98.0
+        id: 103598,
+        name: "Lava Burst",
+        pct: 98.0,
       },
       {
-        "id": 103599,
-        "name": "Tremor Totem",
-        "pct": 94.0
+        id: 103599,
+        name: "Tremor Totem",
+        pct: 94.0,
       },
       {
-        "id": 103601,
-        "name": "Elemental Resistance",
-        "pct": 84.0
+        id: 103601,
+        name: "Elemental Resistance",
+        pct: 84.0,
       },
       {
-        "id": 103602,
-        "name": "Elemental Orbit",
-        "pct": 100.0
+        id: 103602,
+        name: "Elemental Orbit",
+        pct: 100.0,
       },
       {
-        "id": 103606,
-        "name": "Enhanced Imbues",
-        "pct": 98.0
+        id: 103606,
+        name: "Enhanced Imbues",
+        pct: 98.0,
       },
       {
-        "id": 103611,
-        "name": "Planes Traveler",
-        "pct": 100.0
+        id: 103611,
+        name: "Planes Traveler",
+        pct: 100.0,
       },
       {
-        "id": 103613,
-        "name": "Nature's Guardian",
-        "pct": 100.0
+        id: 103613,
+        name: "Nature's Guardian",
+        pct: 100.0,
       },
       {
-        "id": 103615,
-        "name": "Wind Shear",
-        "pct": 100.0
+        id: 103615,
+        name: "Wind Shear",
+        pct: 100.0,
       },
       {
-        "id": 103616,
-        "name": "Astral Shift",
-        "pct": 100.0
+        id: 103616,
+        name: "Astral Shift",
+        pct: 100.0,
       },
       {
-        "id": 103617,
-        "name": "Nature's Fury",
-        "pct": 96.0
+        id: 103617,
+        name: "Nature's Fury",
+        pct: 96.0,
       },
       {
-        "id": 103620,
-        "name": "Nature's Swiftness",
-        "pct": 100.0
+        id: 103620,
+        name: "Nature's Swiftness",
+        pct: 100.0,
       },
       {
-        "id": 103622,
-        "name": "Earthgrab Totem",
-        "pct": 94.0
+        id: 103622,
+        name: "Earthgrab Totem",
+        pct: 94.0,
       },
       {
-        "id": 103623,
-        "name": "Hex",
-        "pct": 94.0
+        id: 103623,
+        name: "Hex",
+        pct: 94.0,
       },
       {
-        "id": 103624,
-        "name": "Purge",
-        "pct": 98.0
+        id: 103624,
+        name: "Purge",
+        pct: 98.0,
       },
       {
-        "id": 103625,
-        "name": "Totemic Focus",
-        "pct": 100.0
+        id: 103625,
+        name: "Totemic Focus",
+        pct: 100.0,
       },
       {
-        "id": 103626,
-        "name": "Graceful Spirit",
-        "pct": 100.0
+        id: 103626,
+        name: "Graceful Spirit",
+        pct: 100.0,
       },
       {
-        "id": 109386,
-        "name": "Totemic Projection",
-        "pct": 100.0
+        id: 109386,
+        name: "Totemic Projection",
+        pct: 100.0,
       },
       {
-        "id": 109387,
-        "name": "Instinctive Imbuements",
-        "pct": 100.0
+        id: 109387,
+        name: "Instinctive Imbuements",
+        pct: 100.0,
       },
       {
-        "id": 109388,
-        "name": "Totemic Surge",
-        "pct": 100.0
+        id: 109388,
+        name: "Totemic Surge",
+        pct: 100.0,
       },
       {
-        "id": 109724,
-        "name": "Primal Catalyst",
-        "pct": 90.0
+        id: 109724,
+        name: "Primal Catalyst",
+        pct: 90.0,
       },
       {
-        "id": 109725,
-        "name": "Elemental Attunement",
-        "pct": 90.0
+        id: 109725,
+        name: "Elemental Attunement",
+        pct: 90.0,
       },
       {
-        "id": 109726,
-        "name": "Totemic Momentum",
-        "pct": 90.0
+        id: 109726,
+        name: "Totemic Momentum",
+        pct: 90.0,
       },
       {
-        "id": 110083,
-        "name": "Earthen Accord",
-        "pct": 94.0
+        id: 110083,
+        name: "Earthen Accord",
+        pct: 94.0,
       },
       {
-        "id": 110085,
-        "name": "Spiritual Awakening",
-        "pct": 98.0
+        id: 110085,
+        name: "Spiritual Awakening",
+        pct: 98.0,
       },
       {
-        "id": 110403,
-        "name": "Stormstream Totem",
-        "pct": 100.0
-      }
+        id: 110403,
+        name: "Stormstream Totem",
+        pct: 100.0,
+      },
     ],
-    "flex": [
+    flex: [
       {
-        "id": 81019,
-        "name": "Calm Waters",
-        "pct": 2.0
+        id: 81019,
+        name: "Calm Waters",
+        pct: 2.0,
       },
       {
-        "id": 92677,
-        "name": "Overflowing Shores",
-        "pct": 20.0
+        id: 92677,
+        name: "Overflowing Shores",
+        pct: 20.0,
       },
       {
-        "id": 94858,
-        "name": "Natural Harmony",
-        "pct": 10.0
+        id: 94858,
+        name: "Natural Harmony",
+        pct: 10.0,
       },
       {
-        "id": 94860,
-        "name": "Primordial Capacity",
-        "pct": 10.0
+        id: 94860,
+        name: "Primordial Capacity",
+        pct: 10.0,
       },
       {
-        "id": 94861,
-        "name": "Spiritwalker's Momentum",
-        "pct": 10.0
+        id: 94861,
+        name: "Spiritwalker's Momentum",
+        pct: 10.0,
       },
       {
-        "id": 94862,
-        "name": "Latent Wisdom",
-        "pct": 10.0
+        id: 94862,
+        name: "Latent Wisdom",
+        pct: 10.0,
       },
       {
-        "id": 94869,
-        "name": "Elemental Reverb",
-        "pct": 10.0
+        id: 94869,
+        name: "Elemental Reverb",
+        pct: 10.0,
       },
       {
-        "id": 94875,
-        "name": "Final Calling",
-        "pct": 10.0
+        id: 94875,
+        name: "Final Calling",
+        pct: 10.0,
       },
       {
-        "id": 94883,
-        "name": "Maelstrom Supremacy",
-        "pct": 10.0
+        id: 94883,
+        name: "Maelstrom Supremacy",
+        pct: 10.0,
       },
       {
-        "id": 94884,
-        "name": "Heed My Call",
-        "pct": 10.0
+        id: 94884,
+        name: "Heed My Call",
+        pct: 10.0,
       },
       {
-        "id": 94887,
-        "name": "Offering from Beyond",
-        "pct": 10.0
+        id: 94887,
+        name: "Offering from Beyond",
+        pct: 10.0,
       },
       {
-        "id": 94888,
-        "name": "Call of the Ancestors",
-        "pct": 10.0
+        id: 94888,
+        name: "Call of the Ancestors",
+        pct: 10.0,
       },
       {
-        "id": 94894,
-        "name": "Ancestral Swiftness",
-        "pct": 10.0
+        id: 94894,
+        name: "Ancestral Swiftness",
+        pct: 10.0,
       },
       {
-        "id": 103427,
-        "name": "Wavespeaker's Blessing",
-        "pct": 4.0
+        id: 103427,
+        name: "Wavespeaker's Blessing",
+        pct: 4.0,
       },
       {
-        "id": 103433,
-        "name": "Tidewaters",
-        "pct": 10.0
+        id: 103433,
+        name: "Tidewaters",
+        pct: 10.0,
       },
       {
-        "id": 103583,
-        "name": "Chain Lightning",
-        "pct": 6.0
+        id: 103583,
+        name: "Chain Lightning",
+        pct: 6.0,
       },
       {
-        "id": 103607,
-        "name": "Ascending Air",
-        "pct": 16.0
+        id: 103607,
+        name: "Ascending Air",
+        pct: 16.0,
       },
       {
-        "id": 103610,
-        "name": "Ancestral Wolf Affinity",
-        "pct": 2.0
+        id: 103610,
+        name: "Ancestral Wolf Affinity",
+        pct: 2.0,
       },
       {
-        "id": 103612,
-        "name": "Primordial Bond",
-        "pct": 12.0
+        id: 103612,
+        name: "Primordial Bond",
+        pct: 12.0,
       },
       {
-        "id": 103614,
-        "name": "Winds of Al'Akir",
-        "pct": 8.0
+        id: 103614,
+        name: "Winds of Al'Akir",
+        pct: 8.0,
       },
       {
-        "id": 103915,
-        "name": "Spouting Spirits",
-        "pct": 4.0
+        id: 103915,
+        name: "Spouting Spirits",
+        pct: 4.0,
       },
       {
-        "id": 109301,
-        "name": "Rip Current",
-        "pct": 14.0
+        id: 109301,
+        name: "Rip Current",
+        pct: 14.0,
       },
       {
-        "id": 109730,
-        "name": "Mystic Knowledge",
-        "pct": 10.0
+        id: 109730,
+        name: "Mystic Knowledge",
+        pct: 10.0,
       },
       {
-        "id": 109731,
-        "name": "Windspeaker",
-        "pct": 10.0
+        id: 109731,
+        name: "Windspeaker",
+        pct: 10.0,
       },
       {
-        "id": 109732,
-        "name": "Ancestral Influence",
-        "pct": 10.0
+        id: 109732,
+        name: "Ancestral Influence",
+        pct: 10.0,
       },
       {
-        "id": 110084,
-        "name": "Crashing Waves",
-        "pct": 10.0
-      }
+        id: 110084,
+        name: "Crashing Waves",
+        pct: 10.0,
+      },
     ],
-    "contested": [
+    contested: [
       {
-        "id": 81024,
-        "name": "Resurgence",
-        "pct": 34.0
+        id: 81024,
+        name: "Resurgence",
+        pct: 34.0,
       },
       {
-        "id": 81038,
-        "name": "Current Control",
-        "pct": 28.0
+        id: 81038,
+        name: "Current Control",
+        pct: 28.0,
       },
       {
-        "id": 81039,
-        "name": "Acid Rain",
-        "pct": 64.0
+        id: 81039,
+        name: "Acid Rain",
+        pct: 64.0,
       },
       {
-        "id": 81043,
-        "name": "Ancestral Awakening",
-        "pct": 32.0
+        id: 81043,
+        name: "Ancestral Awakening",
+        pct: 32.0,
       },
       {
-        "id": 103428,
-        "name": "Soothing Rain",
-        "pct": 58.0
+        id: 103428,
+        name: "Soothing Rain",
+        pct: 58.0,
       },
       {
-        "id": 103585,
-        "name": "Earth Elemental",
-        "pct": 28.0
+        id: 103585,
+        name: "Earth Elemental",
+        pct: 28.0,
       },
       {
-        "id": 103594,
-        "name": "Refreshing Waters",
-        "pct": 44.0
+        id: 103594,
+        name: "Refreshing Waters",
+        pct: 44.0,
       },
       {
-        "id": 103600,
-        "name": "Voodoo Mastery",
-        "pct": 44.0
-      }
-    ]
+        id: 103600,
+        name: "Voodoo Mastery",
+        pct: 44.0,
+      },
+    ],
   },
-  "clusters": [
+  clusters: [
     {
-      "rank": 1,
-      "pct": 18.0,
-      "count": 9,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtxY0stYmlZGDWMmZMzsNbGAAAYmBzMAMGM",
-      "takes": [
+      rank: 1,
+      pct: 18.0,
+      count: 9,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtxY0stYmlZGDWMmZMzsNbGAAAYmBzMAMGM",
+      takes: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
-      ]
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 2,
-      "pct": 14.0,
-      "count": 7,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZGzMzMzMzYssMziNGzYZasNzCTmhxGmZwsMGjmtFzsMzYwixMjZmtZzAAAAzMYmBzMMGM",
-      "takes": [
+      rank: 2,
+      pct: 14.0,
+      count: 7,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZGzMzMzMzYssMziNGzYZasNzCTmhxGmZwsMGjmtFzsMzYwixMjZmtZzAAAAzMYmBzMMGM",
+      takes: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
-      ]
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 3,
-      "pct": 12.0,
-      "count": 6,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtHwYmmtlZmFzYwixMjZmtZzAAAAzMYmBgxgB",
-      "takes": [
+      rank: 3,
+      pct: 12.0,
+      count: 6,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZMzMmZmZmZGzstMzmNGzYZasNzCTmhxGzMDmtHwYmmtlZmFzYwixMjZmtZzAAAAzMYmBgxgB",
+      takes: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 4,
-      "pct": 8.0,
-      "count": 4,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZGzMmZmZmZGjllxiNGzYRjtZWYyMM2YMDmlHwYmmtlZmFzYwixMjZmtZzAAAAzMYmBzMMzgB",
-      "takes": [
+      rank: 4,
+      pct: 8.0,
+      count: 4,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZGzMmZmZmZGjllxiNGzYRjtZWYyMM2YMDmlHwYmmtlZmFzYwixMjZmtZzAAAAzMYmBzMMzgB",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 5,
-      "pct": 6.0,
-      "count": 3,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZM2WmhxMzMzMzMGLLzsYjxMWmGbzswkZYsgZGMLjZmpZbxMLmxgNjZGzMbzGAAAYmZwMDmZYmBD",
-      "takes": [
+      rank: 5,
+      pct: 6.0,
+      count: 3,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZM2WmhxMzMzMzMGLLzsYjxMWmGbzswkZYsgZGMLjZmpZbxMLmxgNjZGzMbzGAAAYmZwMDmZYmBD",
+      takes: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
-        }
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 6,
-      "pct": 6.0,
-      "count": 3,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMmZmZmZGjllZWsxYGLTjtZWYyMM2wMDmlxYmmlFzsYGDWMmZMzsNbGAAAYmBzMYmhxgB",
-      "takes": [
+      rank: 6,
+      pct: 6.0,
+      count: 3,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMmZmZmZGjllZWsxYGLTjtZWYyMM2wMDmlxYmmlFzsYGDWMmZMzsNbGAAAYmBzMYmhxgB",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
-        }
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 7,
-      "pct": 4.0,
-      "count": 2,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMzYmZGzYssMziFGzYZasNzCTmhxGzMDmtZGjmllZmNzY2YxYmxwysMAAYAMzgZGMzADG",
-      "takes": [
+      rank: 7,
+      pct: 4.0,
+      count: 2,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZMzMzYmZGzYssMziFGzYZasNzCTmhxGzMDmtZGjmllZmNzY2YxYmxwysMAAYAMzgZGMzADG",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 8,
-      "pct": 4.0,
-      "count": 2,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZmxMzMzMzYmtlZ2sxYGLTjtZWYyMM2YegZws9AmZmmtFzswYw2MmZMzsNbGAAAYmBzMAMGM",
-      "takes": [
+      rank: 8,
+      pct: 4.0,
+      count: 2,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZmxMzMzMzYmtlZ2sxYGLTjtZWYyMM2YegZws9AmZmmtFzswYw2MmZMzsNbGAAAYmBzMAMGM",
+      takes: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
-        }
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 9,
-      "pct": 4.0,
-      "count": 2,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZmZmxMzMmZGjtlZWsxYGLTjtZ2YyMM2wMDmlZmZ0ssMjFzYwixMjZmtZDAAAYmBzMYmhxgB",
-      "takes": [
+      rank: 9,
+      pct: 4.0,
+      count: 2,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZmZmxMzMmZGjtlZWsxYGLTjtZ2YyMM2wMDmlZmZ0ssMjFzYwixMjZmtZDAAAYmBzMYmhxgB",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 10,
-      "pct": 4.0,
-      "count": 2,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMzMLbLjZmxMzMzMDzssMziNGzYZasNzCTmhxGzDMDmtxMjmllZmFzYwixMjZmtZbAAAAzMYmBzMMGM",
-      "takes": [
+      rank: 10,
+      pct: 4.0,
+      count: 2,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMzMLbLjZmxMzMzMDzssMziNGzYZasNzCTmhxGzDMDmtxMjmllZmFzYwixMjZmtZbAAAAzMYmBzMMGM",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 11,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLzYm5BmZmZmZYYB2gZsox2AyMwGmZwsxY0stMzsMzY2YzYGzMz2sNDAAAMzgZGAGDG",
-      "takes": [
+      rank: 11,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLzYm5BmZmZmZYYB2gZsox2AyMwGmZwsxY0stMzsMzY2YzYGzMz2sNDAAAMzgZGAGDG",
+      takes: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
-        }
-      ]
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
+        },
+      ],
     },
     {
-      "rank": 12,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmxy2MMzMzMzMzwYZZmFbMmxy0YbmFmMDjFMzgZZMzMNbLzMLMgFjZmZmZb2AAAAmZwMDmZYMYA",
-      "takes": [
+      rank: 12,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmxy2MMzMzMzMzwYZZmFbMmxy0YbmFmMDjFMzgZZMzMNbLzMLMgFjZmZmZb2AAAAmZwMDmZYMYA",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 13,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZGzMmZmZmZGDLwGMjFN2GQmB2wMDmtxY0ssYmFzYwixMzDMzsNbGAAAYmBzMAMGM",
-      "takes": [
+      rank: 13,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmZZbZGzMmZmZmZGDLwGMjFN2GQmB2wMDmtxY0ssYmFzYwixMzDMzsNbGAAAYmBzMAMGM",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
-        }
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 14,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLDzMPwMzMzMzYstMzmNGzYZasNzCTmhxGzMDmlxY0ssMzsYGDWMmZMzsNbGAAAYmBzMYmhxgB",
-      "takes": [
+      rank: 14,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLDzMPwMzMzMzYstMzmNGzYZasNzCTmhxGzMDmlxY0ssMzsYGDWMmZMzsNbGAAAYmBzMYmhxgB",
+      takes: [
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 15,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLDzMmZmZmZGjllZWsxYGLTjtZWYyMM2YmZGmtxYmmlFzsYGDWMmZMzsNbGAAAYmBzMAMGM",
-      "takes": [
+      rank: 15,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLDzMmZmZmZGjllZWsxYGLTjtZWYyMM2YmZGmtxYmmlFzsYGDWMmZMzsNbGAAAYmBzMAMGM",
+      takes: [
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
-        }
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 16,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZmZmZmxMzYssMWsxYGLasNzCTmhxGmZwsNmZ0ssYmFzYwixMzDMzsNbAAAAzMYmBzMMGM",
-      "takes": [
+      rank: 16,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZMLbLjZmZmZmxMzYssMWsxYGLasNzCTmhxGmZwsNmZ0ssYmFzYwixMzDMzsNbAAAAzMYmBzMMGM",
+      takes: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
-        }
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
-      ]
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 17,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMzMLbLDzMmZmZmZGjtlZWsxYGLTjtZWYyMM28AzDMzwswY0ssYmlZGD2MPwMjZmlZbGAAAYmBzMYmhxgB",
-      "takes": [
+      rank: 17,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMzMLbLDzMmZmZmZGjtlZWsxYGLTjtZWYyMM28AzDMzwswY0ssYmlZGD2MPwMjZmlZbGAAAYmBzMYmhxgB",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
-      ]
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 18,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZmZmxMzMzMDjtlZWsxYGLTjtZ2YyMM2wMDmtxY0stMzsMGDWMmZMzsMbzAAAgZmBzMAMGM",
-      "takes": [
+      rank: 18,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZmZmxMzMzMDjtlZWsxYGLTjtZ2YyMM2wMDmtxY0stMzsMGDWMmZMzsMbzAAAgZmBzMAMGM",
+      takes: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
-        }
-      ]
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
+        },
+      ],
     },
     {
-      "rank": 19,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZmZmxMzMzMzYstMzmFGzYZasNzCTmhxGzMDmNmZ0ssYmlxY2YzYmZmZ2mtBAAAMzgZGMzwAG",
-      "takes": [
+      rank: 19,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAAAAAAYMjZZbZmZmxMzMzMzYstMzmFGzYZasNzCTmhxGzMDmNmZ0ssYmlxY2YzYmZmZ2mtBAAAMzgZGMzwAG",
+      takes: [
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
-      ]
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
+      ],
     },
     {
-      "rank": 20,
-      "pct": 2.0,
-      "count": 1,
-      "canonical_code": "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmx2yMmZMzMzMzMGbLzsYjxMWmGbzsxkZYshZGMbPgZGNLLmZZmxgNjZmHYmZZ2AAAAmZwMDmZYmBD",
-      "takes": [
+      rank: 20,
+      pct: 2.0,
+      count: 1,
+      canonical_code:
+        "CgQARUG2fGwHkLP0T7/MoTNl/AAAAgBAAAAjZmx2yMmZMzMzMzMGbLzsYjxMWmGbzsxkZYshZGMbPgZGNLLmZZmxgNjZmHYmZZ2AAAAmZwMDmZYmBD",
+      takes: [
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "pct": 34.0
+          id: 81024,
+          name: "Resurgence",
+          pct: 34.0,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "pct": 28.0
+          id: 81038,
+          name: "Current Control",
+          pct: 28.0,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "pct": 28.0
+          id: 103585,
+          name: "Earth Elemental",
+          pct: 28.0,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "pct": 44.0
-        }
+          id: 103600,
+          name: "Voodoo Mastery",
+          pct: 44.0,
+        },
       ],
-      "skips": [
+      skips: [
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "pct": 64.0
+          id: 81039,
+          name: "Acid Rain",
+          pct: 64.0,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "pct": 32.0
+          id: 81043,
+          name: "Ancestral Awakening",
+          pct: 32.0,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "pct": 58.0
+          id: 103428,
+          name: "Soothing Rain",
+          pct: 58.0,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "pct": 44.0
-        }
-      ]
-    }
+          id: 103594,
+          name: "Refreshing Waters",
+          pct: 44.0,
+        },
+      ],
+    },
   ],
-  "gear": {
-    "avg_ilvl": 248,
-    "slots": [
+  gear: {
+    avg_ilvl: 248,
+    slots: [
       {
-        "slot": "Head",
-        "item": {
-          "id": 249979,
-          "name": "Locus of the Primal Core",
-          "pct": 90.0
+        slot: "Head",
+        item: {
+          id: 249979,
+          name: "Locus of the Primal Core",
+          pct: 90.0,
         },
-        "enchant": {
-          "name": "Empowered Blessing of Speed",
-          "pct": 50.0
-        }
-      },
-      {
-        "slot": "Neck",
-        "item": {
-          "id": 240952,
-          "name": "Thalassian Competitor's Amulet",
-          "pct": 78.0
-        }
-      },
-      {
-        "slot": "Shoulder",
-        "item": {
-          "id": 249977,
-          "name": "Tempests of the Primal Core",
-          "pct": 46.0
+        enchant: {
+          name: "Empowered Blessing of Speed",
+          pct: 50.0,
         },
-        "enchant": {
-          "name": "Akil'zon's Swiftness",
-          "pct": 70.0
-        }
       },
       {
-        "slot": "Back",
-        "item": {
-          "id": 255548,
-          "name": "Galactic Gladiator's Shawl",
-          "pct": 58.0
-        }
-      },
-      {
-        "slot": "Chest",
-        "item": {
-          "id": 249982,
-          "name": "Embrace of the Primal Core",
-          "pct": 94.0
+        slot: "Neck",
+        item: {
+          id: 240952,
+          name: "Thalassian Competitor's Amulet",
+          pct: 78.0,
         },
-        "enchant": {
-          "name": "Mark of the Magister",
-          "pct": 90.0
-        }
       },
       {
-        "slot": "Wrist",
-        "item": {
-          "id": 255544,
-          "name": "Galactic Gladiator's Chain Wristguards",
-          "pct": 54.0
-        }
-      },
-      {
-        "slot": "Hands",
-        "item": {
-          "id": 249980,
-          "name": "Earthgrips of the Primal Core",
-          "pct": 92.0
-        }
-      },
-      {
-        "slot": "Waist",
-        "item": {
-          "id": 244565,
-          "name": "Thalassian Competitor's Chain Girdle",
-          "pct": 78.0
-        }
-      },
-      {
-        "slot": "Legs",
-        "item": {
-          "id": 249978,
-          "name": "Leggings of the Primal Core",
-          "pct": 64.0
+        slot: "Shoulder",
+        item: {
+          id: 249977,
+          name: "Tempests of the Primal Core",
+          pct: 46.0,
         },
-        "enchant": {
-          "name": "+41 Intellect & +4% Mana",
-          "pct": 88.0
-        }
-      },
-      {
-        "slot": "Feet",
-        "item": {
-          "id": 255533,
-          "name": "Galactic Gladiator's Chain Boots",
-          "pct": 56.0
+        enchant: {
+          name: "Akil'zon's Swiftness",
+          pct: 70.0,
         },
-        "enchant": {
-          "name": "Farstrider's Hunt",
-          "pct": 76.0
-        }
       },
       {
-        "slot": "Ring 1",
-        "item": {
-          "id": 240951,
-          "name": "Thalassian Competitor's Signet",
-          "pct": 82.0
+        slot: "Back",
+        item: {
+          id: 255548,
+          name: "Galactic Gladiator's Shawl",
+          pct: 58.0,
         },
-        "enchant": {
-          "name": "Zul'jin's Mastery",
-          "pct": 70.0
-        }
       },
       {
-        "slot": "Ring 2",
-        "item": {
-          "id": 240951,
-          "name": "Thalassian Competitor's Signet",
-          "pct": 74.0
+        slot: "Chest",
+        item: {
+          id: 249982,
+          name: "Embrace of the Primal Core",
+          pct: 94.0,
         },
-        "enchant": {
-          "name": "Zul'jin's Mastery",
-          "pct": 74.0
-        }
-      },
-      {
-        "slot": "Trinket 1",
-        "item": {
-          "id": 255614,
-          "name": "Galactic Gladiator's Insignia of Alacrity",
-          "pct": 54.0
-        }
-      },
-      {
-        "slot": "Trinket 2",
-        "item": {
-          "id": 255616,
-          "name": "Galactic Gladiator's Medallion",
-          "pct": 56.0
-        }
-      },
-      {
-        "slot": "Weapon",
-        "item": {
-          "id": 255624,
-          "name": "Galactic Gladiator's Scepter",
-          "pct": 86.0
+        enchant: {
+          name: "Mark of the Magister",
+          pct: 90.0,
         },
-        "enchant": {
-          "name": "Acuity of the Ren'dorei",
-          "pct": 92.0
-        }
       },
       {
-        "slot": "Off-hand",
-        "item": {
-          "id": 255632,
-          "name": "Galactic Gladiator's Bulwark",
-          "pct": 86.0
+        slot: "Wrist",
+        item: {
+          id: 255544,
+          name: "Galactic Gladiator's Chain Wristguards",
+          pct: 54.0,
         },
-        "enchant": {
-          "name": "Tidecaller's Guard",
-          "pct": 80.0
-        }
-      }
-    ]
-  }
+      },
+      {
+        slot: "Hands",
+        item: {
+          id: 249980,
+          name: "Earthgrips of the Primal Core",
+          pct: 92.0,
+        },
+      },
+      {
+        slot: "Waist",
+        item: {
+          id: 244565,
+          name: "Thalassian Competitor's Chain Girdle",
+          pct: 78.0,
+        },
+      },
+      {
+        slot: "Legs",
+        item: {
+          id: 249978,
+          name: "Leggings of the Primal Core",
+          pct: 64.0,
+        },
+        enchant: {
+          name: "+41 Intellect & +4% Mana",
+          pct: 88.0,
+        },
+      },
+      {
+        slot: "Feet",
+        item: {
+          id: 255533,
+          name: "Galactic Gladiator's Chain Boots",
+          pct: 56.0,
+        },
+        enchant: {
+          name: "Farstrider's Hunt",
+          pct: 76.0,
+        },
+      },
+      {
+        slot: "Ring 1",
+        item: {
+          id: 240951,
+          name: "Thalassian Competitor's Signet",
+          pct: 82.0,
+        },
+        enchant: {
+          name: "Zul'jin's Mastery",
+          pct: 70.0,
+        },
+      },
+      {
+        slot: "Ring 2",
+        item: {
+          id: 240951,
+          name: "Thalassian Competitor's Signet",
+          pct: 74.0,
+        },
+        enchant: {
+          name: "Zul'jin's Mastery",
+          pct: 74.0,
+        },
+      },
+      {
+        slot: "Trinket 1",
+        item: {
+          id: 255614,
+          name: "Galactic Gladiator's Insignia of Alacrity",
+          pct: 54.0,
+        },
+      },
+      {
+        slot: "Trinket 2",
+        item: {
+          id: 255616,
+          name: "Galactic Gladiator's Medallion",
+          pct: 56.0,
+        },
+      },
+      {
+        slot: "Weapon",
+        item: {
+          id: 255624,
+          name: "Galactic Gladiator's Scepter",
+          pct: 86.0,
+        },
+        enchant: {
+          name: "Acuity of the Ren'dorei",
+          pct: 92.0,
+        },
+      },
+      {
+        slot: "Off-hand",
+        item: {
+          id: 255632,
+          name: "Galactic Gladiator's Bulwark",
+          pct: 86.0,
+        },
+        enchant: {
+          name: "Tidecaller's Guard",
+          pct: 80.0,
+        },
+      },
+    ],
+  },
 };
 
 window.CLUSTER_DATA.tree = {
-  "trees": [
+  trees: [
     {
-      "id": "class",
-      "label": "Class Tree",
-      "nodes": [
+      id: "class",
+      label: "Class Tree",
+      nodes: [
         {
-          "id": 103588,
-          "name": "Chain Heal",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 0,
-          "spellId": 1064
+          id: 103588,
+          name: "Chain Heal",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 0,
+          spellId: 1064,
         },
         {
-          "id": 103598,
-          "name": "Lava Burst",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 0,
-          "spellId": 51505
+          id: 103598,
+          name: "Lava Burst",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 0,
+          spellId: 51505,
         },
         {
-          "id": 103583,
-          "name": "Chain Lightning",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 0,
-          "spellId": 188443
+          id: 103583,
+          name: "Chain Lightning",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 0,
+          spellId: 188443,
         },
         {
-          "id": 103596,
-          "name": "Earth Shield",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 1,
-          "spellId": 974
+          id: 103596,
+          name: "Earth Shield",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 1,
+          spellId: 974,
         },
         {
-          "id": 103610,
-          "name": "Ancestral Wolf Affinity",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 382197
+          id: 103610,
+          name: "Ancestral Wolf Affinity",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 1,
+          spellId: 382197,
         },
         {
-          "id": 103605,
-          "name": "Fire and Ice",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 382886
+          id: 103605,
+          name: "Fire and Ice",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 1,
+          spellId: 382886,
         },
         {
-          "id": 103581,
-          "name": "Spirit Wolf",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 1,
-          "spellId": 260878
+          id: 103581,
+          name: "Spirit Wolf",
+          type: "diamond",
+          maxPoints: 1,
+          col: 4,
+          row: 1,
+          spellId: 260878,
         },
         {
-          "id": 109492,
-          "name": "Frost Shock",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 1,
-          "spellId": 196840
+          id: 109492,
+          name: "Frost Shock",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 1,
+          spellId: 196840,
         },
         {
-          "id": 103602,
-          "name": "Elemental Orbit",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 2,
-          "spellId": 383010
+          id: 103602,
+          name: "Elemental Orbit",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 2,
+          spellId: 383010,
         },
         {
-          "id": 103591,
-          "name": "Spirit Walk",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 58875
+          id: 103591,
+          name: "Spirit Walk",
+          type: "diamond",
+          maxPoints: 1,
+          col: 1,
+          row: 2,
+          spellId: 58875,
         },
         {
-          "id": 103616,
-          "name": "Astral Shift",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 108271
+          id: 103616,
+          name: "Astral Shift",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 2,
+          spellId: 108271,
         },
         {
-          "id": 103613,
-          "name": "Nature's Guardian",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 2,
-          "spellId": 30884
+          id: 103613,
+          name: "Nature's Guardian",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 2,
+          spellId: 30884,
         },
         {
-          "id": 109493,
-          "name": "Encasing Cold",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 2,
-          "spellId": 462762
+          id: 109493,
+          name: "Encasing Cold",
+          type: "diamond",
+          maxPoints: 1,
+          col: 6,
+          row: 2,
+          spellId: 462762,
         },
         {
-          "id": 103590,
-          "name": "Healing Stream Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 5394
+          id: 103590,
+          name: "Healing Stream Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 3,
+          spellId: 5394,
         },
         {
-          "id": 103614,
-          "name": "Winds of Al'Akir",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 2,
-          "row": 3,
-          "spellId": 382215
+          id: 103614,
+          name: "Winds of Al'Akir",
+          type: "circle",
+          maxPoints: 2,
+          col: 2,
+          row: 3,
+          spellId: 382215,
         },
         {
-          "id": 103611,
-          "name": "Planes Traveler",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 3,
-          "spellId": 381647
+          id: 103611,
+          name: "Planes Traveler",
+          type: "diamond",
+          maxPoints: 1,
+          col: 3,
+          row: 3,
+          spellId: 381647,
         },
         {
-          "id": 103582,
-          "name": "Brimming with Life",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 4,
-          "row": 3,
-          "spellId": 381689
+          id: 103582,
+          name: "Brimming with Life",
+          type: "circle",
+          maxPoints: 2,
+          col: 4,
+          row: 3,
+          spellId: 381689,
         },
         {
-          "id": 103615,
-          "name": "Wind Shear",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 3,
-          "spellId": 57994
+          id: 103615,
+          name: "Wind Shear",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 3,
+          spellId: 57994,
         },
         {
-          "id": 103601,
-          "name": "Elemental Resistance",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 4,
-          "spellId": 462368
+          id: 103601,
+          name: "Elemental Resistance",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 4,
+          spellId: 462368,
         },
         {
-          "id": 103622,
-          "name": "Earthgrab Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 4,
-          "spellId": 51485
+          id: 103622,
+          name: "Earthgrab Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 4,
+          spellId: 51485,
         },
         {
-          "id": 103579,
-          "name": "Capacitor Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 4,
-          "spellId": 192058
+          id: 103579,
+          name: "Capacitor Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 4,
+          spellId: 192058,
         },
         {
-          "id": 110085,
-          "name": "Spiritual Awakening",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 4,
-          "spellId": 1270375
+          id: 110085,
+          name: "Spiritual Awakening",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 4,
+          spellId: 1270375,
         },
         {
-          "id": 103606,
-          "name": "Enhanced Imbues",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 4,
-          "spellId": 462796
+          id: 103606,
+          name: "Enhanced Imbues",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 4,
+          spellId: 462796,
         },
         {
-          "id": 103628,
-          "name": "Windveil",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 4,
-          "spellId": 355630
+          id: 103628,
+          name: "Windveil",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 4,
+          spellId: 355630,
         },
         {
-          "id": 103594,
-          "name": "Refreshing Waters",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 5,
-          "spellId": 378211
+          id: 103594,
+          name: "Refreshing Waters",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 5,
+          spellId: 378211,
         },
         {
-          "id": 81073,
-          "name": "Improved Purify Spirit",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 5,
-          "spellId": 383016
+          id: 81073,
+          name: "Improved Purify Spirit",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 5,
+          spellId: 383016,
         },
         {
-          "id": 103618,
-          "name": "Static Charge",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 3,
-          "row": 5,
-          "spellId": 265046
+          id: 103618,
+          name: "Static Charge",
+          type: "circle",
+          maxPoints: 2,
+          col: 3,
+          row: 5,
+          spellId: 265046,
         },
         {
-          "id": 103627,
-          "name": "Wind Rush Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 5,
-          "spellId": 192077
+          id: 103627,
+          name: "Wind Rush Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 5,
+          spellId: 192077,
         },
         {
-          "id": 103585,
-          "name": "Earth Elemental",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 5,
-          "spellId": 198103
+          id: 103585,
+          name: "Earth Elemental",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 5,
+          spellId: 198103,
         },
         {
-          "id": 103624,
-          "name": "Purge",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 6,
-          "spellId": 370
+          id: 103624,
+          name: "Purge",
+          type: "diamond",
+          maxPoints: 1,
+          col: 1,
+          row: 6,
+          spellId: 370,
         },
         {
-          "id": 103617,
-          "name": "Nature's Fury",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 3,
-          "row": 6,
-          "spellId": 381655
+          id: 103617,
+          name: "Nature's Fury",
+          type: "circle",
+          maxPoints: 2,
+          col: 3,
+          row: 6,
+          spellId: 381655,
         },
         {
-          "id": 103607,
-          "name": "Ascending Air",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 6,
-          "spellId": 462791
+          id: 103607,
+          name: "Ascending Air",
+          type: "diamond",
+          maxPoints: 1,
+          col: 4,
+          row: 6,
+          spellId: 462791,
         },
         {
-          "id": 103612,
-          "name": "Primordial Bond",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 6,
-          "spellId": 1279819
+          id: 103612,
+          name: "Primordial Bond",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 6,
+          spellId: 1279819,
         },
         {
-          "id": 103623,
-          "name": "Hex",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 6,
-          "spellId": 51514
+          id: 103623,
+          name: "Hex",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 6,
+          spellId: 51514,
         },
         {
-          "id": 103584,
-          "name": "Spiritwalker's Grace",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 7,
-          "spellId": 79206
+          id: 103584,
+          name: "Spiritwalker's Grace",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 7,
+          spellId: 79206,
         },
         {
-          "id": 109386,
-          "name": "Totemic Projection",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 7,
-          "spellId": 108287
+          id: 109386,
+          name: "Totemic Projection",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 7,
+          spellId: 108287,
         },
         {
-          "id": 103586,
-          "name": "Elemental Warding",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 7,
-          "spellId": 381650
+          id: 103586,
+          name: "Elemental Warding",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 7,
+          spellId: 381650,
         },
         {
-          "id": 103625,
-          "name": "Totemic Focus",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 7,
-          "spellId": 382201
+          id: 103625,
+          name: "Totemic Focus",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 7,
+          spellId: 382201,
         },
         {
-          "id": 103626,
-          "name": "Graceful Spirit",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 8,
-          "spellId": 192088
+          id: 103626,
+          name: "Graceful Spirit",
+          type: "diamond",
+          maxPoints: 1,
+          col: 0,
+          row: 8,
+          spellId: 192088,
         },
         {
-          "id": 103587,
-          "name": "Mana Spring",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 8,
-          "spellId": 381930
+          id: 103587,
+          name: "Mana Spring",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 8,
+          spellId: 381930,
         },
         {
-          "id": 103599,
-          "name": "Tremor Totem",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 8,
-          "spellId": 8143
+          id: 103599,
+          name: "Tremor Totem",
+          type: "diamond",
+          maxPoints: 1,
+          col: 3,
+          row: 8,
+          spellId: 8143,
         },
         {
-          "id": 103593,
-          "name": "Therazane's Resilience",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 8,
-          "spellId": 1217622
+          id: 103593,
+          name: "Therazane's Resilience",
+          type: "diamond",
+          maxPoints: 1,
+          col: 4,
+          row: 8,
+          spellId: 1217622,
         },
         {
-          "id": 103600,
-          "name": "Voodoo Mastery",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 8,
-          "spellId": 204268
+          id: 103600,
+          name: "Voodoo Mastery",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 8,
+          spellId: 204268,
         },
         {
-          "id": 103620,
-          "name": "Nature's Swiftness",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 9,
-          "spellId": 378081
+          id: 103620,
+          name: "Nature's Swiftness",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 9,
+          spellId: 378081,
         },
         {
-          "id": 109388,
-          "name": "Totemic Surge",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 9,
-          "spellId": 381867
+          id: 109388,
+          name: "Totemic Surge",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 9,
+          spellId: 381867,
         },
         {
-          "id": 109387,
-          "name": "Instinctive Imbuements",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 9,
-          "spellId": 1270350
-        }
+          id: 109387,
+          name: "Instinctive Imbuements",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 9,
+          spellId: 1270350,
+        },
       ],
-      "edges": [
-        [
-          103588,
-          103610
-        ],
-        [
-          103588,
-          103596
-        ],
-        [
-          103598,
-          103581
-        ],
-        [
-          103598,
-          103605
-        ],
-        [
-          103598,
-          103610
-        ],
-        [
-          103583,
-          109492
-        ],
-        [
-          103583,
-          103581
-        ],
-        [
-          103596,
-          103591
-        ],
-        [
-          103596,
-          103602
-        ],
-        [
-          103610,
-          103616
-        ],
-        [
-          103610,
-          103591
-        ],
-        [
-          103605,
-          103616
-        ],
-        [
-          103581,
-          103613
-        ],
-        [
-          103581,
-          103616
-        ],
-        [
-          109492,
-          103613
-        ],
-        [
-          109492,
-          109493
-        ],
-        [
-          103602,
-          103590
-        ],
-        [
-          103591,
-          103614
-        ],
-        [
-          103591,
-          103590
-        ],
-        [
-          103616,
-          103614
-        ],
-        [
-          103616,
-          103582
-        ],
-        [
-          103616,
-          103611
-        ],
-        [
-          103613,
-          103582
-        ],
-        [
-          103613,
-          103615
-        ],
-        [
-          109493,
-          103615
-        ],
-        [
-          103590,
-          103622
-        ],
-        [
-          103590,
-          103601
-        ],
-        [
-          103614,
-          103579
-        ],
-        [
-          103614,
-          103622
-        ],
-        [
-          103611,
-          103579
-        ],
-        [
-          103611,
-          110085
-        ],
-        [
-          103582,
-          110085
-        ],
-        [
-          103582,
-          103606
-        ],
-        [
-          103615,
-          103628
-        ],
-        [
-          103615,
-          103606
-        ],
-        [
-          103601,
-          103594
-        ],
-        [
-          103622,
-          81073
-        ],
-        [
-          103622,
-          103594
-        ],
-        [
-          103579,
-          81073
-        ],
-        [
-          103579,
-          103627
-        ],
-        [
-          103579,
-          103618
-        ],
-        [
-          110085,
-          103627
-        ],
-        [
-          110085,
-          103585
-        ],
-        [
-          103606,
-          103585
-        ],
-        [
-          103628,
-          103623
-        ],
-        [
-          103594,
-          103624
-        ],
-        [
-          103594,
-          103584
-        ],
-        [
-          81073,
-          103624
-        ],
-        [
-          81073,
-          103617
-        ],
-        [
-          103618,
-          103617
-        ],
-        [
-          103627,
-          103617
-        ],
-        [
-          103627,
-          103607
-        ],
-        [
-          103585,
-          103623
-        ],
-        [
-          103585,
-          103612
-        ],
-        [
-          103624,
-          103584
-        ],
-        [
-          103624,
-          109386
-        ],
-        [
-          103617,
-          109386
-        ],
-        [
-          103617,
-          103586
-        ],
-        [
-          103607,
-          103586
-        ],
-        [
-          103607,
-          103625
-        ],
-        [
-          103612,
-          103625
-        ],
-        [
-          103623,
-          103625
-        ],
-        [
-          103623,
-          103600
-        ],
-        [
-          103584,
-          103626
-        ],
-        [
-          109386,
-          103587
-        ],
-        [
-          103586,
-          103587
-        ],
-        [
-          103586,
-          103593
-        ],
-        [
-          103586,
-          103599
-        ],
-        [
-          103625,
-          103593
-        ],
-        [
-          103625,
-          109387
-        ],
-        [
-          103626,
-          103620
-        ],
-        [
-          103587,
-          109388
-        ],
-        [
-          103587,
-          103620
-        ],
-        [
-          103599,
-          109388
-        ],
-        [
-          103593,
-          109388
-        ],
-        [
-          103593,
-          109387
-        ],
-        [
-          103600,
-          109387
-        ]
-      ]
+      edges: [
+        [103588, 103610],
+        [103588, 103596],
+        [103598, 103581],
+        [103598, 103605],
+        [103598, 103610],
+        [103583, 109492],
+        [103583, 103581],
+        [103596, 103591],
+        [103596, 103602],
+        [103610, 103616],
+        [103610, 103591],
+        [103605, 103616],
+        [103581, 103613],
+        [103581, 103616],
+        [109492, 103613],
+        [109492, 109493],
+        [103602, 103590],
+        [103591, 103614],
+        [103591, 103590],
+        [103616, 103614],
+        [103616, 103582],
+        [103616, 103611],
+        [103613, 103582],
+        [103613, 103615],
+        [109493, 103615],
+        [103590, 103622],
+        [103590, 103601],
+        [103614, 103579],
+        [103614, 103622],
+        [103611, 103579],
+        [103611, 110085],
+        [103582, 110085],
+        [103582, 103606],
+        [103615, 103628],
+        [103615, 103606],
+        [103601, 103594],
+        [103622, 81073],
+        [103622, 103594],
+        [103579, 81073],
+        [103579, 103627],
+        [103579, 103618],
+        [110085, 103627],
+        [110085, 103585],
+        [103606, 103585],
+        [103628, 103623],
+        [103594, 103624],
+        [103594, 103584],
+        [81073, 103624],
+        [81073, 103617],
+        [103618, 103617],
+        [103627, 103617],
+        [103627, 103607],
+        [103585, 103623],
+        [103585, 103612],
+        [103624, 103584],
+        [103624, 109386],
+        [103617, 109386],
+        [103617, 103586],
+        [103607, 103586],
+        [103607, 103625],
+        [103612, 103625],
+        [103623, 103625],
+        [103623, 103600],
+        [103584, 103626],
+        [109386, 103587],
+        [103586, 103587],
+        [103586, 103593],
+        [103586, 103599],
+        [103625, 103593],
+        [103625, 109387],
+        [103626, 103620],
+        [103587, 109388],
+        [103587, 103620],
+        [103599, 109388],
+        [103593, 109388],
+        [103593, 109387],
+        [103600, 109387],
+      ],
     },
     {
-      "id": "spec",
-      "label": "Spec Tree",
-      "nodes": [
+      id: "spec",
+      label: "Spec Tree",
+      nodes: [
         {
-          "id": 81027,
-          "name": "Riptide",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 0,
-          "spellId": 61295
+          id: 81027,
+          name: "Riptide",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 0,
+          spellId: 61295,
         },
         {
-          "id": 81040,
-          "name": "Healing Rain",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 73920
+          id: 81040,
+          name: "Healing Rain",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 1,
+          spellId: 73920,
         },
         {
-          "id": 81022,
-          "name": "Healing Stream Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 1,
-          "spellId": 5394
+          id: 81022,
+          name: "Healing Stream Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 1,
+          spellId: 5394,
         },
         {
-          "id": 103428,
-          "name": "Soothing Rain",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 1252874
+          id: 103428,
+          name: "Soothing Rain",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 2,
+          spellId: 1252874,
         },
         {
-          "id": 81039,
-          "name": "Acid Rain",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 2,
-          "spellId": 378443
+          id: 81039,
+          name: "Acid Rain",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 2,
+          spellId: 378443,
         },
         {
-          "id": 81032,
-          "name": "Ascendance",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 114052
+          id: 81032,
+          name: "Ascendance",
+          type: "diamond",
+          maxPoints: 1,
+          col: 3,
+          row: 2,
+          spellId: 114052,
         },
         {
-          "id": 81021,
-          "name": "Water Totem Mastery",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 2,
-          "spellId": 382030
+          id: 81021,
+          name: "Water Totem Mastery",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 2,
+          spellId: 382030,
         },
         {
-          "id": 92677,
-          "name": "Overflowing Shores",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 383222
+          id: 92677,
+          name: "Overflowing Shores",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 3,
+          spellId: 383222,
         },
         {
-          "id": 103429,
-          "name": "Ancestral Vigor",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 2,
-          "row": 3,
-          "spellId": 207401
+          id: 103429,
+          name: "Ancestral Vigor",
+          type: "circle",
+          maxPoints: 2,
+          col: 2,
+          row: 3,
+          spellId: 207401,
         },
         {
-          "id": 81033,
-          "name": "First Ascendant",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 3,
-          "spellId": 462440
+          id: 81033,
+          name: "First Ascendant",
+          type: "diamond",
+          maxPoints: 1,
+          col: 3,
+          row: 3,
+          spellId: 462440,
         },
         {
-          "id": 81024,
-          "name": "Resurgence",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 3,
-          "spellId": 16196
+          id: 81024,
+          name: "Resurgence",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 3,
+          spellId: 16196,
         },
         {
-          "id": 81018,
-          "name": "Living Stream",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 3,
-          "spellId": 382482
+          id: 81018,
+          name: "Living Stream",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 3,
+          spellId: 382482,
         },
         {
-          "id": 81038,
-          "name": "Current Control",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 4,
-          "spellId": 1253093
+          id: 81038,
+          name: "Current Control",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 4,
+          spellId: 1253093,
         },
         {
-          "id": 81047,
-          "name": "White Water",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 4,
-          "spellId": 462587
+          id: 81047,
+          name: "White Water",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 4,
+          spellId: 462587,
         },
         {
-          "id": 81019,
-          "name": "Calm Waters",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 4,
-          "spellId": 1252841
+          id: 81019,
+          name: "Calm Waters",
+          type: "circle",
+          maxPoints: 1,
+          col: 5,
+          row: 4,
+          spellId: 1252841,
         },
         {
-          "id": 81048,
-          "name": "Quickstream",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 4,
-          "spellId": 1253099
+          id: 81048,
+          name: "Quickstream",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 4,
+          spellId: 1253099,
         },
         {
-          "id": 109301,
-          "name": "Rip Current",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 5,
-          "spellId": 1254251
+          id: 109301,
+          name: "Rip Current",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 5,
+          spellId: 1254251,
         },
         {
-          "id": 110084,
-          "name": "Crashing Waves",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 5,
-          "spellId": 1253090
+          id: 110084,
+          name: "Crashing Waves",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 5,
+          spellId: 1253090,
         },
         {
-          "id": 92675,
-          "name": "Unleash Life",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 5,
-          "spellId": 73685
+          id: 92675,
+          name: "Unleash Life",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 5,
+          spellId: 73685,
         },
         {
-          "id": 103432,
-          "name": "Torrent",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 5,
-          "spellId": 200072
+          id: 103432,
+          name: "Torrent",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 5,
+          spellId: 200072,
         },
         {
-          "id": 81049,
-          "name": "Earthliving Weapon",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 5,
-          "spellId": 382021
+          id: 81049,
+          name: "Earthliving Weapon",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 5,
+          spellId: 382021,
         },
         {
-          "id": 81046,
-          "name": "Earthweaver",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 5,
-          "spellId": 1254210
+          id: 81046,
+          name: "Earthweaver",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 5,
+          spellId: 1254210,
         },
         {
-          "id": 81037,
-          "name": "Deluge",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 6,
-          "spellId": 200076
+          id: 81037,
+          name: "Deluge",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 6,
+          spellId: 200076,
         },
         {
-          "id": 110083,
-          "name": "Earthen Accord",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 6,
-          "spellId": 1271104
+          id: 110083,
+          name: "Earthen Accord",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 6,
+          spellId: 1271104,
         },
         {
-          "id": 81044,
-          "name": "Tidal Waves",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 6,
-          "spellId": 51564
+          id: 81044,
+          name: "Tidal Waves",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 6,
+          spellId: 51564,
         },
         {
-          "id": 81050,
-          "name": "Improved Earthliving Weapon",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 6,
-          "spellId": 382315
+          id: 81050,
+          name: "Improved Earthliving Weapon",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 6,
+          spellId: 382315,
         },
         {
-          "id": 81031,
-          "name": "Ancestral Reach",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 5,
-          "row": 6,
-          "spellId": 382732
+          id: 81031,
+          name: "Ancestral Reach",
+          type: "diamond",
+          maxPoints: 1,
+          col: 5,
+          row: 6,
+          spellId: 382732,
         },
         {
-          "id": 103436,
-          "name": "Downpour",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 7,
-          "spellId": 462486
+          id: 103436,
+          name: "Downpour",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 7,
+          spellId: 462486,
         },
         {
-          "id": 81055,
-          "name": "Echo of the Elements",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 7,
-          "spellId": 333919
+          id: 81055,
+          name: "Echo of the Elements",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 7,
+          spellId: 333919,
         },
         {
-          "id": 81041,
-          "name": "Spirit Link Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 7,
-          "spellId": 98008
+          id: 81041,
+          name: "Spirit Link Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 7,
+          spellId: 98008,
         },
         {
-          "id": 103430,
-          "name": "Earthen Harmony",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 7,
-          "spellId": 382020
+          id: 103430,
+          name: "Earthen Harmony",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 7,
+          spellId: 382020,
         },
         {
-          "id": 103434,
-          "name": "Water Expulsion",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 8,
-          "spellId": 1253014
+          id: 103434,
+          name: "Water Expulsion",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 8,
+          spellId: 1253014,
         },
         {
-          "id": 81043,
-          "name": "Ancestral Awakening",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 1,
-          "row": 8,
-          "spellId": 382309
+          id: 81043,
+          name: "Ancestral Awakening",
+          type: "circle",
+          maxPoints: 2,
+          col: 1,
+          row: 8,
+          spellId: 382309,
         },
         {
-          "id": 103433,
-          "name": "Tidewaters",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 8,
-          "spellId": 462424
+          id: 103433,
+          name: "Tidewaters",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 8,
+          spellId: 462424,
         },
         {
-          "id": 81052,
-          "name": "Undercurrent",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 3,
-          "row": 8,
-          "spellId": 382194
+          id: 81052,
+          name: "Undercurrent",
+          type: "circle",
+          maxPoints: 2,
+          col: 3,
+          row: 8,
+          spellId: 382194,
         },
         {
-          "id": 103915,
-          "name": "Spouting Spirits",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 8,
-          "spellId": 462383
+          id: 103915,
+          name: "Spouting Spirits",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 8,
+          spellId: 462383,
         },
         {
-          "id": 103427,
-          "name": "Wavespeaker's Blessing",
-          "type": "circle",
-          "maxPoints": 2,
-          "col": 5,
-          "row": 8,
-          "spellId": 381946
+          id: 103427,
+          name: "Wavespeaker's Blessing",
+          type: "circle",
+          maxPoints: 2,
+          col: 5,
+          row: 8,
+          spellId: 381946,
         },
         {
-          "id": 104124,
-          "name": "Double Dip",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 9,
-          "spellId": 1252882
+          id: 104124,
+          name: "Double Dip",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 9,
+          spellId: 1252882,
         },
         {
-          "id": 80976,
-          "name": "Primal Tide Core",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 9,
-          "spellId": 382045
+          id: 80976,
+          name: "Primal Tide Core",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 9,
+          spellId: 382045,
         },
         {
-          "id": 81042,
-          "name": "Coalescing Water",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 4,
-          "row": 9,
-          "spellId": 470076
+          id: 81042,
+          name: "Coalescing Water",
+          type: "circle",
+          maxPoints: 1,
+          col: 4,
+          row: 9,
+          spellId: 470076,
         },
         {
-          "id": 81051,
-          "name": "Deeply Rooted Elements",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 6,
-          "row": 9,
-          "spellId": 378270
+          id: 81051,
+          name: "Deeply Rooted Elements",
+          type: "circle",
+          maxPoints: 1,
+          col: 6,
+          row: 9,
+          spellId: 378270,
         },
         {
-          "id": 110403,
-          "name": "Stormstream Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 10,
-          "spellId": 1267016
-        }
+          id: 110403,
+          name: "Stormstream Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 10,
+          spellId: 1267016,
+        },
       ],
-      "edges": [
-        [
-          81027,
-          81022
-        ],
-        [
-          81027,
-          81040
-        ],
-        [
-          81040,
-          81032
-        ],
-        [
-          81040,
-          103428
-        ],
-        [
-          81040,
-          81039
-        ],
-        [
-          81022,
-          81021
-        ],
-        [
-          81022,
-          81032
-        ],
-        [
-          103428,
-          81038
-        ],
-        [
-          103428,
-          103429
-        ],
-        [
-          103428,
-          92677
-        ],
-        [
-          81039,
-          103429
-        ],
-        [
-          81032,
-          81024
-        ],
-        [
-          81032,
-          103429
-        ],
-        [
-          81032,
-          81033
-        ],
-        [
-          81021,
-          81018
-        ],
-        [
-          81021,
-          81024
-        ],
-        [
-          92677,
-          109301
-        ],
-        [
-          103429,
-          81038
-        ],
-        [
-          103429,
-          81047
-        ],
-        [
-          81033,
-          81047
-        ],
-        [
-          81024,
-          81047
-        ],
-        [
-          81024,
-          81019
-        ],
-        [
-          81018,
-          81048
-        ],
-        [
-          81018,
-          81019
-        ],
-        [
-          81038,
-          110084
-        ],
-        [
-          81038,
-          92675
-        ],
-        [
-          81038,
-          109301
-        ],
-        [
-          81047,
-          103432
-        ],
-        [
-          81047,
-          92675
-        ],
-        [
-          81047,
-          81049
-        ],
-        [
-          81019,
-          81046
-        ],
-        [
-          81019,
-          81031
-        ],
-        [
-          81019,
-          81049
-        ],
-        [
-          81048,
-          81046
-        ],
-        [
-          109301,
-          81037
-        ],
-        [
-          109301,
-          103436
-        ],
-        [
-          110084,
-          81037
-        ],
-        [
-          92675,
-          110083
-        ],
-        [
-          92675,
-          81044
-        ],
-        [
-          92675,
-          81037
-        ],
-        [
-          103432,
-          81044
-        ],
-        [
-          81049,
-          81031
-        ],
-        [
-          81049,
-          81044
-        ],
-        [
-          81049,
-          81050
-        ],
-        [
-          81046,
-          81031
-        ],
-        [
-          81046,
-          103430
-        ],
-        [
-          81037,
-          103436
-        ],
-        [
-          81037,
-          81055
-        ],
-        [
-          110083,
-          81055
-        ],
-        [
-          81044,
-          81041
-        ],
-        [
-          81044,
-          81055
-        ],
-        [
-          81050,
-          81041
-        ],
-        [
-          81031,
-          103430
-        ],
-        [
-          81031,
-          81041
-        ],
-        [
-          103436,
-          103434
-        ],
-        [
-          103436,
-          81043
-        ],
-        [
-          81055,
-          81052
-        ],
-        [
-          81055,
-          103433
-        ],
-        [
-          81055,
-          81043
-        ],
-        [
-          81041,
-          81052
-        ],
-        [
-          81041,
-          103915
-        ],
-        [
-          81041,
-          103427
-        ],
-        [
-          103430,
-          81051
-        ],
-        [
-          103430,
-          103427
-        ],
-        [
-          103434,
-          104124
-        ],
-        [
-          81043,
-          80976
-        ],
-        [
-          103433,
-          80976
-        ],
-        [
-          81052,
-          81042
-        ],
-        [
-          81052,
-          80976
-        ],
-        [
-          103915,
-          81042
-        ],
-        [
-          103427,
-          81051
-        ],
-        [
-          103427,
-          81042
-        ]
-      ]
-    }
+      edges: [
+        [81027, 81022],
+        [81027, 81040],
+        [81040, 81032],
+        [81040, 103428],
+        [81040, 81039],
+        [81022, 81021],
+        [81022, 81032],
+        [103428, 81038],
+        [103428, 103429],
+        [103428, 92677],
+        [81039, 103429],
+        [81032, 81024],
+        [81032, 103429],
+        [81032, 81033],
+        [81021, 81018],
+        [81021, 81024],
+        [92677, 109301],
+        [103429, 81038],
+        [103429, 81047],
+        [81033, 81047],
+        [81024, 81047],
+        [81024, 81019],
+        [81018, 81048],
+        [81018, 81019],
+        [81038, 110084],
+        [81038, 92675],
+        [81038, 109301],
+        [81047, 103432],
+        [81047, 92675],
+        [81047, 81049],
+        [81019, 81046],
+        [81019, 81031],
+        [81019, 81049],
+        [81048, 81046],
+        [109301, 81037],
+        [109301, 103436],
+        [110084, 81037],
+        [92675, 110083],
+        [92675, 81044],
+        [92675, 81037],
+        [103432, 81044],
+        [81049, 81031],
+        [81049, 81044],
+        [81049, 81050],
+        [81046, 81031],
+        [81046, 103430],
+        [81037, 103436],
+        [81037, 81055],
+        [110083, 81055],
+        [81044, 81041],
+        [81044, 81055],
+        [81050, 81041],
+        [81031, 103430],
+        [81031, 81041],
+        [103436, 103434],
+        [103436, 81043],
+        [81055, 81052],
+        [81055, 103433],
+        [81055, 81043],
+        [81041, 81052],
+        [81041, 103915],
+        [81041, 103427],
+        [103430, 81051],
+        [103430, 103427],
+        [103434, 104124],
+        [81043, 80976],
+        [103433, 80976],
+        [81052, 81042],
+        [81052, 80976],
+        [103915, 81042],
+        [103427, 81051],
+        [103427, 81042],
+      ],
+    },
   ],
-  "heroTrees": {
-    "left": {
-      "id": "hero_left",
-      "label": "Hero \u00b7 Farseer",
-      "heroName": "Farseer",
-      "nodeIds": [
-        94888,
-        94862,
-        94884,
-        94869,
-        109732,
-        94887,
-        94860,
-        94861,
-        109731,
-        94858,
-        94883,
-        94875,
-        109730,
-        94894
+  heroTrees: {
+    left: {
+      id: "hero_left",
+      label: "Hero \u00b7 Farseer",
+      heroName: "Farseer",
+      nodeIds: [
+        94888, 94862, 94884, 94869, 109732, 94887, 94860, 94861, 109731, 94858,
+        94883, 94875, 109730, 94894,
       ],
-      "nodes": [
+      nodes: [
         {
-          "id": 94888,
-          "name": "Call of the Ancestors",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 0,
-          "spellId": 443450
+          id: 94888,
+          name: "Call of the Ancestors",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 0,
+          spellId: 443450,
         },
         {
-          "id": 94862,
-          "name": "Latent Wisdom",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 1,
-          "spellId": 443449
+          id: 94862,
+          name: "Latent Wisdom",
+          type: "diamond",
+          maxPoints: 1,
+          col: 0,
+          row: 1,
+          spellId: 443449,
         },
         {
-          "id": 94884,
-          "name": "Heed My Call",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 1,
-          "spellId": 443444
+          id: 94884,
+          name: "Heed My Call",
+          type: "diamond",
+          maxPoints: 1,
+          col: 1,
+          row: 1,
+          spellId: 443444,
         },
         {
-          "id": 94869,
-          "name": "Elemental Reverb",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 443418
+          id: 94869,
+          name: "Elemental Reverb",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 1,
+          spellId: 443418,
         },
         {
-          "id": 109732,
-          "name": "Ancestral Influence",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 1270446
+          id: 109732,
+          name: "Ancestral Influence",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 1,
+          spellId: 1270446,
         },
         {
-          "id": 94887,
-          "name": "Offering from Beyond",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 2,
-          "spellId": 443451
+          id: 94887,
+          name: "Offering from Beyond",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 2,
+          spellId: 443451,
         },
         {
-          "id": 94860,
-          "name": "Primordial Capacity",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 443448
+          id: 94860,
+          name: "Primordial Capacity",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 2,
+          spellId: 443448,
         },
         {
-          "id": 94861,
-          "name": "Spiritwalker's Momentum",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 2,
-          "spellId": 443425
+          id: 94861,
+          name: "Spiritwalker's Momentum",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 2,
+          spellId: 443425,
         },
         {
-          "id": 109731,
-          "name": "Windspeaker",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 1270447
+          id: 109731,
+          name: "Windspeaker",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 2,
+          spellId: 1270447,
         },
         {
-          "id": 94858,
-          "name": "Natural Harmony",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 443442
+          id: 94858,
+          name: "Natural Harmony",
+          type: "diamond",
+          maxPoints: 1,
+          col: 0,
+          row: 3,
+          spellId: 443442,
         },
         {
-          "id": 94883,
-          "name": "Maelstrom Supremacy",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 3,
-          "spellId": 443447
+          id: 94883,
+          name: "Maelstrom Supremacy",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 3,
+          spellId: 443447,
         },
         {
-          "id": 94875,
-          "name": "Final Calling",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 3,
-          "spellId": 443446
+          id: 94875,
+          name: "Final Calling",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 3,
+          spellId: 443446,
         },
         {
-          "id": 109730,
-          "name": "Mystic Knowledge",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 3,
-          "spellId": 1270450
+          id: 109730,
+          name: "Mystic Knowledge",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 3,
+          spellId: 1270450,
         },
         {
-          "id": 94894,
-          "name": "Ancestral Swiftness",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 4,
-          "spellId": 443454
-        }
+          id: 94894,
+          name: "Ancestral Swiftness",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 4,
+          spellId: 443454,
+        },
       ],
-      "edges": [
-        [
-          94888,
-          94884
-        ],
-        [
-          94888,
-          94862
-        ],
-        [
-          94888,
-          94869
-        ],
-        [
-          94888,
-          109732
-        ],
-        [
-          94862,
-          94887
-        ],
-        [
-          94884,
-          94860
-        ],
-        [
-          94869,
-          94861
-        ],
-        [
-          109732,
-          109731
-        ],
-        [
-          94887,
-          94858
-        ],
-        [
-          94860,
-          94883
-        ],
-        [
-          94861,
-          94875
-        ],
-        [
-          109731,
-          109730
-        ],
-        [
-          94858,
-          94894
-        ],
-        [
-          94883,
-          94894
-        ],
-        [
-          94875,
-          94894
-        ],
-        [
-          109730,
-          94894
-        ]
-      ]
+      edges: [
+        [94888, 94884],
+        [94888, 94862],
+        [94888, 94869],
+        [94888, 109732],
+        [94862, 94887],
+        [94884, 94860],
+        [94869, 94861],
+        [109732, 109731],
+        [94887, 94858],
+        [94860, 94883],
+        [94861, 94875],
+        [109731, 109730],
+        [94858, 94894],
+        [94883, 94894],
+        [94875, 94894],
+        [109730, 94894],
+      ],
     },
-    "right": {
-      "id": "hero_right",
-      "label": "Hero \u00b7 Totemic",
-      "heroName": "Totemic",
-      "nodeIds": [
-        94877,
-        94890,
-        94874,
-        94882,
-        109726,
-        94859,
-        94891,
-        94872,
-        109725,
-        94871,
-        94866,
-        94881,
-        109724,
-        94879
+    right: {
+      id: "hero_right",
+      label: "Hero \u00b7 Totemic",
+      heroName: "Totemic",
+      nodeIds: [
+        94877, 94890, 94874, 94882, 109726, 94859, 94891, 94872, 109725, 94871,
+        94866, 94881, 109724, 94879,
       ],
-      "nodes": [
+      nodes: [
         {
-          "id": 94877,
-          "name": "Surging Totem",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 0,
-          "spellId": 444995
+          id: 94877,
+          name: "Surging Totem",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 0,
+          spellId: 444995,
         },
         {
-          "id": 94890,
-          "name": "Totemic Rebound",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 1,
-          "spellId": 445025
+          id: 94890,
+          name: "Totemic Rebound",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 1,
+          spellId: 445025,
         },
         {
-          "id": 94874,
-          "name": "Amplification Core",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 1,
-          "spellId": 445029
+          id: 94874,
+          name: "Amplification Core",
+          type: "diamond",
+          maxPoints: 1,
+          col: 1,
+          row: 1,
+          spellId: 445029,
         },
         {
-          "id": 94882,
-          "name": "Lively Totems",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 1,
-          "spellId": 445034
+          id: 94882,
+          name: "Lively Totems",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 1,
+          spellId: 445034,
         },
         {
-          "id": 109726,
-          "name": "Totemic Momentum",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 1,
-          "spellId": 1260644
+          id: 109726,
+          name: "Totemic Momentum",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 1,
+          spellId: 1260644,
         },
         {
-          "id": 94859,
-          "name": "Oversized Totems",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 2,
-          "spellId": 445026
+          id: 94859,
+          name: "Oversized Totems",
+          type: "diamond",
+          maxPoints: 1,
+          col: 0,
+          row: 2,
+          spellId: 445026,
         },
         {
-          "id": 94891,
-          "name": "Wind Barrier",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 2,
-          "spellId": 445031
+          id: 94891,
+          name: "Wind Barrier",
+          type: "circle",
+          maxPoints: 1,
+          col: 1,
+          row: 2,
+          spellId: 445031,
         },
         {
-          "id": 94872,
-          "name": "Splitstream",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 2,
-          "spellId": 445035
+          id: 94872,
+          name: "Splitstream",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 2,
+          spellId: 445035,
         },
         {
-          "id": 109725,
-          "name": "Elemental Attunement",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 2,
-          "spellId": 1263288
+          id: 109725,
+          name: "Elemental Attunement",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 2,
+          spellId: 1263288,
         },
         {
-          "id": 94871,
-          "name": "Imbuement Mastery",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 0,
-          "row": 3,
-          "spellId": 445028
+          id: 94871,
+          name: "Imbuement Mastery",
+          type: "circle",
+          maxPoints: 1,
+          col: 0,
+          row: 3,
+          spellId: 445028,
         },
         {
-          "id": 94866,
-          "name": "Pulse Capacitor",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 1,
-          "row": 3,
-          "spellId": 445032
+          id: 94866,
+          name: "Pulse Capacitor",
+          type: "diamond",
+          maxPoints: 1,
+          col: 1,
+          row: 3,
+          spellId: 445032,
         },
         {
-          "id": 94881,
-          "name": "Totemic Coordination",
-          "type": "diamond",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 3,
-          "spellId": 445036
+          id: 94881,
+          name: "Totemic Coordination",
+          type: "diamond",
+          maxPoints: 1,
+          col: 2,
+          row: 3,
+          spellId: 445036,
         },
         {
-          "id": 109724,
-          "name": "Primal Catalyst",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 3,
-          "row": 3,
-          "spellId": 1260874
+          id: 109724,
+          name: "Primal Catalyst",
+          type: "circle",
+          maxPoints: 1,
+          col: 3,
+          row: 3,
+          spellId: 1260874,
         },
         {
-          "id": 94879,
-          "name": "Whirling Elements",
-          "type": "circle",
-          "maxPoints": 1,
-          "col": 2,
-          "row": 4,
-          "spellId": 445024
-        }
+          id: 94879,
+          name: "Whirling Elements",
+          type: "circle",
+          maxPoints: 1,
+          col: 2,
+          row: 4,
+          spellId: 445024,
+        },
       ],
-      "edges": [
-        [
-          94877,
-          94890
-        ],
-        [
-          94877,
-          94874
-        ],
-        [
-          94877,
-          94882
-        ],
-        [
-          94877,
-          109726
-        ],
-        [
-          94890,
-          94859
-        ],
-        [
-          94874,
-          94891
-        ],
-        [
-          94882,
-          94872
-        ],
-        [
-          109726,
-          109725
-        ],
-        [
-          94859,
-          94871
-        ],
-        [
-          94891,
-          94866
-        ],
-        [
-          94872,
-          94881
-        ],
-        [
-          109725,
-          109724
-        ],
-        [
-          94871,
-          94879
-        ],
-        [
-          94866,
-          94879
-        ],
-        [
-          94881,
-          94879
-        ],
-        [
-          109724,
-          94879
-        ]
-      ]
-    }
-  }
+      edges: [
+        [94877, 94890],
+        [94877, 94874],
+        [94877, 94882],
+        [94877, 109726],
+        [94890, 94859],
+        [94874, 94891],
+        [94882, 94872],
+        [109726, 109725],
+        [94859, 94871],
+        [94891, 94866],
+        [94872, 94881],
+        [109725, 109724],
+        [94871, 94879],
+        [94866, 94879],
+        [94881, 94879],
+        [109724, 94879],
+      ],
+    },
+  },
 };

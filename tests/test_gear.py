@@ -1,4 +1,3 @@
-import pytest
 from wow_advisor.api.models import GearSlot
 from wow_advisor.processor.gear import aggregate_gear
 

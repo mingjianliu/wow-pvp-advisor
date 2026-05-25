@@ -1,4 +1,3 @@
-import pytest
 from wow_advisor.tools.summary import _enrich_talents
 
 

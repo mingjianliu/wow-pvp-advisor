@@ -59,7 +59,7 @@ def main() -> None:
         spec = normalize_spec(args.spec)
         bracket = normalize_bracket(args.bracket)
         conn = get_default_db()
-        store = CacheStore(conn)
+        CacheStore(conn)
         # Delete aggregation so next call re-fetches
         conn.execute(
             "DELETE FROM aggregations WHERE spec=? AND bracket=? AND region=?",
@@ -118,7 +118,7 @@ def main() -> None:
     if args.no_open:
         print(f"\nOpen manually: {result['url']}")
     else:
-        print(f"\nBrowser opened.")
+        print("\nBrowser opened.")
 
 if __name__ == "__main__":
     main()

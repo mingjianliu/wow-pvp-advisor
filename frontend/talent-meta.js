@@ -9,19 +9,23 @@
 // cached in `window.__talentMetaCache` and survive React re-renders.
 
 window.TalentMeta = (function () {
-  const cache = window.__talentMetaCache = window.__talentMetaCache || {};
+  const cache = (window.__talentMetaCache = window.__talentMetaCache || {});
   const subscribers = new Set();
   const inFlight = new Set();
   const fire = () => subscribers.forEach((fn) => fn(cache));
 
-  const getWowheadLocale = () => window.location.pathname.endsWith('_zh.html') ? 4 : 0;
+  const getWowheadLocale = () =>
+    window.location.pathname.endsWith("_zh.html") ? 4 : 0;
   const ENDPOINT = (type, id) =>
     `https://nether.wowhead.com/tooltip/${type}/${id}?dataEnv=1&locale=${getWowheadLocale()}`;
   const ICON_URL = (name) =>
     `https://wow.zamimg.com/images/wow/icons/medium/${name}.jpg`;
 
   return {
-    subscribe: (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); },
+    subscribe: (fn) => {
+      subscribers.add(fn);
+      return () => subscribers.delete(fn);
+    },
     get: (id) => cache[id],
     getCache: () => cache,
 
@@ -29,30 +33,32 @@ window.TalentMeta = (function () {
       ids.forEach((id) => {
         if (cache[id] || inFlight.has(id)) return;
         // Don't try to fetch 'ench-xxx' from network if not in cache (they are server-prefetched only)
-        if (typeof id === 'string' && id.startsWith('ench-')) return;
-        
+        if (typeof id === "string" && id.startsWith("ench-")) return;
+
         inFlight.add(id);
-        fetch(ENDPOINT('spell', id))
+        fetch(ENDPOINT("spell", id))
           .then((r) => r.json())
           .then((data) => {
             cache[id] = { ...cache[id], icon: ICON_URL(data.icon) };
             inFlight.delete(id);
             fire();
-          }).catch(() => inFlight.delete(id));
+          })
+          .catch(() => inFlight.delete(id));
       });
     },
 
     fetchDesc: (id) => {
       if (cache[id]?.descHtml || inFlight.has(`desc-${id}`)) return;
       inFlight.add(`desc-${id}`);
-      fetch(ENDPOINT('spell', id))
+      fetch(ENDPOINT("spell", id))
         .then((r) => r.json())
         .then((data) => {
           cache[id] = { ...cache[id], name: data.name, descHtml: data.tooltip };
           inFlight.delete(`desc-${id}`);
           fire();
-        }).catch(() => inFlight.delete(`desc-${id}`));
-    }
+        })
+        .catch(() => inFlight.delete(`desc-${id}`));
+    },
   };
 })();
 

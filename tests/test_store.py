@@ -1,4 +1,3 @@
-import time
 import pytest
 from wow_advisor.cache.db import init_db
 from wow_advisor.cache.store import CacheStore

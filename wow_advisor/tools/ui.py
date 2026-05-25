@@ -344,9 +344,10 @@ def _ensure_server(port: int = 8080) -> None:
 
     def run_server():
         frontend_dir = get_frontend_dir()
-        handler = lambda *args, **kwargs: DynamicReportHandler(
-            *args, directory=str(frontend_dir), **kwargs
-        )
+        def handler(*args, **kwargs):
+            return DynamicReportHandler(
+                    *args, directory=str(frontend_dir), **kwargs
+                )
         httpd = http.server.HTTPServer(("localhost", port), handler)
         httpd.serve_forever()
 

@@ -1,6 +1,5 @@
 import pytest
 from wow_advisor.processor.talents import (
-    TalentAnalysis,
     analyze_talents,
     cluster_talents,
     summarize_talent_clusters,
@@ -166,8 +165,6 @@ def test_weighted_jaccard_distance_basic():
 
 
 def test_weighted_jaccard_distance_node_types():
-    set_a = {1}
-    ranks_a = {1: 1}
     set_b = set()
     ranks_b = {}
     

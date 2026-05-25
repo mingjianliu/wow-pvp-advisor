@@ -5,7 +5,6 @@ Blizzard API keys are stored in get_config_path() so they survive
 across sessions and don't need to be re-entered each run.
 """
 import os
-from pathlib import Path
 
 from wow_advisor._paths import get_config_path
 

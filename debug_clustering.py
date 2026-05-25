@@ -1,7 +1,5 @@
 import json
 import os
-from wow_advisor.processor.talents import summarize_talent_clusters
-from wow_advisor.api.models import CharacterData
 
 def test_clustering(spec, bracket, threshold):
     cache_path = os.path.expanduser(f"~/.gemini/tmp/wow-talent-gear-collector/cache/{spec}_{bracket}_us.json")
@@ -13,7 +11,7 @@ def test_clustering(spec, bracket, threshold):
         players_data = json.load(f)
     
     node_sets = [set(p["talent"]["all_node_ids"]) for p in players_data if p.get("talent")]
-    loadout_codes = [p["talent"]["loadout_code"] for p in players_data if p.get("talent")]
+    [p["talent"]["loadout_code"] for p in players_data if p.get("talent")]
     node_ranks_list = [p["talent"]["node_ranks"] for p in players_data if p.get("talent")]
     
     from wow_advisor.talent_tree import get_tree_structure
@@ -29,14 +27,15 @@ def test_clustering(spec, bracket, threshold):
             for node in hero_tree.get("nodes", []):
                 node_meta[node["id"]] = {"row": node["row"], "type": node["type"], "is_hero": True}
 
-    from wow_advisor.processor.talents import cluster_talents, _weighted_distance
+    from wow_advisor.processor.talents import cluster_talents
     
     # Simulate partitioning
     hero_nodes = {nid for nid, meta in node_meta.items() if meta.get("is_hero")}
     hero_groups = {}
     for i, nodes in enumerate(node_sets):
         h_set = frozenset(nodes & hero_nodes)
-        if h_set not in hero_groups: hero_groups[h_set] = []
+        if h_set not in hero_groups:
+            hero_groups[h_set] = []
         hero_groups[h_set].append(i)
     
     total_clusters = 0

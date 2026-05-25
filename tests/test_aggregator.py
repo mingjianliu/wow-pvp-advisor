@@ -1,4 +1,3 @@
-import pytest
 from wow_advisor.api.models import CharacterData, TalentData, GearSlot
 from wow_advisor.processor.aggregator import build_aggregation
 

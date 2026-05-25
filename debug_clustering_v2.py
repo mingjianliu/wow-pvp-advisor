@@ -1,7 +1,3 @@
-import json
-import os
-import sqlite3
-from wow_advisor.processor.talents import summarize_talent_clusters
 from wow_advisor.cache.db import get_default_db
 from wow_advisor.cache.store import CacheStore
 
@@ -36,7 +32,8 @@ def test_clustering(spec, bracket, threshold):
     hero_groups = {}
     for i, nodes in enumerate(node_sets):
         h_set = frozenset(nodes & hero_nodes)
-        if h_set not in hero_groups: hero_groups[h_set] = []
+        if h_set not in hero_groups:
+            hero_groups[h_set] = []
         hero_groups[h_set].append(i)
     
     total_clusters = 0
