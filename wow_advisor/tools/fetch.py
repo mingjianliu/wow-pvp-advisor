@@ -119,8 +119,3 @@ def fetch_top_players(
     return asyncio.run(fetch_top_players_async(spec=spec, bracket=bracket, region=region, limit=limit, locale=locale))
 
 
-async def _scan_full_leaderboard(bracket: str, region: str) -> int:
-    """Utility: returns total leaderboard entry count (for debugging)."""
-    _, client = _make_client(region)
-    leaderboard = await client.fetch_leaderboard(bracket=bracket)
-    return len(leaderboard)
