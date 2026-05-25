@@ -13,3 +13,5 @@ frontend/pages/
 .claude/worktrees/
 build/
 .worktrees/
+*.log
+app_output.txt
