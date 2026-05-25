@@ -119,11 +119,14 @@ function TalentTree({ tree, cluster, onHover, onLeave, flexStyle, heatmap, showS
   // Center any row that contains exactly one node across the tree's column
   // span — gives the hero tree's top/bottom singletons a balanced look.
   const effectiveCol = React.useMemo(() => {
-    const rowsCountMap = {};
-    tree.nodes.forEach(n => { rowsCountMap[n.row] = (rowsCountMap[n.row] || 0) + 1; });
+    const rowColsMap = {};
+    tree.nodes.forEach(n => { 
+      if (!rowColsMap[n.row]) rowColsMap[n.row] = new Set();
+      rowColsMap[n.row].add(n.col);
+    });
     const cols = tree.nodes.map(n => n.col);
     const midCol = (Math.min(...cols) + Math.max(...cols)) / 2;
-    return (n) => (rowsCountMap[n.row] === 1 ? midCol : n.col);
+    return (n) => (rowColsMap[n.row].size === 1 ? midCol : n.col);
   }, [tree.id, tree.nodes]);
   const xyFor = (n) => ({
     x: PAD_X + effectiveCol(n) * COL_W,
