@@ -229,6 +229,8 @@ function App() {
   const majorClusters = clusters;
 
   const [activeRank, setActiveRank] = useState(null);
+  const [activePlayer, setActivePlayer] = useState(null);
+
   useEffect(() => {
     if (majorClusters.length > 0) {
       if (activeRank === null || !majorClusters.find((c) => c.rank === activeRank)) {
@@ -237,13 +239,81 @@ function App() {
     }
   }, [majorClusters, activeRank]);
 
+  useEffect(() => {
+    setActivePlayer(null);
+  }, [data]);
+
   const cluster = majorClusters.find((c) => c.rank === activeRank) || majorClusters[0];
 
   // Derived node-state map for the active cluster.
   const nodeMap = useMemo(() => {
+    if (activePlayer) {
+      const map = {};
+      const selectedNodes = new Set([
+        ...(activePlayer.talent?.class_node_ids || []),
+        ...(activePlayer.talent?.spec_node_ids || []),
+        ...(activePlayer.talent?.hero_node_ids || []),
+        ...Object.keys(activePlayer.talent?.node_ranks || {}).map(Number)
+      ]);
+      selectedNodes.forEach(nid => {
+        const pts = activePlayer.talent?.node_ranks?.[nid] || 1;
+        map[nid] = {
+          role: 'core',
+          pts: pts,
+          pickRate: 100,
+          global: false,
+          pickers: [activePlayer]
+        };
+      });
+      return map;
+    }
     if (!cluster) return {};
     return deriveNodeMap(data, cluster);
-  }, [data, cluster]);
+  }, [data, cluster, activePlayer]);
+
+  const playerGearGroup = useMemo(() => {
+    if (!activePlayer) return null;
+    const isZh = window.location.pathname.endsWith('_zh.html');
+    const slotLabels = isZh ? {
+      "head": "头部", "neck": "项链", "shoulder": "肩部", "back": "背部",
+      "chest": "胸部", "wrist": "护腕", "hands": "手部", "waist": "腰部",
+      "legs": "腿部", "feet": "脚部", "finger_1": "戒指 1", "finger_2": "戒指 2",
+      "trinket_1": "饰品 1", "trinket_2": "饰品 2",
+      "main_hand": "主手", "off_hand": "副手",
+    } : {
+      "head": "Head", "neck": "Neck", "shoulder": "Shoulder", "back": "Back",
+      "chest": "Chest", "wrist": "Wrist", "hands": "Hands", "waist": "Waist",
+      "legs": "Legs", "feet": "Feet", "finger_1": "Ring 1", "finger_2": "Ring 2",
+      "trinket_1": "Trinket 1", "trinket_2": "Trinket 2",
+      "main_hand": "Weapon", "off_hand": "Off-hand",
+    };
+    
+    const slots = (activePlayer.gear || []).map(g => {
+      const slotKey = g.slot.toLowerCase();
+      const label = slotLabels[slotKey] || g.slot;
+      return {
+        slot: label,
+        item: {
+          id: g.item_id,
+          name: g.item_name,
+          pct: 100
+        },
+        enchant: g.enchant_id ? {
+          id: g.enchant_id,
+          name: g.enchant_name,
+          pct: 100
+        } : null
+      };
+    });
+    
+    return {
+      gear: {
+        avg_ilvl: activePlayer.ilvl,
+        slots: slots
+      },
+      sample_size: 1
+    };
+  }, [activePlayer]);
 
   const clusterForRenderer = useMemo(() => {
     if (!cluster) return null;
@@ -259,15 +329,41 @@ function App() {
   const [tip, setTip] = useState(null);
   const [toast, setToast] = useState(null);
   
+  const tipRef = React.useRef(null);
   const hideTipTimeout = React.useRef(null);
+
   const handleHover = (tipData) => {
     if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
+    tipRef.current = tipData;
     setTip(tipData);
   };
+
   const handleLeave = () => {
     if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
-    hideTipTimeout.current = setTimeout(() => setTip(null), 300);
+    const currentTip = tipRef.current;
+    const hasPickers = currentTip && currentTip.state && currentTip.state.pickers && currentTip.state.pickers.length > 0;
+    const delay = hasPickers ? 2000 : 300;
+    hideTipTimeout.current = setTimeout(() => {
+      setTip(null);
+      tipRef.current = null;
+    }, delay);
   };
+
+  const handlePlayerClick = (p) => {
+    console.log("Player clicked:", p);
+    const found = (data.players || []).find(
+      (pl) => pl.name.toLowerCase() === p.n.toLowerCase() && pl.realm.toLowerCase() === p.r.toLowerCase()
+    );
+    if (found) {
+      console.log("Player found:", found);
+      setActivePlayer(found);
+      setTip(null);
+      tipRef.current = null;
+    } else {
+      console.error("Player not found in data.players:", p, "players count:", (data.players || []).length);
+    }
+  };
+
   const handleTooltipEnter = () => {
     if (hideTipTimeout.current) clearTimeout(hideTipTimeout.current);
   };
@@ -382,28 +478,40 @@ function App() {
 
       </header>
 
-      <nav className="tabs" role="tablist" aria-label="Cluster">
-        {majorClusters.map((c) =>
-        <button
-          key={c.rank}
-          className={`tab ${c.rank === activeRank ? 'active' : ''}`}
-          onClick={() => setActiveRank(c.rank)}
-          role="tab"
-          data-screen-label={autoClusterName(c)}>
-          
-            <span className="tab-rank">#{c.rank}</span>
-            <span className="tab-name">{autoClusterName(c)}</span>
-            <span className="tab-meta">
-              <span><span className="pct">{c.pct}%</span></span>
-              <span>n={c.count}</span>
-            </span>
-            {c.count === 1 && <span className="tab-unique">UNIQUE</span>}
-            <span className="tab-bar">
-              <span className="tab-bar-fill" style={{ width: `${Math.min(100, c.pct * 4)}%` }}></span>
-            </span>
+      {activePlayer ? (
+        <div className="player-view-banner">
+          <div className="player-view-info">
+            <span className="dot active"></span>
+            Viewing Player: <strong style={{color: 'var(--accent)'}}>{activePlayer.name}-{activePlayer.realm}</strong> · Spec: <strong>{activePlayer.spec} {activePlayer.class}</strong> · Rating: <strong>{activePlayer.rating}</strong> · Item Level: <strong>{activePlayer.ilvl}</strong>
+          </div>
+          <button onClick={() => setActivePlayer(null)} className="btn-back">
+            ← Back to Cluster View
           </button>
-        )}
-      </nav>
+        </div>
+      ) : (
+        <nav className="tabs" role="tablist" aria-label="Cluster">
+          {majorClusters.map((c) =>
+          <button
+            key={c.rank}
+            className={`tab ${c.rank === activeRank ? 'active' : ''}`}
+            onClick={() => setActiveRank(c.rank)}
+            role="tab"
+            data-screen-label={autoClusterName(c)}>
+            
+              <span className="tab-rank">#{c.rank}</span>
+              <span className="tab-name">{autoClusterName(c)}</span>
+              <span className="tab-meta">
+                <span><span className="pct">{c.pct}%</span></span>
+                <span>n={c.count}</span>
+              </span>
+              {c.count === 1 && <span className="tab-unique">UNIQUE</span>}
+              <span className="tab-bar">
+                <span className="tab-bar-fill" style={{ width: `${Math.min(100, c.pct * 4)}%` }}></span>
+              </span>
+            </button>
+          )}
+        </nav>
+      )}
 
       <main className="main">
         <section className="tree-pane">
@@ -432,8 +540,8 @@ function App() {
               )}
             </div>
 
-            <GlobalPvpPanel data={data} onHover={handleHover} onLeave={handleLeave} />
-            <GearPanel group={data} />
+            {!activePlayer && <GlobalPvpPanel data={data} onHover={handleHover} onLeave={handleLeave} />}
+            <GearPanel group={activePlayer ? playerGearGroup : data} />
           </div>
         </section>
 
@@ -441,11 +549,15 @@ function App() {
           cluster={cluster}
           group={data}
           onCopy={onCopy}
-          heatmap={tweaks.heatmap} />
+          heatmap={tweaks.heatmap}
+          onHover={handleHover}
+          onLeave={handleLeave}
+          activePlayer={activePlayer}
+          setActivePlayer={setActivePlayer} />
         
       </main>
 
-      {tip && <Tooltip {...tip} onEnter={handleTooltipEnter} onLeave={handleLeave} region={data.region} />}
+      {tip && <Tooltip {...tip} onEnter={handleTooltipEnter} onLeave={handleLeave} region={data.region} onPlayerClick={handlePlayerClick} sampleSize={data.sample_size} />}
       {toast && <div className="copy-toast">✓ {toast}</div>}
 
       <TweaksPanel title="Tweaks">
@@ -527,7 +639,7 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
 
 }
 
-function Tooltip({ node, state, x, y, onEnter, onLeave, region }) {
+function Tooltip({ node, state, x, y, onEnter, onLeave, region, onPlayerClick, sampleSize }) {
   const meta = window.useTalentMeta();
   const sid = node && node.spellId;
   const cacheKey = node && node.isEnchant ? `ench-${sid}` : sid;
@@ -544,12 +656,19 @@ function Tooltip({ node, state, x, y, onEnter, onLeave, region }) {
 
   const role = state ? state.role : 'skip';
   const isContested = state && state.contested;
-  // Generous viewport padding so the wider tooltip never goes off-screen.
+  // Position to the right of cursor by default, but if it overflows the screen width,
+  // place it to the left of the cursor instead.
   const TOOLTIP_W = 340;
   const TOOLTIP_H_EST = 320;
+  const left = (x + 14 + TOOLTIP_W > window.innerWidth)
+    ? Math.max(8, x - TOOLTIP_W - 14)
+    : x + 14;
+  const top = (y + 14 + TOOLTIP_H_EST > window.innerHeight)
+    ? Math.max(8, y - TOOLTIP_H_EST - 14)
+    : y + 14;
   const tooltipStyle = {
-    left: Math.min(x + 14, window.innerWidth - TOOLTIP_W - 8),
-    top: Math.min(y + 14, window.innerHeight - TOOLTIP_H_EST)
+    left: left,
+    top: top
   };
   const isMulti = node.maxPoints && node.maxPoints > 1;
   const rankDist = state && state.rankDist;
@@ -586,12 +705,18 @@ function Tooltip({ node, state, x, y, onEnter, onLeave, region }) {
           <div className="tooltip-bar">
             <div className="tooltip-bar-fill" style={{ width: `${state.pickRate}%` }}></div>
           </div>
-          {state.pickers && state.pickers.length > 0 && state.pickRate < 100 && (
+          {state.pickers && state.pickers.length > 0 && state.pickers.length < (sampleSize || 100) && (
             <div className="tooltip-pickers">
               <div className="tooltip-pickers-title">Players picking this:</div>
               <div className="tooltip-pickers-list">
                 {state.pickers.map((p, i) => (
-                  <a key={i} href={`${armoryBase}${p.r}/${p.n.toLowerCase()}`} target="_blank" rel="noopener noreferrer" className="tooltip-picker-link">
+                  <a key={i}
+                     href="#"
+                     onClick={(e) => {
+                       e.preventDefault();
+                       if (onPlayerClick) onPlayerClick(p);
+                     }}
+                     className="tooltip-picker-link">
                     {p.n}-{p.r}
                   </a>
                 ))}

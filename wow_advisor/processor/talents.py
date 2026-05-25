@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
 
@@ -332,7 +332,7 @@ def summarize_talent_clusters(
     return {
         "core_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(analysis.core_nodes)],
         "flex_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(analysis.flex_nodes)],
-        "contested_nodes": sorted(decision_nodes),
+        "contested_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(decision_nodes)],
         "pick_rates": {
             node: round(rate * 100, 1) for node, rate in analysis.pick_rates.items()
         },

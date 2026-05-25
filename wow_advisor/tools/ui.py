@@ -399,6 +399,51 @@ def build_page(spec: str, bracket: str, region: str = "us", locale: str = "en_US
 
     cluster_data = _make_cluster_data(raw, tree, locale=locale)
     
+    # Load and embed individual player details for client-side player inspection
+    try:
+        from wow_advisor.cache.db import get_default_db
+        from wow_advisor.cache.store import CacheStore
+        conn = get_default_db()
+        store = CacheStore(conn)
+        players = store.get_players(spec=spec, bracket=bracket, region=region, locale=locale)
+        serialized_players = []
+        for p in players:
+            p_dict = {
+                "name": p.name,
+                "realm": p.realm,
+                "region": p.region,
+                "class": p.character_class,
+                "spec": p.spec,
+                "ilvl": p.equipped_ilvl,
+                "rating": p.rating,
+            }
+            if p.talent:
+                p_dict["talent"] = {
+                    "loadout_code": p.talent.loadout_code,
+                    "node_ranks": p.talent.node_ranks,
+                    "class_node_ids": p.talent.class_node_ids,
+                    "spec_node_ids": p.talent.spec_node_ids,
+                    "hero_node_ids": p.talent.hero_node_ids,
+                    "pvp_talent_ids": p.talent.pvp_talent_ids,
+                    "pvp_talent_names": p.talent.pvp_talent_names,
+                }
+            if p.gear:
+                p_dict["gear"] = [
+                    {
+                        "slot": g.slot,
+                        "item_id": g.item_id,
+                        "item_name": g.item_name,
+                        "ilvl": g.ilvl,
+                        "enchant_id": g.enchant_id,
+                        "enchant_name": g.enchant_name,
+                    }
+                    for g in p.gear
+                ]
+            serialized_players.append(p_dict)
+        cluster_data["players"] = serialized_players
+    except Exception as e:
+        print(f"[Warning] Failed to embed players details: {e}")
+    
     # Pre-fetch Wowhead tooltips for instant hovers
     spell_ids = set()
     for t in tree.get("trees", []):

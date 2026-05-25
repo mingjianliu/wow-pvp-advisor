@@ -1,7 +1,7 @@
 // Right sidebar — cluster summary, signature (takes + flex), legend, build code + copy.
 // Gear moved out to its own bottom panel in the main pane.
 
-function Sidebar({ cluster, group, onCopy, heatmap }) {
+function Sidebar({ cluster, group, onCopy, heatmap, onHover, onLeave, activePlayer, setActivePlayer }) {
   const takes = [...(cluster.takes || [])].sort((a, b) => b.pct - a.pct);
   const flex = [...((group.talents && group.talents.flex) || [])].sort((a, b) => b.pct - a.pct);
   const meta = window.useTalentMeta();
@@ -36,8 +36,73 @@ function Sidebar({ cluster, group, onCopy, heatmap }) {
     if (ids.length) window.TalentMeta.preload(ids);
   }, [cluster.rank, nodeMetaById]);
 
+  if (activePlayer) {
+    const pvpTalents = activePlayer.talent?.pvp_talent_names || [];
+    const pvpIds = activePlayer.talent?.pvp_talent_ids || [];
+    const armoryUrl = `https://worldofwarcraft.blizzard.com/en-${activePlayer.region}/character/${activePlayer.region}/${activePlayer.realm}/${activePlayer.name.toLowerCase()}`;
+    
+    return (
+      <aside className="sidebar player-sidebar" data-screen-label="Player Details">
+        <div className="sidebar-section player-card-header">
+          <div className="player-avatar-row">
+            <h2 className="player-name">{activePlayer.name}</h2>
+            <span className="player-realm">@{activePlayer.realm}</span>
+          </div>
+          <div className="player-rating-row">
+            <span className="player-stat-badge rating">Rating: {activePlayer.rating}</span>
+            <span className="player-stat-badge ilvl">iLvl: {activePlayer.ilvl}</span>
+          </div>
+          <div className="player-armory-link-row">
+            <a href={armoryUrl} target="_blank" rel="noopener noreferrer" className="btn-armory-link">
+              View official WoW Armory ↗
+            </a>
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <div className="signature-row-head">
+            <span className="dot-take" style={{backgroundColor: 'var(--accent)'}}></span> Selected PvP Talents
+          </div>
+          {pvpTalents.length > 0 ? (
+            <ul className="signature-list">
+              {pvpTalents.map((name, idx) => {
+                const sid = pvpIds[idx];
+                const m = sid && meta.get(sid);
+                const icon = m && m.icon;
+                const Iconlet = icon ? <img className="sig-icon" src={icon} alt="" /> : null;
+                return (
+                  <li key={idx} className="sig-item take">
+                    <div className="sig-name-row">
+                      {sid ? (
+                        <a className="sig-name talent-link"
+                           href={`https://www.wowhead.com/spell=${sid}`}
+                           target="_blank"
+                           rel="noopener"
+                           data-wowhead={`spell=${sid}`}>{Iconlet}<span className="sig-text">{name}</span></a>
+                      ) : (
+                        <span className="sig-name">{Iconlet}<span className="sig-text">{name}</span></span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="empty-pvp-talents">No PvP Talents found or active.</div>
+          )}
+        </div>
+
+        <div className="sidebar-section action-section">
+          <button onClick={() => setActivePlayer(null)} className="sidebar-back-btn">
+            ← Back to Overview
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   const TalentLink = ({ t, className }) => {
-    const nodeMeta = nodeMetaById[t.id];
+    const nodeMeta = nodeMetaById[t.id] || {};
     const sid = t.spellId || (nodeMeta && nodeMeta.spellId);
     const m = sid && meta.get(sid);
     const icon = m && m.icon;
@@ -203,8 +268,14 @@ function GearPanel({ group }) {
       <div className="gear-panel-head">
         <h3>{window.t('gear')}</h3>
         <div className="stat">
-          <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>{window.t('global')}</span>
-          <span>{window.t('avgIlvl')} <span className="num">{group.gear.avg_ilvl}</span> · {window.t('topPick')} · n={group.sample_size.toLocaleString()}</span>
+          {group.sample_size === 1 ? (
+            <span>Equipped Gear · Item Level: <span className="num">{group.gear.avg_ilvl}</span></span>
+          ) : (
+            <>
+              <span style={{color:'var(--flex)',marginRight:8,fontFamily:'var(--font-mono)',fontSize:9,letterSpacing:'0.12em'}}>{window.t('global')}</span>
+              <span>{window.t('avgIlvl')} <span className="num">{group.gear.avg_ilvl}</span> · {window.t('topPick')} · n={group.sample_size.toLocaleString()}</span>
+            </>
+          )}
         </div>
       </div>
       <ul className="gear-grid">
@@ -216,7 +287,7 @@ function GearPanel({ group }) {
           <li className="gear-card" key={s.slot}>
             <div className="gear-card-head">
               <span className="gear-card-slot">{s.slot}</span>
-              <span className="gear-card-pct">{s.item.pct}%</span>
+              {group.sample_size > 1 && <span className="gear-card-pct">{s.item.pct}%</span>}
             </div>
             {s.item.id ? (
               <a className="gear-card-item"
@@ -240,7 +311,7 @@ function GearPanel({ group }) {
                 ) : (
                   <span className="enchant-name">{s.enchant.name}</span>
                 )}
-                <span className="enchant-pct">{s.enchant.pct}%</span>
+                {group.sample_size > 1 && <span className="enchant-pct">{s.enchant.pct}%</span>}
               </div>
             ) : (
               <div className="gear-card-enchant placeholder">

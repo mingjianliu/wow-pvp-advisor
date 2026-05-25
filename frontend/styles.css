@@ -572,7 +572,7 @@ button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
   padding: 10px 12px;
   width: 320px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-  pointer-events: none;
+  pointer-events: auto;
   font-size: 12px;
 }
 .tooltip-icon {
@@ -1340,3 +1340,151 @@ a.gear-card-item.q4, a.gear-card-item.q5 { color: inherit; }
 }
 .enchant-tag.dim { color: var(--text-3); background: var(--bg-2); }
 .enchant-name.dim { color: var(--text-3); font-style: italic; }
+
+/* === Player View Banner & Sidebar === */
+.player-view-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 20px;
+  font-size: 13px;
+  color: var(--text-0);
+  font-family: var(--font-sans);
+  min-height: 48px;
+}
+
+.player-view-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-view-info .dot.active {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent);
+  margin-right: 4px;
+}
+
+.player-view-banner .btn-back {
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--text-0);
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 120ms ease;
+}
+
+.player-view-banner .btn-back:hover {
+  background: var(--line-2);
+  border-color: var(--text-2);
+}
+
+.player-sidebar .player-card-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+
+.player-sidebar .player-name {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-0);
+}
+
+.player-sidebar .player-realm {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.player-sidebar .player-rating-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.player-sidebar .player-stat-badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+}
+
+.player-sidebar .player-stat-badge.rating {
+  color: var(--flex);
+  border-color: var(--flex-dim);
+}
+
+.player-sidebar .player-stat-badge.ilvl {
+  color: var(--core);
+  border-color: var(--core-dim);
+}
+
+.player-sidebar .player-armory-link-row {
+  margin-top: 14px;
+}
+
+.player-sidebar .btn-armory-link {
+  display: block;
+  text-align: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  color: var(--text-1);
+  padding: 8px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 11.5px;
+  transition: all 120ms ease;
+}
+
+.player-sidebar .btn-armory-link:hover {
+  background: var(--bg-3);
+  border-color: var(--text-2);
+  color: var(--text-0);
+}
+
+.player-sidebar .empty-pvp-talents {
+  font-style: italic;
+  color: var(--text-3);
+  padding: 10px 0;
+}
+
+.player-sidebar .action-section {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+
+.player-sidebar .sidebar-back-btn {
+  display: block;
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  color: var(--text-0);
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 120ms ease;
+}
+
+.player-sidebar .sidebar-back-btn:hover {
+  background: var(--line-2);
+  border-color: var(--text-2);
+}
+
