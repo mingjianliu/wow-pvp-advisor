@@ -184,6 +184,7 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
             "takes": takes,
             "flex_takes": flex_takes,
             "skips": skips,
+            "silhouette_score": c.get("silhouette_score", 0.0),
         })
 
     enchants_raw = raw.get("enchants", {})
@@ -224,6 +225,7 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
             "core": enrich(raw["talents"]["core"]) + hero_core,
             "flex": enrich(raw["talents"]["flex"]),
             "contested": enrich(raw["talents"]["contested"]),
+            "mean_silhouette_score": raw["talents"].get("mean_silhouette_score", 0.0),
         },
         "clusters": clusters,
         "gear": {"avg_ilvl": raw["avg_ilvl"], "slots": gear_slots},

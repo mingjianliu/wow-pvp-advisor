@@ -62,7 +62,8 @@ def _weighted_jaccard_distance(
     ranks_a: dict[int, int],
     set_b: set[int],
     ranks_b: dict[int, int],
-    node_meta: dict[int, dict]
+    node_meta: dict[int, dict],
+    pick_rates: dict[int, float] | None = None,
 ) -> float:
     all_nodes = set_a | set_b
     weighted_intersection = 0.0
@@ -73,18 +74,61 @@ def _weighted_jaccard_distance(
         # Weights: Choice=20, Major=5, Utility=0.1
         weight = 20.0 if meta.get("type") == "diamond" else (5.0 if meta.get("row") >= 5 else 0.1)
 
+        # Scale by pick rate variance/entropy if pick_rates is provided
+        if pick_rates is not None:
+            p = pick_rates.get(nid, 0.0)
+            # Factor is 4 * p * (1 - p), ranging from 0.0 to 1.0
+            scale = 4.0 * p * (1.0 - p)
+            weight *= max(0.01, scale)
+
         in_a = nid in set_a
         in_b = nid in set_b
 
         if in_a and in_b:
             rank_diff = abs(ranks_a.get(nid, 1) - ranks_b.get(nid, 1))
             # Shared node weight reduced by rank shuffles (0.01 per rank diff)
-            weighted_intersection += max(0, weight - (rank_diff * 0.01))
+            weighted_intersection += max(0.0, weight - (rank_diff * 0.01))
             weighted_union += weight
         else:
             weighted_union += weight
 
-    return 1.0 - (weighted_intersection / weighted_union) if weighted_union > 0 else 0.0
+    return 1.0 - (weighted_intersection / weighted_union) if weighted_union > 0.0 else 0.0
+
+
+def _calculate_medoid(
+    cluster: list[tuple[set[int], int]],
+    node_ranks_list: list[dict[int, int]],
+    node_meta: dict[int, dict],
+    pick_rates: dict[int, float] | None = None,
+) -> tuple[set[int], int]:
+    """
+    Find the cluster member (node_set, original_index) that has the minimum
+    sum of weighted Jaccard distances to all other members in the cluster.
+    """
+    if not cluster:
+        raise ValueError("Cannot calculate medoid of an empty cluster")
+    if len(cluster) == 1:
+        return cluster[0]
+
+    best_member = cluster[0]
+    min_sum_dist = float('inf')
+
+    for member_a, idx_a in cluster:
+        sum_dist = 0.0
+        for member_b, idx_b in cluster:
+            if idx_a == idx_b:
+                continue
+            sum_dist += _weighted_jaccard_distance(
+                member_a, node_ranks_list[idx_a],
+                member_b, node_ranks_list[idx_b],
+                node_meta,
+                pick_rates=pick_rates,
+            )
+        if sum_dist < min_sum_dist:
+            min_sum_dist = sum_dist
+            best_member = (member_a, idx_a)
+
+    return best_member
 
 
 def cluster_talents_hac(
@@ -92,6 +136,7 @@ def cluster_talents_hac(
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
     threshold: float = 0.3,
+    pick_rates: dict[int, float] | None = None,
 ) -> list[list[tuple[set[int], int]]]:
     """
     Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
@@ -117,7 +162,8 @@ def cluster_talents_hac(
                         d = _weighted_jaccard_distance(
                             p_a[0], node_ranks_list[idx_a],
                             p_b[0], node_ranks_list[idx_b],
-                            node_meta
+                            node_meta,
+                            pick_rates=pick_rates,
                         )
                         if d > max_d:
                             max_d = d
@@ -129,8 +175,8 @@ def cluster_talents_hac(
                         break
                 
                 if max_d < best_dist:
-                    best_dist = max_d
-                    best_pair = (i, j)
+                     best_dist = max_d
+                     best_pair = (i, j)
         
         if best_dist > threshold:
             break
@@ -147,11 +193,67 @@ def cluster_talents_hac(
     return sorted(final_clusters, key=len, reverse=True)
 
 
+def cluster_talents_hac_average(
+    pairs: list[tuple[set[int], int]],
+    node_ranks_list: list[dict[int, int]],
+    node_meta: dict[int, dict],
+    threshold: float = 0.3,
+    pick_rates: dict[int, float] | None = None,
+) -> list[list[tuple[set[int], int]]]:
+    """
+    Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
+    with Average Linkage and Weighted Jaccard Distance.
+    """
+    if not pairs:
+        return []
+
+    # Every point starts as its own cluster
+    clusters = [[(pairs[i], i)] for i in range(len(pairs))]
+    
+    while len(clusters) > 1:
+        best_dist = float('inf')
+        best_pair = (None, None)
+        
+        for i in range(len(clusters)):
+            for j in range(i + 1, len(clusters)):
+                # Average Linkage: average distance between all pairs in the two clusters
+                total_d = 0.0
+                count = 0
+                for (p_a, idx_a) in clusters[i]:
+                    for (p_b, idx_b) in clusters[j]:
+                        d = _weighted_jaccard_distance(
+                            p_a[0], node_ranks_list[idx_a],
+                            p_b[0], node_ranks_list[idx_b],
+                            node_meta,
+                            pick_rates=pick_rates,
+                        )
+                        total_d += d
+                        count += 1
+                avg_d = total_d / count if count > 0 else 0.0
+                if avg_d < best_dist:
+                    best_dist = avg_d
+                    best_pair = (i, j)
+        
+        if best_dist > threshold:
+            break
+            
+        i, j = best_pair
+        clusters[i].extend(clusters[j])
+        clusters.pop(j)
+        
+    final_clusters = []
+    for c in clusters:
+        final_clusters.append([p for p, idx in c])
+        
+    return sorted(final_clusters, key=len, reverse=True)
+
+
 def cluster_talents(
     pairs: list[tuple[set[int], int]],  # (node_set, original_index)
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
     threshold: float = 0.2,
+    pick_rates: dict[int, float] | None = None,
 ) -> list[list[tuple[set[int], int]]]:
     """Greedy weighted distance clustering. Returns clusters sorted by size descending."""
     assigned = [False] * len(pairs)
@@ -167,11 +269,88 @@ def cluster_talents(
                 continue
             nodes_j, idx_j = pairs[j]
             ranks_j = node_ranks_list[idx_j]
-            if _weighted_jaccard_distance(nodes_i, ranks_i, nodes_j, ranks_j, node_meta) <= threshold:
+            if _weighted_jaccard_distance(nodes_i, ranks_i, nodes_j, ranks_j, node_meta, pick_rates=pick_rates) <= threshold:
                 cluster.append(pairs[j])
                 assigned[j] = True
         clusters.append(cluster)
     return sorted(clusters, key=len, reverse=True)
+
+
+def calculate_silhouette_scores(
+    clusters: list[list[tuple[set[int], int]]],
+    node_ranks_list: list[dict[int, int]],
+    node_meta: dict[int, dict],
+    pick_rates: dict[int, float] | None = None,
+) -> dict[int, float]:
+    """
+    Calculate the silhouette score for each player index in the dataset.
+    Returns a dictionary mapping original player index to their silhouette score.
+    """
+    scores = {}
+    
+    # Flatten clusters to map each index to its cluster id
+    idx_to_cluster = {}
+    for cluster_id, cluster in enumerate(clusters):
+        for _, idx in cluster:
+            idx_to_cluster[idx] = cluster_id
+
+    # If there is only one cluster overall, all silhouette scores are 0.0
+    if len(clusters) <= 1:
+        return {idx: 0.0 for cluster in clusters for _, idx in cluster}
+
+    # Precompute pairwise distances between all points in the dataset
+    all_members = [item for cluster in clusters for item in cluster]
+    n_points = len(all_members)
+    dist_matrix = {}
+    
+    for i in range(n_points):
+        nodes_a, idx_a = all_members[i]
+        for j in range(i, n_points):
+            nodes_b, idx_b = all_members[j]
+            if idx_a == idx_b:
+                dist = 0.0
+            else:
+                dist = _weighted_jaccard_distance(
+                    nodes_a, node_ranks_list[idx_a],
+                    nodes_b, node_ranks_list[idx_b],
+                    node_meta,
+                    pick_rates=pick_rates,
+                )
+            dist_matrix[(idx_a, idx_b)] = dist
+            dist_matrix[(idx_b, idx_a)] = dist
+
+    for nodes_a, idx_a in all_members:
+        c_a = idx_to_cluster[idx_a]
+        cluster_a = clusters[c_a]
+
+        # 1. Calculate a(idx_a) - average distance to other members of same cluster
+        if len(cluster_a) <= 1:
+            a_val = 0.0
+        else:
+            same_cluster_dists = [dist_matrix[(idx_a, idx_b)] for _, idx_b in cluster_a if idx_b != idx_a]
+            a_val = sum(same_cluster_dists) / len(same_cluster_dists)
+
+        # 2. Calculate b(idx_a) - average distance to members of nearest other cluster
+        min_other_cluster_dist = float('inf')
+        for c_id, cluster_b in enumerate(clusters):
+            if c_id == c_a:
+                continue
+            other_cluster_dists = [dist_matrix[(idx_a, idx_b)] for _, idx_b in cluster_b]
+            avg_dist_to_b = sum(other_cluster_dists) / len(other_cluster_dists)
+            if avg_dist_to_b < min_other_cluster_dist:
+                min_other_cluster_dist = avg_dist_to_b
+
+        b_val = min_other_cluster_dist if min_other_cluster_dist != float('inf') else 0.0
+
+        # 3. Calculate s(idx_a)
+        max_val = max(a_val, b_val)
+        if max_val == 0.0:
+            s_val = 0.0
+        else:
+            s_val = (b_val - a_val) / max_val
+        scores[idx_a] = s_val
+
+    return scores
 
 
 def summarize_talent_clusters(
@@ -237,7 +416,8 @@ def summarize_talent_clusters(
     if not hero_nodes:
         hero_groups = {frozenset(): list(range(n))}
 
-    all_clusters = []
+    # 1. Run Complete Linkage
+    comp_clusters = []
     for indices in hero_groups.values():
         group_pairs = [(node_sets[i], i) for i in indices]
         group_clusters = cluster_talents_hac(
@@ -245,29 +425,65 @@ def summarize_talent_clusters(
             node_ranks_list=node_ranks_list or [{} for _ in range(n)],
             node_meta=node_meta or {},
             threshold=0.3,
+            pick_rates=analysis.pick_rates,
         )
-        all_clusters.extend(group_clusters)
+        comp_clusters.extend(group_clusters)
+
+    comp_scores = calculate_silhouette_scores(
+        comp_clusters,
+        node_ranks_list=node_ranks_list or [{} for _ in range(n)],
+        node_meta=node_meta or {},
+        pick_rates=analysis.pick_rates,
+    )
+    comp_mean = sum(comp_scores.values()) / len(comp_scores) if comp_scores else 0.0
+
+    # 2. Run Average Linkage
+    avg_clusters = []
+    for indices in hero_groups.values():
+        group_pairs = [(node_sets[i], i) for i in indices]
+        group_clusters = cluster_talents_hac_average(
+            group_pairs,
+            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
+            node_meta=node_meta or {},
+            threshold=0.3,
+            pick_rates=analysis.pick_rates,
+        )
+        avg_clusters.extend(group_clusters)
+
+    avg_scores = calculate_silhouette_scores(
+        avg_clusters,
+        node_ranks_list=node_ranks_list or [{} for _ in range(n)],
+        node_meta=node_meta or {},
+        pick_rates=analysis.pick_rates,
+    )
+    avg_mean = sum(avg_scores.values()) / len(avg_scores) if avg_scores else 0.0
+
+    # Select the superior linkage based on silhouette score
+    if comp_mean >= avg_mean:
+        clusters = comp_clusters
+        silhouette_scores = comp_scores
+        linkage_type = "complete"
+    else:
+        clusters = avg_clusters
+        silhouette_scores = avg_scores
+        linkage_type = "average"
 
     # Sort combined clusters by size
-    clusters = sorted(all_clusters, key=len, reverse=True)
+    clusters = sorted(clusters, key=len, reverse=True)
 
     cluster_summaries = []
     for rank, cluster in enumerate(clusters, 1):
-        # We find the most common set of decision nodes within this cluster
-        counts = Counter(frozenset(nodes & decision_nodes) for nodes, _ in cluster)
-        canonical_decision_set = set(counts.most_common(1)[0][0])
-
-        # We also want the hero tree set for this cluster (should be uniform since we partitioned)
-        hero_counts = Counter(frozenset(nodes & hero_nodes) for nodes, _ in cluster)
-        canonical_hero_set = set(hero_counts.most_common(1)[0][0])
-
-        # Pick a canonical index for the loadout code
-        canonical_idx = next(
-            (idx for nodes, idx in cluster if (nodes & decision_nodes) == canonical_decision_set),
-            cluster[0][1],
+        # Find the medoid of the cluster
+        medoid_nodes, medoid_idx = _calculate_medoid(
+            cluster,
+            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
+            node_meta=node_meta or {},
+            pick_rates=analysis.pick_rates,
         )
+        canonical_decision_set = medoid_nodes & decision_nodes
+        canonical_hero_set = medoid_nodes & hero_nodes
         canonical_code = (
-            loadout_codes[canonical_idx] if canonical_idx < len(loadout_codes) else ""
+            loadout_codes[medoid_idx] if medoid_idx < len(loadout_codes) else ""
         )
 
         cluster_pickers = defaultdict(list)
@@ -278,23 +494,15 @@ def summarize_talent_clusters(
                 for nid in nodes:
                     cluster_pickers[nid].append(p_obj)
 
-        # Determine modal rank for each node in this cluster
+        # Determine rank for each node from the medoid player
         takes_with_ranks = []
         output_nodes = sorted(canonical_decision_set | canonical_hero_set)
+        ranks_source = node_ranks_list or [{} for _ in range(n)]
         for nid in output_nodes:
-            node_ranks_in_cluster = [
-                node_ranks_list[idx].get(nid, 1)
-                for _, idx in cluster
-                if node_ranks_list and nid in node_ranks_list[idx]
-            ]
-            modal_rank = (
-                Counter(node_ranks_in_cluster).most_common(1)[0][0]
-                if node_ranks_in_cluster
-                else 1
-            )
+            medoid_rank = ranks_source[medoid_idx].get(nid, 1)
             takes_with_ranks.append({
                 "id": nid, 
-                "rank": modal_rank,
+                "rank": medoid_rank,
                 "pickers": cluster_pickers[nid]
             })
 
@@ -319,6 +527,9 @@ def summarize_talent_clusters(
                     "pickers": cluster_pickers[nid]
                 })
 
+        cluster_sil_scores = [silhouette_scores[idx] for _, idx in cluster]
+        avg_sil = round(sum(cluster_sil_scores) / len(cluster_sil_scores), 3) if cluster_sil_scores else 0.0
+
         cluster_summaries.append(
             {
                 "rank": rank,
@@ -331,8 +542,11 @@ def summarize_talent_clusters(
                     {"id": nid, "pickers": cluster_pickers[nid]}
                     for nid in sorted(decision_nodes - canonical_decision_set - hero_nodes)
                 ],
+                "silhouette_score": avg_sil,
             }
         )
+
+    global_sil = round(sum(silhouette_scores.values()) / len(silhouette_scores), 3) if silhouette_scores else 0.0
 
     return {
         "core_nodes": [{"id": nid, "pickers": global_pickers[nid]} for nid in sorted(analysis.core_nodes)],
@@ -346,4 +560,6 @@ def summarize_talent_clusters(
         },
         "clusters": cluster_summaries,
         "clustering_method": method,
+        "linkage": linkage_type,
+        "mean_silhouette_score": global_sil,
     }

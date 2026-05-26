@@ -135,6 +135,7 @@ class TestBlizzardSpotCheck:
     async def test_spot_check_spec_matches(self, bnet_client):
         """Re-fetch 3 players and confirm their spec + class still match our cache."""
         import asyncio
+        from wow_advisor.normalize import _SPEC_INFO_MAP
         players = _our_players()[:3]
         async with httpx.AsyncClient() as http:
             tasks = [
@@ -146,10 +147,15 @@ class TestBlizzardSpotCheck:
         for cached, live in zip(players, fresh):
             if live is None:
                 continue  # player deleted/transferred — not our fault
-            assert live.spec == cached.spec, \
-                f"{cached.name}: spec mismatch cached={cached.spec!r} live={live.spec!r}"
-            assert live.character_class == cached.character_class, \
-                f"{cached.name}: class mismatch cached={cached.character_class!r} live={live.character_class!r}"
+            spec_info = _SPEC_INFO_MAP.get(cached.spec)
+            if spec_info:
+                _, _, class_name, spec_name = spec_info
+                assert live.spec == spec_name, \
+                    f"{cached.name}: spec mismatch cached={cached.spec!r} live={live.spec!r}"
+                assert live.character_class == class_name, \
+                    f"{cached.name}: class mismatch cached={cached.character_class!r} live={live.character_class!r}"
+            else:
+                assert live.spec.lower().replace(" ", "-") in cached.spec.lower()
 
     @pytest.mark.asyncio
     async def test_spot_check_ilvl_drift(self, bnet_client):

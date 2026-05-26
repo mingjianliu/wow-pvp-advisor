@@ -250,3 +250,99 @@ def test_weighted_jaccard_distance_combination():
     }
     
     assert pytest.approx(_weighted_jaccard_distance(set_a, ranks_a, set_b, ranks_b, node_meta)) == 25.01 / 45.0
+
+
+def test_calculate_medoid():
+    from wow_advisor.processor.talents import _calculate_medoid
+    # Create a cluster of 3 members.
+    cluster = [
+        ({1, 2}, 0),
+        ({1, 2, 3}, 1),
+        ({10, 11}, 2)
+    ]
+    node_ranks_list = [
+        {1: 1, 2: 1},
+        {1: 1, 2: 1, 3: 1},
+        {10: 1, 11: 1}
+    ]
+    node_meta = {
+        1: {"row": 0, "type": "circle"},
+        2: {"row": 0, "type": "circle"},
+        3: {"row": 0, "type": "circle"},
+        10: {"row": 0, "type": "circle"},
+        11: {"row": 0, "type": "circle"},
+    }
+    
+    medoid_nodes, medoid_idx = _calculate_medoid(cluster, node_ranks_list, node_meta)
+    assert medoid_idx in (0, 1)
+
+
+def test_calculate_silhouette_scores():
+    from wow_advisor.processor.talents import calculate_silhouette_scores
+    # We have two well-separated clusters:
+    # Cluster 0: member 0={1, 2}, member 1={1, 2, 3} (both close to each other)
+    # Cluster 1: member 2={10, 11}, member 3={10, 11, 12} (both close to each other, far from Cluster 0)
+    clusters = [
+        [({1, 2}, 0), ({1, 2, 3}, 1)],
+        [({10, 11}, 2), ({10, 11, 12}, 3)]
+    ]
+    node_ranks_list = [
+        {1: 1, 2: 1},
+        {1: 1, 2: 1, 3: 1},
+        {10: 1, 11: 1},
+        {10: 1, 11: 1, 12: 1}
+    ]
+    node_meta = {
+        1: {"row": 0, "type": "circle"},
+        2: {"row": 0, "type": "circle"},
+        3: {"row": 0, "type": "circle"},
+        10: {"row": 0, "type": "circle"},
+        11: {"row": 0, "type": "circle"},
+        12: {"row": 0, "type": "circle"},
+    }
+    
+    scores = calculate_silhouette_scores(clusters, node_ranks_list, node_meta)
+    
+    # Points 0 and 1 are in Cluster 0.
+    # a(0) = d(0, 1) = 0.333
+    # b(0) = mean(d(0, 2), d(0, 3)) = mean(1.0, 1.0) = 1.0
+    # s(0) = (1.0 - 0.333) / 1.0 = 0.667
+    
+    # Points 2 and 3 are in Cluster 1.
+    # a(2) = d(2, 3) = 0.333
+    # b(2) = mean(d(2, 0), d(2, 1)) = 1.0
+    # s(2) = (1.0 - 0.333) / 1.0 = 0.667
+
+    assert scores[0] > 0.5
+    assert scores[1] > 0.5
+    assert scores[2] > 0.5
+    assert scores[3] > 0.5
+
+
+def test_cluster_talents_hac_average():
+    from wow_advisor.processor.talents import cluster_talents_hac_average
+    pairs = [
+        ({1, 2}, 0),
+        ({1, 2, 3}, 1),
+        ({10, 11}, 2)
+    ]
+    node_ranks_list = [
+        {1: 1, 2: 1},
+        {1: 1, 2: 1, 3: 1},
+        {10: 1, 11: 1}
+    ]
+    node_meta = {
+        1: {"row": 0, "type": "circle"},
+        2: {"row": 0, "type": "circle"},
+        3: {"row": 0, "type": "circle"},
+        10: {"row": 0, "type": "circle"},
+        11: {"row": 0, "type": "circle"},
+    }
+    
+    clusters = cluster_talents_hac_average(pairs, node_ranks_list, node_meta, threshold=0.4)
+    assert len(clusters) == 2
+    assert len(clusters[0]) == 2
+    assert len(clusters[1]) == 1
+
+
+

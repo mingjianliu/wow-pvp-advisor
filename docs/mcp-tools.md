@@ -114,10 +114,12 @@ Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_t
         "canonical_code": "BAQAAAAAAAAAAAAkU...",
         "takes": [{"id": 81039, "rank": 1, "pickers": [...]}, ...],
         "flex_takes": [{"id": 103427, "pct": 20.0, "pickers": [...]}, ...],
-        "skips": [{"id": 81038, "pickers": [...]}, ...]
+        "skips": [{"id": 81038, "pickers": [...]}, ...],
+        "silhouette_score": 0.345
       }
     ],
-    "clustering_method": "variance+weighted"
+    "clustering_method": "variance+weighted",
+    "mean_silhouette_score": 0.285
   }
 }
 ```
@@ -128,13 +130,16 @@ Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_t
 - `flex_nodes` — picked by ≤20% of players.
 - `contested_nodes` — picked by 20–80% of players.
 
-**Clusters:** Builds are grouped using **Agglomerative Hierarchical Clustering (HAC)** with Complete Linkage and Weighted Jaccard Distance. This method accounts for both node selection and rank (points spent).
+**Clusters:** Builds are grouped using **Agglomerative Hierarchical Clustering (HAC)** with Complete Linkage and Weighted Jaccard Distance scaled dynamically by pick-rate variance.
 
-- `takes` — modal talent choices for this cluster.
+- `takes` — talent choices from this cluster's medoid (representative) build.
 - `flex_takes` — internal cluster variance (talents taken by some but not all members of the cluster).
-- `skips` — modal talents NOT taken by this cluster.
+- `skips` — talents NOT taken by this cluster's medoid build.
+- `silhouette_score` — cohesion metric for this cluster (higher is better, range -1 to 1).
 
 **`clustering_method`:** `"variance+weighted"` (default HAC) or `"keystone"` (if forced by `data/keystone_talents.json`).
+
+**`mean_silhouette_score`:** overall clustering quality score.
 
 ### Known limitations
 
