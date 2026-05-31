@@ -500,9 +500,17 @@ def summarize_talent_clusters(
         ranks_source = node_ranks_list or [{} for _ in range(n)]
         for nid in output_nodes:
             medoid_rank = ranks_source[medoid_idx].get(nid, 1)
+            # Real share of this cluster's members that take the talent, so the
+            # ratio (pickers/count) and the bar agree. Falls back to 100% only
+            # when no picker roster is available (player_info omitted).
+            take_pct = (
+                round(len(cluster_pickers[nid]) / len(cluster) * 100, 1)
+                if player_info else 100.0
+            )
             takes_with_ranks.append({
-                "id": nid, 
+                "id": nid,
                 "rank": medoid_rank,
+                "pct": take_pct,
                 "pickers": cluster_pickers[nid]
             })
 
@@ -543,6 +551,13 @@ def summarize_talent_clusters(
                     for nid in sorted(decision_nodes - canonical_decision_set - hero_nodes)
                 ],
                 "silhouette_score": avg_sil,
+                "pickers": (
+                    [
+                        {"n": player_info[idx]["name"], "r": player_info[idx]["realm"]}
+                        for _, idx in cluster
+                    ]
+                    if player_info else []
+                ),
             }
         )
 

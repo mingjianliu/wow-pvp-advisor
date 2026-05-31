@@ -185,6 +185,9 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
             "flex_takes": flex_takes,
             "skips": skips,
             "silhouette_score": c.get("silhouette_score", 0.0),
+            # Member roster for this cluster ({"n": name, "r": realm}). The frontend
+            # uses this to compute cluster-aware pick-rate ratios for global talents.
+            "pickers": c.get("pickers", []),
         })
 
     enchants_raw = raw.get("enchants", {})

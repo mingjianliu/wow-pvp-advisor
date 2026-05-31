@@ -52,7 +52,8 @@ def mock_summary_data():
             "clusters": [
                 {
                     "rank": 1, "pct": 80.0, "count": 80, "canonical_code": "code1",
-                    "takes": [{"id": 1, "pct": 100.0}], "skips": [], "flex_takes": []
+                    "takes": [{"id": 1, "pct": 100.0}], "skips": [], "flex_takes": [],
+                    "pickers": [{"n": "Alice", "r": "kelthuzad"}, {"n": "Bob", "r": "tichondrius"}]
                 }
             ]
         },
@@ -91,6 +92,12 @@ def test_make_cluster_data(mock_summary_data, mock_tree_data):
     assert result["gear"]["slots"][0]["enchant"]["name"] == "Int"
     assert len(result["clusters"]) == 1
     assert result["clusters"][0]["takes"][0]["name"] == "Talent 1"
+    # The cluster member list must propagate to the frontend so cluster-aware
+    # pick-rate ratios can be computed. Regression guard for dropped `pickers`.
+    assert result["clusters"][0]["pickers"] == [
+        {"n": "Alice", "r": "kelthuzad"},
+        {"n": "Bob", "r": "tichondrius"},
+    ]
 
 @patch("pathlib.Path.read_text")
 def test_bundle_html(mock_read, mock_tree_data):

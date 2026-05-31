@@ -13,10 +13,15 @@ def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
         enriched = []
         for item in ids_or_objs:
             nid = item["id"] if isinstance(item, dict) else item
+            # Cluster takes carry their own cluster-specific pct; preserve it so
+            # the displayed pct matches the pickers/count ratio. Global lists
+            # (core/flex/contested) carry only an id, so fall back to the global
+            # pick rate.
+            item_pct = item.get("pct") if isinstance(item, dict) else None
             entry = {
                 "id": nid,
                 "name": (node_map.get(nid) or {}).get("name"),
-                "pct": pick_rates.get(nid),
+                "pct": item_pct if item_pct is not None else pick_rates.get(nid),
             }
             if isinstance(item, dict) and "rank" in item:
                 entry["pts"] = item["rank"]

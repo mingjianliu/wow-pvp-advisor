@@ -250,48 +250,71 @@ function autoClusterName(c) {
 // Derive the per-node role (core/flex/skip) and rank for a cluster.
 function deriveNodeMap(data, cluster) {
   const map = {};
-  data.talents.core.forEach(
-    (t) =>
-      (map[t.id] = {
-        role: "core",
-        pts: t.pts,
-        rankDist: t.rankDist,
-        pickRate: t.pct,
-        global: true,
-        pickers: t.pickers,
-      }),
-  );
-  data.talents.flex.forEach(
-    (t) =>
-      (map[t.id] = {
-        role: "flex",
-        pickRate: t.pct,
-        global: true,
-        pickers: t.pickers,
-      }),
-  );
-  cluster.takes.forEach((t) => {
+  const clusterMembers = cluster?.pickers || [];
+  const clusterCount = cluster?.count || 1;
+
+  const filterPickers = (pickers) => {
+    if (!cluster) return pickers || [];
+    return (pickers || []).filter((pkr) =>
+      clusterMembers.some(
+        (cp) => cp.n === (pkr.n || pkr.name) && cp.r === (pkr.r || pkr.realm),
+      ),
+    );
+  };
+
+  data.talents.core.forEach((t) => {
+    const pks = filterPickers(t.pickers);
     map[t.id] = {
-      ...map[t.id],
       role: "core",
-      pts: t.rank,
-      contested: true,
-      pickRate: t.pct,
-      global: false,
-      pickers: t.pickers,
+      pts: t.pts,
+      rankDist: t.rankDist,
+      pickRate: cluster ? Math.round((pks.length / clusterCount) * 100) : t.pct,
+      global: !cluster,
+      pickers: pks,
+      clusterCount: clusterCount,
     };
   });
-  cluster.skips.forEach((t) => {
+  data.talents.flex.forEach((t) => {
+    const pks = filterPickers(t.pickers);
+    const pct = cluster ? Math.round((pks.length / clusterCount) * 100) : t.pct;
     map[t.id] = {
-      ...map[t.id],
-      role: "skip",
-      contested: true,
-      pickRate: t.pct,
-      global: false,
-      pickers: t.pickers,
+      role: pct === 100 ? "core" : "flex",
+      pickRate: pct,
+      global: !cluster,
+      pickers: pks,
+      clusterCount: clusterCount,
+      // If it's a 100% pick in this cluster but not global core, mark as signature
+      contested: cluster && pct === 100,
     };
   });
-  if (cluster.flex_takes) {
+  if (cluster && cluster.takes) {
+    cluster.takes.forEach((t) => {
+      map[t.id] = {
+        ...map[t.id],
+        role: "core",
+        pts: t.rank,
+        contested: true,
+        pickRate: t.pct ?? 100,
+        global: false,
+        pickers: t.pickers || [],
+        clusterCount: clusterCount,
+      };
+    });
+  }
+  if (cluster && cluster.skips) {
+    cluster.skips.forEach((t) => {
+      map[t.id] = {
+        ...map[t.id],
+        role: "skip",
+        contested: true,
+        pickRate: t.pct ?? 0,
+        global: false,
+        pickers: t.pickers || [],
+        clusterCount: clusterCount,
+      };
+    });
+  }
+  if (cluster && cluster.flex_takes) {
     cluster.flex_takes.forEach((t) => {
       map[t.id] = {
         ...map[t.id],
@@ -299,7 +322,8 @@ function deriveNodeMap(data, cluster) {
         contested: true,
         pickRate: t.pct,
         global: false,
-        pickers: t.pickers,
+        pickers: t.pickers || [],
+        clusterCount: clusterCount,
       };
     });
   }
@@ -897,6 +921,7 @@ function App() {
             {!activePlayer && (
               <GlobalPvpPanel
                 data={data}
+                cluster={cluster}
                 onHover={handleHover}
                 onLeave={handleLeave}
               />
@@ -958,17 +983,41 @@ function App() {
   );
 }
 
-function GlobalPvpPanel({ data, onHover, onLeave }) {
-  const all = data.pvp_talents || [];
+function GlobalPvpPanel({ data, cluster, onHover, onLeave }) {
+  const allRaw = data.pvp_talents || [];
+  const clusterMembers = cluster?.pickers || [];
 
   React.useEffect(() => {
-    const ids = all.map((p) => p.id).filter(Boolean);
+    const ids = allRaw.map((p) => p.id).filter(Boolean);
     if (ids.length) window.TalentMeta.preload(ids);
-  }, [all]);
+  }, [allRaw]);
 
-  if (all.length === 0) return null;
-  const modal = all.slice(0, 3);
-  const alts = all.slice(3);
+  if (allRaw.length === 0) return null;
+
+  // 1. Enrich all talents with cluster-aware stats
+  const enriched = allRaw.map((p) => {
+    if (!cluster) {
+      return { ...p, effectivePct: p.pct, effectivePickers: p.pickers, effectiveTotal: data.sample_size };
+    }
+    const pks = (p.pickers || []).filter((pkr) =>
+      clusterMembers.some(
+        (cp) => cp.n === (pkr.n || pkr.name) && cp.r === (pkr.r || pkr.realm),
+      ),
+    );
+    return {
+      ...p,
+      effectivePct: Math.round((pks.length / cluster.count) * 100),
+      effectivePickers: pks,
+      effectiveTotal: cluster.count,
+    };
+  });
+
+  // 2. Sort by cluster-aware pick rate (descending)
+  const sorted = [...enriched].sort((a, b) => b.effectivePct - a.effectivePct);
+
+  // 3. Separate into modal (top 3) and alts
+  const modal = sorted.slice(0, 3);
+  const alts = sorted.slice(3).filter(p => p.effectivePct > 0); // Hide 0% alts in cluster view
 
   const onHoverPvp = (e, p) => {
     onHover({
@@ -976,8 +1025,10 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
       state: {
         role: "core",
         pts: 1,
-        pickRate: p.pct,
-        pickers: p.pickers || [],
+        pickRate: p.effectivePct,
+        pickers: p.effectivePickers,
+        clusterCount: p.effectiveTotal,
+        global: !cluster,
       },
       x: e.clientX,
       y: e.clientY,
@@ -998,10 +1049,11 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
               letterSpacing: "0.12em",
             }}
           >
-            {t("global")}
+            {cluster ? t("inCluster") : t("global")}
           </span>
           <span>
-            {t("same")} · n={data.sample_size.toLocaleString()}
+            {t("same")} · n=
+            {(cluster ? cluster.count : data.sample_size).toLocaleString()}
           </span>
         </div>
       </div>
@@ -1019,8 +1071,13 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
             <div className="pvp-slot-pos">{t("modal")}</div>
             <div className="pvp-slot-name">{p.name}</div>
             <div className="pvp-slot-pct">
-              {p.pct}
-              <span className="unit">%</span>
+              <span className="ratio">
+                {p.effectivePickers.length}/{p.effectiveTotal}
+              </span>
+              <span>
+                {p.effectivePct}
+                <span className="unit">%</span>
+              </span>
             </div>
           </div>
         ))}
@@ -1040,10 +1097,15 @@ function GlobalPvpPanel({ data, onHover, onLeave }) {
                 <span className="pvp-alt-bar">
                   <span
                     className="pvp-alt-bar-fill"
-                    style={{ width: `${p.pct}%` }}
+                    style={{ width: `${p.effectivePct}%` }}
                   ></span>
                 </span>
-                <span className="pvp-alt-pct">{p.pct}%</span>
+                <span className="pvp-alt-pct">
+                  <span className="ratio">
+                    {p.effectivePickers.length}/{p.effectiveTotal}
+                  </span>
+                  {p.effectivePct}%
+                </span>
               </div>
             ))}
           </div>
@@ -1153,7 +1215,15 @@ function Tooltip({
                 {state.global ? `(${t("overall")})` : `(${t("inCluster")})`}
               </span>
             </span>
-            <span className="v">{state.pickRate}%</span>
+            <span className="v">
+              {state.pickers && (
+                <span className="ratio" style={{ opacity: 0.6, fontSize: 10 }}>
+                  {state.pickers.length}/
+                  {state.global ? sampleSize : state.clusterCount || "?"} ·{" "}
+                </span>
+              )}
+              {state.pickRate}%
+            </span>
           </div>
           <div className="tooltip-bar">
             <div

@@ -50,3 +50,29 @@
 - [ ] **GitHub Pages publishing** — commit the HTML report to a `gh-pages` branch via the GitHub MCP so the report is accessible as a permanent URL without running anything locally.
 
 - [ ] **Google Drive export** — export the build report as a Google Doc via the Google Drive MCP for annotation and sharing.
+
+## Competitive Analysis TODOs (vs murlok.io / pvpq.net / arenacoach.gg)
+
+### 🔴 High Priority — Quick Wins, High Impact
+
+- [ ] **Gem recommendations** — parse gem data from the equipment API and surface in the gear panel. Murlok.io has this; players expect it alongside enchants.
+- [ ] **Stat priority display on web UI** — we already compute `get_stat_distribution` in MCP. Add a visual bar chart component to the frontend showing secondary stat weights (Vers/Haste/Crit/Mastery).
+- [ ] **Meta / Tier List landing page** — we have `get_pvp_tier_list_tool` and `get_meta_snapshot_tool` in MCP but no frontend page. Build a landing page showing all specs ranked by representation/rating per bracket. Makes the app a destination, not just a per-spec tool.
+- [ ] **Embellishment tracking** — track crafted gear embellishment special effects from top players. Murlok.io shows this; important for gear optimization in TWW.
+
+### 🟡 Medium Priority — Differentiation Features
+
+- [ ] **Public hosting (GitHub Pages / Vercel)** — currently local-only, which severely limits reach. Publish static HTML reports to a public URL. Already mentioned in Visualisation section above.
+- [ ] **Landing page with all specs** — a single index page showing all 39 specs with quick-nav links. Currently users need to know the URL pattern or use breadcrumbs.
+- [ ] **Race popularity** — aggregate which races top players choose per spec. Murlok.io shows this. Low effort, low-medium impact.
+- [ ] **Build comparison mode** — side-by-side diff of two clusters. Visually show which talents differ between Build A and Build B.
+- [ ] **Talent change highlights (patch delta)** — when a patch drops, show what changed in the meta since last snapshot. Requires storing historical snapshots.
+- [ ] **Multi-region data (EU/KR/TW)** — EU support is wired but untested. KR/TW would add completeness. Murlok.io pulls from all 4 regions.
+
+### 🟢 Ambitious — Unique Value, Higher Effort
+
+- [ ] **Rating-bracket filtering** — show builds from 1800+, 2100+, 2400+, Glad+ separately. Different ratings run different builds. Nobody does this well.
+- [ ] **Build win-rate correlation** — correlate build clusters with player rating performance (e.g. "Build A players average 2400 vs Build B at 2100"). Extremely hard but game-changing.
+- [ ] **Comp / matchup data** — nobody has good comp win-rate data. Would require match-level data that Blizzard doesn't easily expose. Massive differentiator if solved.
+- [ ] **Player search (any player)** — lookup any player's PvP build on-demand via API, not just cached top-50. PvPQ.net's core strength.
+- [ ] **Historical season comparison** — archive past season data and show how the meta evolved. Murlok.io does this.

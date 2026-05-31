@@ -12,11 +12,26 @@ function Sidebar({
   setActivePlayer,
   nodeMap,
 }) {
-  const takes = [...(cluster.takes || [])].sort((a, b) => b.pct - a.pct);
-  const flex = [...((group.talents && group.talents.flex) || [])].sort(
-    (a, b) => b.pct - a.pct,
-  );
   const meta = window.useTalentMeta();
+
+  // Signature Takes = this cluster's canonical decision/hero picks.
+  const takes = React.useMemo(() => {
+    if (!cluster) return [];
+    return [...(cluster.takes || [])]
+      .map((t) => ({ ...t, pct: t.pct ?? 100 }))
+      .sort((a, b) => (b.pct || 0) - (a.pct || 0));
+  }, [cluster]);
+
+  // Variance = talents that genuinely vary *within* this cluster (0% < pct < 100%).
+  // A talent taken by 100% of the cluster isn't variance — it's either a global
+  // core pick (shown green in the tree) or one of the canonical takes above — so
+  // it's intentionally omitted here to keep the list to real decision points.
+  const variance = React.useMemo(() => {
+    if (!cluster) return [];
+    return [...(cluster.flex_takes || [])]
+      .filter((t) => (t.pct ?? 0) > 0 && (t.pct ?? 0) < 100)
+      .sort((a, b) => (b.pct || 0) - (a.pct || 0));
+  }, [cluster]);
 
   // Resolve spellIds and maxPoints for the tree-node ids referenced in cluster.takes.
   // The flat group.talents lists carry only {id, name, pct} — the actual
@@ -44,8 +59,10 @@ function Sidebar({
       const sid = t.spellId || (meta && meta.spellId);
       if (sid) ids.push(sid);
     });
-    flex.forEach((t) => {
-      if (t.spellId) ids.push(t.spellId);
+    variance.forEach((t) => {
+      const meta = nodeMetaById[t.id];
+      const sid = t.spellId || (meta && meta.spellId);
+      if (sid) ids.push(sid);
     });
     if (ids.length) window.TalentMeta.preload(ids);
   }, [cluster.rank, nodeMetaById]);
@@ -54,10 +71,11 @@ function Sidebar({
     const nodeMeta = nodeMetaById[t.id] || {};
     const sid = t.spellId || (nodeMeta && nodeMeta.spellId);
     const st = (nodeMap && nodeMap[t.id]) || {
-      role: "flex",
+      role: t.pct >= 80 ? "core" : "flex",
       pts: t.pts || 1,
       pickRate: t.pct,
       pickers: t.pickers || [],
+      clusterCount: cluster.count,
     };
     onHover({
       node: {
@@ -236,9 +254,9 @@ function Sidebar({
             <div className="kpi-value">{takes.length}</div>
           </div>
           <div className="kpi">
-            <div className="kpi-label">{window.t("flex")}</div>
+            <div className="kpi-label">{window.t("variance")}</div>
             <div className="kpi-value" style={{ color: "var(--flex)" }}>
-              {flex.length}
+              {variance.length}
             </div>
           </div>
         </div>
@@ -274,47 +292,19 @@ function Sidebar({
                     style={{ width: `${t.pct}%` }}
                   ></span>
                 </span>
-                <span className="sig-pct">{t.pct}%</span>
+                <span className="sig-pct">
+                  <span className="ratio">
+                    {t.pickers?.length || 0}/{cluster.count}
+                  </span>
+                  <span className="pct-val">{t.pct}%</span>
+                </span>
               </li>
             ))}
           </ul>
-          <div className="signature-row-head" style={{ marginTop: 14 }}>
-            <span className="dot-flex"></span> {window.t("flex")}
-            <span className="num">{flex.length}</span>
-            <span className="signature-row-hint">
-              {window.t("global")} · varies
-            </span>
-          </div>
-          {flex.length > 0 ? (
-            <ul className="signature-list">
-              {flex.map((t) => (
-                <li key={t.id} className="sig-item flex">
-                  <div className="sig-name-row">
-                    <TalentLink
-                      t={t}
-                      className="sig-name"
-                      onMouseEnter={(e) => handleMouseEnterTalent(e, t)}
-                      onMouseLeave={onLeave}
-                    />
-                    <RankTag t={t} />
-                  </div>
-                  <span className="sig-bar">
-                    <span
-                      className="sig-bar-fill flex"
-                      style={{ width: `${t.pct}%` }}
-                    ></span>
-                  </span>
-                  <span className="sig-pct">{t.pct}%</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="signature-empty">No flex points for this spec</div>
-          )}
         </div>
       </div>
 
-      {cluster.flex_takes && cluster.flex_takes.length > 0 && (
+      {variance.length > 0 && (
         <div className="side-section">
           <h4>
             {window.t("variance")}{" "}
@@ -324,7 +314,7 @@ function Sidebar({
           </h4>
           <div className="signature-block">
             <ul className="signature-list">
-              {cluster.flex_takes.map((t) => (
+              {variance.map((t) => (
                 <li key={t.id} className="sig-item flex">
                   <div className="sig-name-row">
                     <TalentLink
@@ -341,7 +331,12 @@ function Sidebar({
                       style={{ width: `${t.pct}%` }}
                     ></span>
                   </span>
-                  <span className="sig-pct">{t.pct}%</span>
+                  <span className="sig-pct">
+                    <span className="ratio">
+                      {t.pickers?.length || 0}/{cluster.count}
+                    </span>
+                    <span className="pct-val">{t.pct}%</span>
+                  </span>
                 </li>
               ))}
             </ul>

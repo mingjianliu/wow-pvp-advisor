@@ -50,6 +50,27 @@ def test_enrich_cluster_takes_and_skips():
     assert cluster["skips"] == [{"id": 201, "name": "Tempest", "pct": 48.0}]
 
 
+def test_enrich_cluster_take_preserves_own_cluster_pct():
+    # A cluster take carries a cluster-specific pct (share of THIS cluster that
+    # takes it). It must not be overwritten by the global pick rate, otherwise
+    # the displayed pct disagrees with the pickers/count ratio in the UI.
+    raw = {
+        "core_nodes": [],
+        "flex_nodes": [],
+        "contested_nodes": [],
+        "pick_rates": {300: 74.0},  # global rate
+        "clusters": [
+            {
+                "rank": 1, "pct": 50.0, "count": 6, "canonical_code": "x",
+                "takes": [{"id": 300, "rank": 1, "pct": 100.0, "pickers": []}],
+                "skips": [], "flex_takes": [],
+            }
+        ],
+    }
+    result = _enrich_talents(raw, {300: {"name": "Foo"}})
+    assert result["clusters"][0]["takes"][0]["pct"] == 100.0  # cluster pct, not 74.0
+
+
 def test_enrich_preserves_non_talent_cluster_fields():
     result = _enrich_talents(RAW_TALENTS, NODE_MAP)
     cluster = result["clusters"][0]
