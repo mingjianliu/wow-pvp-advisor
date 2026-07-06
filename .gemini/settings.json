@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "wow-pvp-advisor": {
-      "command": "/Users/mingjianliu/code/wow-talent-gear-collector/.venv/bin/python",
-      "args": ["/Users/mingjianliu/code/wow-talent-gear-collector/mcp_server.py"],
-      "trust": true
-    }
-  }
-}

@@ -1,30 +1,16 @@
-# MCP Tools Design Reference
+# MCP Tools Design Notes
 
-These are the 7 tools exposed by `mcp_server.py`. Each section covers purpose, inputs, outputs, behavior, known limitations, and future work.
+The **canonical reference for each tool's purpose and parameters is its docstring in `mcp_server.py`** — that's what MCP clients see, so it's kept accurate. This file only covers what doesn't fit in a docstring: output schemas, internal mechanics, known limitations, and future work.
+
+All tools accept spec aliases (`"rsham"`, `"resto shaman"`, `"restoration-shaman"`) and bracket aliases (`"3v3"`, `"2v2"`, `"solo shuffle"`, `"shuffle"`) via `normalize.py`.
+
+**Cache TTLs:** `get_full_summary_tool` and `build_page_tool` auto-refresh when the aggregation is older than **2 hours**; `get_talent_distribution_tool` and `get_gear_summary_tool` use **24 hours**.
 
 ---
 
 ## 1. `fetch_top_players_tool`
 
-### Purpose
-
-The data entry point. Hits the Blizzard Battle.net API to find and cache the top players of a given spec and bracket. Must be called before any query tool can return data. Also acts as a manual refresh trigger.
-
-### When it's called automatically
-
-- `get_full_summary_tool` and `build_page_tool` auto-call this if cache is older than **2 hours**.
-- `get_talent_distribution_tool` and `get_gear_summary_tool` auto-call this if cache is older than **24 hours**.
-
-### Inputs
-
-| Parameter | Type | Default  | Description                                                                     |
-| --------- | ---- | -------- | ------------------------------------------------------------------------------- |
-| `spec`    | str  | required | Spec name. Accepts aliases: `"rsham"`, `"resto shaman"`, `"restoration-shaman"` |
-| `bracket` | str  | required | PvP bracket. Accepts: `"3v3"`, `"2v2"`, `"solo shuffle"`, `"shuffle"`           |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"`                                                                |
-| `limit`   | int  | `50`     | How many matching players to collect                                            |
-
-### What it does (two phases)
+### Mechanics (two phases)
 
 **Phase 1 — Spec scan (cheap):** Fetches the full PvP leaderboard (1 API call, ~5000 entries for 3v3). Walks the ladder in batches of 50, fetching each player's character profile (1 API call each) to check their class and spec. Stops as soon as `limit` matching players are found.
 
@@ -44,17 +30,7 @@ The data entry point. Hits the Blizzard Battle.net API to find and cache the top
 }
 ```
 
-`skipped: true` means the 2-hour cache guard fired and no API calls were made.
-
-### Output (error)
-
-```json
-{
-  "error": "Found 0 restoration-shaman players across 5026 3v3 leaderboard entries."
-}
-```
-
-Other error cases: unknown spec, no leaderboard data for the bracket.
+Error cases return `{"error": "..."}`: unknown spec, no leaderboard data for the bracket, or zero matching players on the ladder.
 
 ### Side effects
 
@@ -77,21 +53,7 @@ Other error cases: unknown spec, no leaderboard data for the bracket.
 
 ## 2. `get_talent_distribution_tool`
 
-### Purpose
-
-Returns how top players are distributing their talent points — which talents are universal (core), which vary between players (contested), and how builds cluster into distinct variants.
-
-### Inputs
-
-| Parameter | Type | Default  | Description                       |
-| --------- | ---- | -------- | --------------------------------- |
-| `spec`    | str  | required | Spec name (same aliases as fetch) |
-| `bracket` | str  | required | PvP bracket                       |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"`                  |
-
-### What it does
-
-Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_top_players` first. Returns the `talents` section of the cached aggregation.
+Returns the `talents` section of the cached aggregation (raw node IDs, no names).
 
 ### Output
 
@@ -144,11 +106,10 @@ Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_t
 ### Known limitations
 
 - **Fragmented clusters**: if build diversity is extremely high, clusters can still be small.
-- **Node IDs only**: `get_talent_distribution_tool` returns raw node IDs. Use `get_full_summary_tool` for a version with human-readable names.
+- **Node IDs only**: use `get_full_summary_tool` for a version with human-readable names.
 
 ### Future work
 
-- Map node IDs → human-readable talent names (implemented in `get_full_summary_tool`)
 - Add more `data/keystone_talents.json` entries to force cleaner clusters
 - Expose clustering threshold as a parameter
 
@@ -156,21 +117,7 @@ Checks `is_stale(spec, bracket, region, ttl_hours=24)`. If stale, calls `fetch_t
 
 ## 3. `get_gear_summary_tool`
 
-### Purpose
-
-Returns what items and enchants top players are using, aggregated by slot. Answers questions like "what trinkets should I use?", "what's the best weapon enchant?", "what ilvl are top players at?"
-
-### Inputs
-
-| Parameter | Type | Default  | Description      |
-| --------- | ---- | -------- | ---------------- |
-| `spec`    | str  | required | Spec name        |
-| `bracket` | str  | required | PvP bracket      |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"` |
-
-### What it does
-
-Same stale-check pattern as `get_talent_distribution_tool`. Returns the `gear` and `enchants` sections of the cached aggregation.
+Returns the `gear` and `enchants` sections of the cached aggregation.
 
 ### Output
 
@@ -218,24 +165,7 @@ Items within each slot are sorted by pick rate descending. Slots with no players
 
 ## 4. `get_full_summary_tool`
 
-### Purpose
-
-The primary entry point for a comprehensive overview of a spec's current meta. Returns gear, enchants, pvp talents, and clustered talents in a single call, with **human-readable names** resolved for all IDs.
-
-### Inputs
-
-| Parameter | Type | Default  | Description      |
-| --------- | ---- | -------- | ---------------- |
-| `spec`    | str  | required | Spec name        |
-| `bracket` | str  | required | PvP bracket      |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"` |
-
-### What it does
-
-Checks `is_stale(spec, bracket, region, ttl_hours=2)`. If stale, calls `fetch_top_players` first. 
-1. Retrieves the aggregated data from cache.
-2. Resolves all numeric talent Node IDs into names (e.g., `81018` → `"Riptide"`) by hitting the Blizzard static API.
-3. Enriches the output with pick rates and rank distributions.
+On top of the cached aggregation, resolves all numeric talent node IDs into names (e.g., `81018` → `"Riptide"`) via the Blizzard static API and enriches the output with pick rates and rank distributions.
 
 ### Output
 
@@ -268,19 +198,7 @@ Checks `is_stale(spec, bracket, region, ttl_hours=2)`. If stale, calls `fetch_to
 
 ## 5. `get_tree_structure_tool`
 
-### Purpose
-
-Returns the hierarchical layout of the talent tree for a spec. This is used by the frontend to render a visual tree where nodes are colored by pick rate.
-
-### Inputs
-
-| Parameter | Type | Default  | Description |
-| --------- | ---- | -------- | ----------- |
-| `spec`    | str  | required | Spec name   |
-
-### What it does
-
-Parses the Blizzard talent tree definition. It groups nodes into "Class", "Spec", and "Hero" trees. For Hero trees, it correctly identifies the two available sub-trees (e.g., Totemic vs Farseer for Restoration Shaman).
+Parses the Blizzard talent tree definition into "Class", "Spec", and "Hero" trees. For Hero trees, it identifies the two sub-trees available to the spec (e.g., Totemic vs Farseer for Restoration Shaman) via `spec_data.hero_talent_trees`.
 
 ### Output
 
@@ -305,25 +223,7 @@ Parses the Blizzard talent tree definition. It groups nodes into "Class", "Spec"
 
 ## 6. `build_page_tool`
 
-### Purpose
-
-Generates a beautiful, interactive, self-contained HTML report for a spec and bracket.
-
-### Inputs
-
-| Parameter | Type | Default  | Description      |
-| --------- | ---- | -------- | ---------------- |
-| `spec`    | str  | required | Spec name        |
-| `bracket` | str  | required | PvP bracket      |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"` |
-
-### What it does
-
-1. Calls `get_full_summary_tool` and `get_tree_structure_tool`.
-2. Bundles the data with a React-based frontend template.
-3. Inlines all CSS and JS to create a single standalone `.html` file.
-4. Writes the file to `frontend/pages/{spec}_{bracket}.html`.
-5. Returns the local URL and file path.
+Pipeline: calls `get_full_summary` + `get_tree_structure`, bundles the data with the React frontend template, inlines all CSS/JS into a single standalone `.html`, writes it to `frontend/pages/{spec}_{bracket}.html`, and returns the local URL.
 
 ### Output
 
@@ -342,21 +242,7 @@ Generates a beautiful, interactive, self-contained HTML report for a spec and br
 
 ## 7. `get_player_details_tool`
 
-### Purpose
-
-Returns the full talent loadout and gear for a single specific player by name. Useful for inspecting a top player's exact build, or comparing two players.
-
-### Inputs
-
-| Parameter | Type | Default  | Description                                 |
-| --------- | ---- | -------- | ------------------------------------------- |
-| `name`    | str  | required | Character name (case-insensitive)           |
-| `realm`   | str  | required | Realm slug, e.g. `"area-52"`, `"stormrage"` |
-| `region`  | str  | `"us"`   | `"us"` or `"eu"`                            |
-
-### What it does
-
-Queries the local SQLite cache directly. Does **not** hit the Blizzard API. The player must have been included in a previous `fetch_top_players` call for their spec and bracket.
+Queries the local SQLite cache directly — does **not** hit the Blizzard API. The player must have been included in a previous `fetch_top_players` call for their spec and bracket.
 
 ### Output (found)
 
@@ -387,13 +273,7 @@ Queries the local SQLite cache directly. Does **not** hit the Blizzard API. The 
 
 `talent_code` is the WoW talent export string — can be pasted directly into the in-game talent UI to copy the build.
 
-### Output (not found)
-
-```json
-{
-  "error": "Player Healbot-area-52 not found in cache. Fetch their spec first."
-}
-```
+Not found returns `{"error": "Player Healbot-area-52 not found in cache. Fetch their spec first."}`.
 
 ### Known limitations
 
