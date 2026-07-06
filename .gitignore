@@ -15,3 +15,7 @@ build/
 .worktrees/
 *.log
 app_output.txt
+.coverage
+node_modules/
+.codex/
+.mcp.json

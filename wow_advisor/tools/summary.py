@@ -1,7 +1,12 @@
+import logging
+
 from wow_advisor.cache.db import get_default_db
 from wow_advisor.cache.store import CacheStore
 from wow_advisor.normalize import normalize_spec, normalize_bracket
+from wow_advisor.settings import AGGREGATION_TTL_HOURS
 from wow_advisor.tools.fetch import fetch_top_players
+
+logger = logging.getLogger(__name__)
 
 
 def _enrich_talents(talents: dict, node_map: dict[int, dict]) -> dict:
@@ -56,7 +61,7 @@ def get_full_summary(spec: str, bracket: str, region: str = "us", locale: str = 
     conn = get_default_db()
     store = CacheStore(conn)
 
-    if store.is_stale(spec, bracket, region, ttl_hours=2, locale=locale):
+    if store.is_stale(spec, bracket, region, ttl_hours=AGGREGATION_TTL_HOURS, locale=locale):
         result = fetch_top_players(spec=spec, bracket=bracket, region=region, locale=locale)
         if "error" in result:
             return result
@@ -72,7 +77,9 @@ def get_full_summary(spec: str, bracket: str, region: str = "us", locale: str = 
         _, client = _make_client(region)
         node_map = TalentNameCache(conn).resolve(spec, client, locale=locale)
     except Exception:
-        pass
+        # Names are an enrichment, not a hard dependency — degrade to raw IDs,
+        # but leave a trace so all-null names are debuggable.
+        logger.warning("Talent name resolution failed for %s (%s)", spec, locale, exc_info=True)
 
     return {
         "spec": spec,

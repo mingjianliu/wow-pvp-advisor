@@ -3,10 +3,9 @@ import re
 import httpx
 from wow_advisor.api.auth import BnetAuth
 from wow_advisor.api.models import LeaderboardEntry, CharacterData, TalentData, GearSlot
+from wow_advisor.settings import CURRENT_SEASON_ID, API_CONCURRENCY
 
-CURRENT_SEASON_ID = 41
 _API_BASE = "https://{region}.api.blizzard.com"
-_CONCURRENCY = 10
 
 
 def _headers(token: str, namespace: str) -> dict:
@@ -45,8 +44,6 @@ def _parse_talents(spec_data: dict, spec_id: int, spec_name: str | None = None) 
         if s_info.get("id") and spec_id and s_info.get("id") == spec_id:
             matched = True
         elif s_info.get("name") and spec_name and s_info.get("name").lower() == spec_name.lower():
-            matched = True
-        elif not spec_id and s_info.get("name") and spec_name and s_info.get("name").lower() == spec_name.lower():
             matched = True
 
         if not matched:
@@ -93,7 +90,7 @@ class BnetClient:
         self._auth = auth
         self._region = region
         self._base = _API_BASE.format(region=region)
-        self._semaphore = asyncio.Semaphore(_CONCURRENCY)
+        self._semaphore = asyncio.Semaphore(API_CONCURRENCY)
 
     async def _get(self, client: httpx.AsyncClient, url: str, namespace: str, locale: str = "en_US") -> dict | None:
         token = await self._auth.get_token()

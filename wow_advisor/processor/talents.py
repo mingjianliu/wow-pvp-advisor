@@ -1,6 +1,16 @@
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
+from wow_advisor.settings import (
+    CORE_PICK_RATE,
+    FLEX_PICK_RATE,
+    HAC_THRESHOLD,
+    MAX_DECISION_NODES,
+    WEIGHT_CHOICE_NODE,
+    WEIGHT_MAJOR_NODE,
+    WEIGHT_UTILITY_NODE,
+)
+
 
 @dataclass
 class TalentAnalysis:
@@ -15,8 +25,8 @@ class TalentAnalysis:
 def analyze_talents(
     node_sets: list[set[int]],
     node_ranks_list: list[dict[int, int]] | None = None,
-    core_threshold: float = 0.8,
-    flex_threshold: float = 0.2,
+    core_threshold: float = CORE_PICK_RATE,
+    flex_threshold: float = FLEX_PICK_RATE,
     node_meta: dict[int, dict] | None = None,
 ) -> TalentAnalysis:
     if not node_sets:
@@ -71,8 +81,12 @@ def _weighted_jaccard_distance(
 
     for nid in all_nodes:
         meta = node_meta.get(nid, {"row": 0, "type": "circle"})
-        # Weights: Choice=20, Major=5, Utility=0.1
-        weight = 20.0 if meta.get("type") == "diamond" else (5.0 if meta.get("row") >= 5 else 0.1)
+        if meta.get("type") == "diamond":
+            weight = WEIGHT_CHOICE_NODE
+        elif meta.get("row") >= 5:
+            weight = WEIGHT_MAJOR_NODE
+        else:
+            weight = WEIGHT_UTILITY_NODE
 
         # Scale by pick rate variance/entropy if pick_rates is provided
         if pick_rates is not None:
@@ -135,61 +149,55 @@ def cluster_talents_hac(
     pairs: list[tuple[set[int], int]],
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
-    threshold: float = 0.3,
+    threshold: float = HAC_THRESHOLD,
     pick_rates: dict[int, float] | None = None,
+    linkage: str = "complete",
 ) -> list[list[tuple[set[int], int]]]:
     """
     Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
-    with Complete Linkage and Weighted Jaccard Distance.
+    with Weighted Jaccard Distance.
+
+    linkage: "complete" (max pairwise distance) or "average" (mean pairwise distance).
     """
+    if linkage not in ("complete", "average"):
+        raise ValueError(f"Unknown linkage: {linkage!r}")
     if not pairs:
         return []
 
-    # Every point starts as its own cluster (a list containing one pair and its original index)
-    # We store (pair, original_index) to look up node_ranks
+    # Every point starts as its own cluster (a list containing one pair and its
+    # original index, so node_ranks can be looked up later)
     clusters = [[(pairs[i], i)] for i in range(len(pairs))]
-    
+
     while len(clusters) > 1:
         best_dist = float('inf')
         best_pair = (None, None)
-        
+
         for i in range(len(clusters)):
             for j in range(i + 1, len(clusters)):
-                # Complete Linkage: max distance between all members of clusters
-                max_d = 0.0
-                for (p_a, idx_a) in clusters[i]:
-                    for (p_b, idx_b) in clusters[j]:
-                        d = _weighted_jaccard_distance(
-                            p_a[0], node_ranks_list[idx_a],
-                            p_b[0], node_ranks_list[idx_b],
-                            node_meta,
-                            pick_rates=pick_rates,
-                        )
-                        if d > max_d:
-                            max_d = d
-                            # Optimization: if max_d already exceeds current best_dist, 
-                            # we can stop checking this cluster pair
-                            if max_d >= best_dist:
-                                break
-                    if max_d >= best_dist:
-                        break
-                
-                if max_d < best_dist:
-                     best_dist = max_d
-                     best_pair = (i, j)
-        
+                dists = [
+                    _weighted_jaccard_distance(
+                        p_a[0], node_ranks_list[idx_a],
+                        p_b[0], node_ranks_list[idx_b],
+                        node_meta,
+                        pick_rates=pick_rates,
+                    )
+                    for (p_a, idx_a) in clusters[i]
+                    for (p_b, idx_b) in clusters[j]
+                ]
+                d = max(dists) if linkage == "complete" else sum(dists) / len(dists)
+                if d < best_dist:
+                    best_dist = d
+                    best_pair = (i, j)
+
         if best_dist > threshold:
             break
-            
+
         i, j = best_pair
         clusters[i].extend(clusters[j])
         clusters.pop(j)
-        
+
     # Unwrap (pair, index) back to just pair for the return value
-    final_clusters = []
-    for c in clusters:
-        final_clusters.append([p for p, idx in c])
-        
+    final_clusters = [[p for p, idx in c] for c in clusters]
     return sorted(final_clusters, key=len, reverse=True)
 
 
@@ -197,55 +205,14 @@ def cluster_talents_hac_average(
     pairs: list[tuple[set[int], int]],
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
-    threshold: float = 0.3,
+    threshold: float = HAC_THRESHOLD,
     pick_rates: dict[int, float] | None = None,
 ) -> list[list[tuple[set[int], int]]]:
-    """
-    Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
-    with Average Linkage and Weighted Jaccard Distance.
-    """
-    if not pairs:
-        return []
-
-    # Every point starts as its own cluster
-    clusters = [[(pairs[i], i)] for i in range(len(pairs))]
-    
-    while len(clusters) > 1:
-        best_dist = float('inf')
-        best_pair = (None, None)
-        
-        for i in range(len(clusters)):
-            for j in range(i + 1, len(clusters)):
-                # Average Linkage: average distance between all pairs in the two clusters
-                total_d = 0.0
-                count = 0
-                for (p_a, idx_a) in clusters[i]:
-                    for (p_b, idx_b) in clusters[j]:
-                        d = _weighted_jaccard_distance(
-                            p_a[0], node_ranks_list[idx_a],
-                            p_b[0], node_ranks_list[idx_b],
-                            node_meta,
-                            pick_rates=pick_rates,
-                        )
-                        total_d += d
-                        count += 1
-                avg_d = total_d / count if count > 0 else 0.0
-                if avg_d < best_dist:
-                    best_dist = avg_d
-                    best_pair = (i, j)
-        
-        if best_dist > threshold:
-            break
-            
-        i, j = best_pair
-        clusters[i].extend(clusters[j])
-        clusters.pop(j)
-        
-    final_clusters = []
-    for c in clusters:
-        final_clusters.append([p for p, idx in c])
-        
-    return sorted(final_clusters, key=len, reverse=True)
+    """HAC with Average Linkage — thin wrapper around cluster_talents_hac."""
+    return cluster_talents_hac(
+        pairs, node_ranks_list, node_meta,
+        threshold=threshold, pick_rates=pick_rates, linkage="average",
+    )
 
 
 def cluster_talents(
@@ -390,15 +357,14 @@ def summarize_talent_clusters(
     else:
         decision_nodes = analysis.contested_nodes
         method = "variance+weighted"
-        # Auto-limit to the 8 most contested nodes (closest to 50% pick rate).
+        # Auto-limit to the most contested nodes (closest to 50% pick rate).
         # With small samples, 10+ contested nodes fragment into dozens of 1-player clusters.
-        MAX_DECISION = 8
-        if len(decision_nodes) > MAX_DECISION:
+        if len(decision_nodes) > MAX_DECISION_NODES:
             decision_nodes = set(
                 sorted(
                     decision_nodes,
                     key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
-                )[:MAX_DECISION]
+                )[:MAX_DECISION_NODES]
             )
 
     # Partition by Hero Tree choice
@@ -424,7 +390,7 @@ def summarize_talent_clusters(
             group_pairs,
             node_ranks_list=node_ranks_list or [{} for _ in range(n)],
             node_meta=node_meta or {},
-            threshold=0.3,
+            threshold=HAC_THRESHOLD,
             pick_rates=analysis.pick_rates,
         )
         comp_clusters.extend(group_clusters)
@@ -445,7 +411,7 @@ def summarize_talent_clusters(
             group_pairs,
             node_ranks_list=node_ranks_list or [{} for _ in range(n)],
             node_meta=node_meta or {},
-            threshold=0.3,
+            threshold=HAC_THRESHOLD,
             pick_rates=analysis.pick_rates,
         )
         avg_clusters.extend(group_clusters)

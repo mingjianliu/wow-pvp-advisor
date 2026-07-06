@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Manual CLI for fetching and inspecting WoW PvP data.
+"""Developer/debug CLI: fetches and prints raw JSON for inspection.
+
+For the end-user CLI that builds the visual report page, use `wow-advisor`
+(wow_advisor/cli.py) instead.
 
 Usage:
     python cli.py summary <spec> <bracket> [--region us]   # single-command full report

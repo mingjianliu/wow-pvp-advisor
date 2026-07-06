@@ -16,6 +16,7 @@ load_dotenv()
 
 from wow_advisor._paths import get_frontend_dir, get_pages_dir
 from wow_advisor.normalize import normalize_spec, normalize_bracket
+from wow_advisor.settings import AGGREGATION_TTL_HOURS, SERVER_PORT
 from wow_advisor.tools.summary import get_full_summary
 from wow_advisor.talent_tree import get_tree_structure
 
@@ -296,7 +297,7 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
                 needs_build = not full_path.exists()
                 if not needs_build:
                     age = time.time() - full_path.stat().st_mtime
-                    if age > 2 * 3600:
+                    if age > AGGREGATION_TTL_HOURS * 3600:
                         print(f"[Server] {filename} is old ({age/3600:.1f}h). Rebuilding...", flush=True)
                         needs_build = True
                 
@@ -335,7 +336,7 @@ class DynamicReportHandler(http.server.SimpleHTTPRequestHandler):
 _server_started = False
 
 
-def _ensure_server(port: int = 8080) -> None:
+def _ensure_server(port: int = SERVER_PORT) -> None:
     """Start the frontend HTTP server in a background thread if it is not already listening."""
     global _server_started
     if _server_started:
@@ -501,7 +502,7 @@ def build_page(spec: str, bracket: str, region: str = "us", locale: str = "en_US
     out_path = pages_dir / filename
     out_path.write_text(html, encoding="utf-8")
 
-    port = 8080
+    port = SERVER_PORT
     _ensure_server(port)
 
     url = f"http://localhost:{port}/pages/{filename}"

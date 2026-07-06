@@ -9,9 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from wow_advisor.tools.ui import _ensure_server
+from wow_advisor.settings import SERVER_PORT
 
-print("Starting WoW PvP Advisor frontend server on http://localhost:8080...")
-_ensure_server(8080)
+print(f"Starting WoW PvP Advisor frontend server on http://localhost:{SERVER_PORT}...")
+_ensure_server(SERVER_PORT)
 
 print("Server is running. Press Ctrl+C to stop.")
 try:

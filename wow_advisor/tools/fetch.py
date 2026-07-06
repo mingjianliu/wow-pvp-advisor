@@ -1,5 +1,4 @@
 import asyncio
-import os
 import time
 from wow_advisor.api.auth import BnetAuth
 from wow_advisor.api.client import BnetClient
@@ -8,6 +7,7 @@ from wow_advisor.cache.db import get_default_db
 from wow_advisor.cache.store import CacheStore
 from wow_advisor.normalize import normalize_spec, normalize_bracket, spec_to_class_spec
 from wow_advisor.processor.aggregator import build_aggregation
+from wow_advisor.settings import AGGREGATION_TTL_HOURS, MissingCredentialsError, get_credentials
 
 
 def slugify(s: str) -> str:
@@ -15,8 +15,7 @@ def slugify(s: str) -> str:
 
 
 def _make_client(region: str) -> tuple[BnetAuth, BnetClient]:
-    client_id = os.environ["BNET_CLIENT_ID"]
-    client_secret = os.environ["BNET_CLIENT_SECRET"]
+    client_id, client_secret = get_credentials()
     auth = BnetAuth(client_id=client_id, client_secret=client_secret, region=region)
     return auth, BnetClient(auth=auth, region=region)
 
@@ -36,10 +35,10 @@ async def fetch_top_players_async(
     if ids is None:
         return {"error": f"Unknown spec: {spec}. Check spelling or add it to normalize.py."}
 
-    # Skip API fetch if data is less than 2 hours old
+    # Skip API fetch if data is fresher than the TTL
     conn = get_default_db()
     store = CacheStore(conn)
-    if not store.is_stale(spec, bracket, region, ttl_hours=2, locale=locale):
+    if not store.is_stale(spec, bracket, region, ttl_hours=AGGREGATION_TTL_HOURS, locale=locale):
         agg = store.get_aggregation(spec, bracket, region, locale=locale)
         return {"fetched": agg.get("sample_size", 0), "cached_at": agg.get("cached_at"), "spec": spec, "bracket": bracket, "skipped": True}
 
@@ -48,7 +47,10 @@ async def fetch_top_players_async(
     class_spec = spec_to_class_spec(spec)
     target_class, target_spec = class_spec
 
-    _, client = _make_client(region)
+    try:
+        _, client = _make_client(region)
+    except MissingCredentialsError as e:
+        return {"error": str(e)}
 
     # Solo Shuffle leaderboard is spec-specific: shuffle-{class}-{spec}
     api_bracket = bracket

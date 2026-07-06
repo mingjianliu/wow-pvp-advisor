@@ -4,11 +4,11 @@
 
 ### 🔴 Tier 1 — Low effort, high payoff
 
-- [ ] **Centralize config into a `settings.py`** — TTL `2h` is hardcoded in three places (`tools/fetch.py:42`, `tools/summary.py:59`, `tools/ui.py:299` as `2 * 3600`); port 8080, concurrency 10, HAC threshold 0.3, `MAX_DECISION = 8`, and jaccard weights 20/5/0.1 are all magic numbers buried in function bodies. `.env` loading is scattered across three entry points (`mcp_server.py`, `cli.py`, module-level in `tools/ui.py`) while a separate `config.py` `load_config()` mechanism coexists. Also `fetch.py:18` does bare `os.environ["BNET_CLIENT_ID"]` — missing creds raise a raw `KeyError` instead of a friendly error. (Season ID automation is already tracked in TODO below.)
-- [ ] **Merge the two copy-pasted HAC functions** — `cluster_talents_hac` and `cluster_talents_hac_average` (`processor/talents.py:134-248`) are ~90% identical, differing only in the linkage formula. Parameterize into one function with a linkage strategy.
-- [ ] **Remove dead branch in `_parse_talents`** — the third `elif not spec_id and ...` at `api/client.py:49` is unreachable; the second branch's condition is a superset of it.
-- [ ] **Stop swallowing talent-name resolution errors** — `tools/summary.py:74-75` has `except Exception: pass` around `TalentNameCache.resolve`; failures silently produce all-null names with no way to debug. At minimum log the exception.
-- [ ] **Repo hygiene** — `tests/visual/node_modules` is not in `.gitignore` (dozens of untracked entries); `.coverage`, `server.log`, `app_output.txt`, `dist/`, `build/`, `reproduce_issue.py` sit in the repo root; root `cli.py` and `wow_advisor/cli.py` are two parallel CLIs.
+- [x] **Centralize config into a `settings.py`** — (RESOLVED 2026-07-06) Added `wow_advisor/settings.py` holding TTL, port, concurrency, season ID, clustering thresholds, and jaccard weights; all call sites now import from it. Missing credentials now raise a friendly `MissingCredentialsError` instead of a raw `KeyError`. Remaining: `.env` loading is still per-entry-point (acceptable), and season ID automation is tracked in TODO below.
+- [x] **Merge the two copy-pasted HAC functions** — (RESOLVED 2026-07-06) `cluster_talents_hac` now takes `linkage="complete"|"average"`; `cluster_talents_hac_average` kept as a thin wrapper for existing callers.
+- [x] **Remove dead branch in `_parse_talents`** — (RESOLVED 2026-07-06) Removed the unreachable third `elif` in `api/client.py`.
+- [x] **Stop swallowing talent-name resolution errors** — (RESOLVED 2026-07-06) `tools/summary.py` now logs a warning with traceback instead of `except Exception: pass`.
+- [x] **Repo hygiene** — (RESOLVED 2026-07-06) `.gitignore` now covers `node_modules/`, `.coverage`, `.codex/`, `.mcp.json` (logs/`dist`/`build` were already ignored); untracked `.coverage`, deleted `reproduce_issue.py`. Root `cli.py` (developer JSON CLI) and `wow_advisor/cli.py` (`wow-advisor` end-user CLI) turned out to be different tools, not duplicates — docstrings now state the distinction.
 
 ### 🟡 Tier 2 — Medium effort
 

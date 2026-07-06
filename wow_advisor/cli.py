@@ -1,5 +1,7 @@
 """
-WoW Advisor CLI
+WoW Advisor CLI — end-user entry point that builds and opens the visual report page.
+
+For the developer/debug CLI that prints raw JSON, use the repo-root cli.py instead.
 
 Usage:
   wow-advisor <spec> <bracket> [--region us|eu] [--refresh] [--no-open]
@@ -74,7 +76,8 @@ def main() -> None:
         def slugify(s: str) -> str:
             return s.lower().replace(" ", "-")
             
-        port = 8080
+        from wow_advisor.settings import SERVER_PORT
+        port = SERVER_PORT
         _ensure_server(port)
         
         # We don't have the class name directly without looking it up, but we know it's a valid slug.
