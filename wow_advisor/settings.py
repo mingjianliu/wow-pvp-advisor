@@ -11,7 +11,8 @@ CURRENT_SEASON_ID = 41
 API_CONCURRENCY = 10
 
 # --- Cache ---
-AGGREGATION_TTL_HOURS = 2
+AGGREGATION_TTL_HOURS = 2   # full summary / page builds refresh at this age
+QUERY_TTL_HOURS = 24        # talent/gear query tools tolerate older data
 
 # --- Frontend HTTP server ---
 SERVER_PORT = 8080

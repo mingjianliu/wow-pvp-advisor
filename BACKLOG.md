@@ -18,6 +18,14 @@
 - [ ] **Locale-keyed cache double-fetches Blizzard data** — players/aggregations are cached per `locale` (`cache/db.py:38`), but talent node IDs and item IDs are language-independent. Building zh + en pages hits the Blizzard API twice and the two pages are snapshots from different moments. Store IDs once; resolve names at display time per locale (the `TalentNameCache` / wowhead tooltip pattern already does this).
 - [ ] **Replace `{"error": ...}` dict convention with exceptions internally** — errors propagate via `if "error" in result` through `fetch.py` → `summary.py` → `ui.py` → `talent_tree.py`; the convention is fragile and easy to skip in middle layers. Raise typed exceptions internally; convert to error dicts only at the MCP tool boundary in `mcp_server.py`.
 
+### 🟠 Tier 2.5 — Quick wins from second review pass (2026-07-07)
+
+- [x] **`wow-advisor` entry point missing** — (RESOLVED 2026-07-07) `pyproject.toml` had no `[project.scripts]`, so the command that `wow_advisor/cli.py` and the docs referenced never existed. Added `wow-advisor = "wow_advisor.cli:main"`.
+- [x] **Spec domain table duplicated 3× in Python** — (RESOLVED 2026-07-07) `ui._SPEC_LABELS` and `talent_names.SPEC_IDS` are now derived from `normalize._SPEC_INFO_MAP` (single source). The frontend `app.jsx` `CLASSES` table remains a 4th copy — fold into the Tier 3 frontend-precompile work (generate it at build time).
+- [x] **Query-tool TTL was an implicit default** — (RESOLVED 2026-07-07) Added `QUERY_TTL_HOURS = 24` to settings; `get_gear_summary` and `get_talent_distribution` now pass it explicitly instead of relying on `store.is_stale`'s signature default.
+- [x] **One-off debug scripts** — (RESOLVED 2026-07-07) Deleted `run_app.py` (PyInstaller smoke test with hardcoded dist path) and `scripts/{debug_clustering,debug_clustering_v2,linkage_comparison,ab_test_batch}.py` (clustering-tuning era leftovers; `linkage_comparison` embedded a stale copy of the average-linkage implementation). Kept `fetch_all_specs`, `fetch_healers`, `get_spec_clusters`.
+- [ ] **Keystone mechanism is dead code** — `data/keystone_talents.json` is `{}`; the whole override path (`_load_keystone_nodes`, the `keystone` branch in `summarize_talent_clusters`, docs mentions) has never fired. Decide: populate it for key specs, or remove the mechanism. (User decision pending.)
+
 ### 🟢 Tier 3 — Larger refactors
 
 - [ ] **Unify on async end-to-end** — the codebase flip-flops: `fetch_top_players` is a sync `asyncio.run` wrapper; `talent_tree.py:151-172` spawns a thread just to `asyncio.run` when already inside a loop; `build_page` calls `asyncio.run(prefetch_tooltips(...))` twice back-to-back (`ui.py:470-471`), each rebuilding an event loop and `httpx.AsyncClient` with zero TCP reuse. FastMCP supports async tools — make tools `async def`, give `BnetClient` one long-lived `AsyncClient` (currently `_get_static`/`fetch_leaderboard`/`fetch_character_details` create ad-hoc clients while `fetch_character_spec` requires one passed in), and keep `asyncio.run` only at CLI entry points.
@@ -34,10 +42,12 @@
 
 ## Missing Test Coverage
 
-- [ ] `get_player_details` in `tools/gear.py` — no test. Should save players via `CacheStore`, then verify `get_player_details` returns correct talent code and gear.
-- [ ] 429 retry behavior in `client._get` — the exponential backoff path has zero coverage. Add a `respx` test that returns two 429s then a 200.
-- [ ] `fetch_character_spec` and `fetch_character_details` — the two new Phase 1/2 methods added in the two-phase fetch refactor have no unit tests.
-- [ ] `_parse_gear` enchant markup stripping — should have a unit test for the `|A:...|a` regex.
+All four items below turned out to already be covered (verified 2026-07-07):
+
+- [x] `get_player_details` — `tests/test_gear_tools.py` (found + not-found cases)
+- [x] 429 retry behavior in `client._get` — `tests/test_client_retries.py` (success, exhausted, timeout)
+- [x] `fetch_character_spec` / `fetch_character_details` — `tests/test_client_extra.py`
+- [x] `_parse_gear` enchant markup stripping — `tests/test_client_extra.py::test_parse_gear_edge_cases`
 
 ## Future Improvements
 

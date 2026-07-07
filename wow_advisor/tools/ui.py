@@ -20,46 +20,11 @@ from wow_advisor.settings import AGGREGATION_TTL_HOURS, SERVER_PORT
 from wow_advisor.tools.summary import get_full_summary
 from wow_advisor.talent_tree import get_tree_structure
 
+# Derived from the single spec table in normalize.py — do not hand-maintain.
+from wow_advisor.normalize import _SPEC_INFO_MAP as _SPEC_INFO
+
 _SPEC_LABELS: dict[str, dict[str, str]] = {
-    "affliction-warlock":      {"class": "Warlock",      "spec": "Affliction"},
-    "arcane-mage":             {"class": "Mage",         "spec": "Arcane"},
-    "arms-warrior":            {"class": "Warrior",      "spec": "Arms"},
-    "assassination-rogue":     {"class": "Rogue",        "spec": "Assassination"},
-    "augmentation-evoker":     {"class": "Evoker",       "spec": "Augmentation"},
-    "balance-druid":           {"class": "Druid",        "spec": "Balance"},
-    "beast-mastery-hunter":    {"class": "Hunter",       "spec": "Beast Mastery"},
-    "blood-death-knight":      {"class": "Death Knight", "spec": "Blood"},
-    "brewmaster-monk":         {"class": "Monk",         "spec": "Brewmaster"},
-    "demonology-warlock":      {"class": "Warlock",      "spec": "Demonology"},
-    "destruction-warlock":     {"class": "Warlock",      "spec": "Destruction"},
-    "devastation-evoker":      {"class": "Evoker",       "spec": "Devastation"},
-    "discipline-priest":       {"class": "Priest",       "spec": "Discipline"},
-    "elemental-shaman":        {"class": "Shaman",       "spec": "Elemental"},
-    "enhancement-shaman":      {"class": "Shaman",       "spec": "Enhancement"},
-    "feral-druid":             {"class": "Druid",        "spec": "Feral"},
-    "fire-mage":               {"class": "Mage",         "spec": "Fire"},
-    "frost-death-knight":      {"class": "Death Knight", "spec": "Frost"},
-    "frost-mage":              {"class": "Mage",         "spec": "Frost"},
-    "fury-warrior":            {"class": "Warrior",      "spec": "Fury"},
-    "guardian-druid":          {"class": "Druid",        "spec": "Guardian"},
-    "havoc-demon-hunter":      {"class": "Demon Hunter", "spec": "Havoc"},
-    "holy-paladin":            {"class": "Paladin",      "spec": "Holy"},
-    "holy-priest":             {"class": "Priest",       "spec": "Holy"},
-    "marksmanship-hunter":     {"class": "Hunter",       "spec": "Marksmanship"},
-    "mistweaver-monk":         {"class": "Monk",         "spec": "Mistweaver"},
-    "outlaw-rogue":            {"class": "Rogue",        "spec": "Outlaw"},
-    "preservation-evoker":     {"class": "Evoker",       "spec": "Preservation"},
-    "protection-paladin":      {"class": "Paladin",      "spec": "Protection"},
-    "protection-warrior":      {"class": "Warrior",      "spec": "Protection"},
-    "restoration-druid":       {"class": "Druid",        "spec": "Restoration"},
-    "restoration-shaman":      {"class": "Shaman",       "spec": "Restoration"},
-    "retribution-paladin":     {"class": "Paladin",      "spec": "Retribution"},
-    "shadow-priest":           {"class": "Priest",       "spec": "Shadow"},
-    "subtlety-rogue":          {"class": "Rogue",        "spec": "Subtlety"},
-    "survival-hunter":         {"class": "Hunter",       "spec": "Survival"},
-    "unholy-death-knight":     {"class": "Death Knight", "spec": "Unholy"},
-    "vengeance-demon-hunter":  {"class": "Demon Hunter", "spec": "Vengeance"},
-    "windwalker-monk":         {"class": "Monk",         "spec": "Windwalker"},
+    slug: {"class": info[2], "spec": info[3]} for slug, info in _SPEC_INFO.items()
 }
 
 _GEAR_SLOT_LABELS: dict[str, str] = {
