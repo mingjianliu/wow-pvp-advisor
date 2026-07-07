@@ -90,3 +90,30 @@ def test_is_stale_fresh(store):
 
 def test_is_stale_missing(store):
     assert store.is_stale("arms-warrior", "3v3", "us", ttl_hours=24)
+
+
+def test_get_default_db_reuses_connection_within_thread(tmp_path, monkeypatch):
+    import wow_advisor._paths as paths
+    from wow_advisor.cache.db import get_default_db
+    monkeypatch.setattr(paths, "get_db_path", lambda: tmp_path / "reuse.db")
+    c1 = get_default_db()
+    c2 = get_default_db()
+    assert c1 is c2
+
+
+def test_get_default_db_separate_connection_per_thread(tmp_path, monkeypatch):
+    import threading
+    import wow_advisor._paths as paths
+    from wow_advisor.cache.db import get_default_db
+    monkeypatch.setattr(paths, "get_db_path", lambda: tmp_path / "threads.db")
+    main_conn = get_default_db()
+    other = {}
+    t = threading.Thread(target=lambda: other.setdefault("conn", get_default_db()))
+    t.start()
+    t.join()
+    assert other["conn"] is not main_conn
+    # Both connections see the same schema
+    tables = {r[0] for r in other["conn"].execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    )}
+    assert "players" in tables and "aggregations" in tables

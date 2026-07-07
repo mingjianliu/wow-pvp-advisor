@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import threading
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS players (
@@ -61,18 +62,45 @@ CREATE INDEX IF NOT EXISTS idx_loadouts_player_id ON player_loadouts(player_id);
 """
 
 
+def _connect(path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(path, check_same_thread=False)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def init_db(path: str) -> sqlite3.Connection:
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    conn = sqlite3.connect(path, check_same_thread=False)
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.row_factory = sqlite3.Row
+    conn = _connect(path)
     conn.executescript(_SCHEMA)
     conn.commit()
     return conn
 
 
+# Default-DB connections are reused: one per thread per path (sqlite3
+# connections are not safe to share across threads without locking), with
+# the schema initialized only once per path per process.
+_local = threading.local()
+_initialized_paths: set[str] = set()
+_init_lock = threading.Lock()
+
+
 def get_default_db() -> sqlite3.Connection:
     from wow_advisor._paths import get_db_path
-    return init_db(str(get_db_path()))
+    path = str(get_db_path())
+
+    conns: dict[str, sqlite3.Connection] = getattr(_local, "conns", None)
+    if conns is None:
+        conns = _local.conns = {}
+    conn = conns.get(path)
+    if conn is None:
+        with _init_lock:
+            if path in _initialized_paths:
+                conn = _connect(path)
+            else:
+                conn = init_db(path)
+                _initialized_paths.add(path)
+        conns[path] = conn
+    return conn
