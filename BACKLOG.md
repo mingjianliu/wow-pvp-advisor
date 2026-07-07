@@ -2,6 +2,17 @@
 
 ## Code Review 2026-07-06 — Design & Architecture
 
+**Commits landed from this review (2026-07-06 → 07-07):**
+
+| Commit    | Summary                                                                                                                                                                                                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `9268c3b` | docs: AGENTS.md as single agent-instruction source (CLAUDE.md symlink), drop Gemini CLI support, delete stale HANDOFF/implementer files, archive completed plans/specs, slim docs/mcp-tools.md (410→290 lines), fix README numbering                                                  |
+| `e0e6716` | Tier 1: add `wow_advisor/settings.py` (all tunable constants + friendly `MissingCredentialsError`), merge the two HAC functions behind a `linkage=` param, remove dead `_parse_talents` branch, log swallowed talent-name errors, gitignore/untrack junk, clarify the two CLIs' roles |
+| `c565cff` | untrack 182 `tests/visual/node_modules` files that predated the gitignore                                                                                                                                                                                                             |
+| `5294840` | Tier 2: `_DistanceCache` shared across HAC/silhouette/medoid; fix HAC rank lookup using pairs-list position instead of original player index; fix hero partition to group by tree identity (`hero_tree: left/right`) instead of exact node sets; rebuilt all 18 cached aggregations   |
+| `eca6024` | Tier 2: `get_default_db()` reuses one connection per thread per path; schema init once per path per process                                                                                                                                                                           |
+| `060dcbe` | Tier 2.5 quick wins: add missing `wow-advisor` entry point, derive spec tables from `normalize._SPEC_INFO_MAP` (3 copies → 1), explicit `QUERY_TTL_HOURS`, delete 5 one-off debug scripts, mark 4 stale "missing test" items as already covered                                       |
+
 ### 🔴 Tier 1 — Low effort, high payoff
 
 - [x] **Centralize config into a `settings.py`** — (RESOLVED 2026-07-06) Added `wow_advisor/settings.py` holding TTL, port, concurrency, season ID, clustering thresholds, and jaccard weights; all call sites now import from it. Missing credentials now raise a friendly `MissingCredentialsError` instead of a raw `KeyError`. Remaining: `.env` loading is still per-entry-point (acceptable), and season ID automation is tracked in TODO below.
