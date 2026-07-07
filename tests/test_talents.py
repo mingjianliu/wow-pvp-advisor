@@ -346,3 +346,55 @@ def test_cluster_talents_hac_average():
 
 
 
+
+
+def test_hero_partition_same_tree_different_picks():
+    # Hero trees contain choice nodes: two players on the SAME tree with
+    # different exact picks must land in one partition.
+    from wow_advisor.processor.talents import _hero_partition
+    node_sets = [{1, 100}, {1, 101}]
+    node_meta = {
+        100: {"is_hero": True, "hero_tree": "left", "type": "circle", "row": 0},
+        101: {"is_hero": True, "hero_tree": "left", "type": "circle", "row": 0},
+    }
+    groups = _hero_partition(node_sets, {100, 101}, node_meta)
+    assert len(groups) == 1
+    assert list(groups.values())[0] == [0, 1]
+
+
+def test_hero_partition_different_trees_split():
+    from wow_advisor.processor.talents import _hero_partition
+    node_sets = [{1, 100}, {1, 101}]
+    node_meta = {
+        100: {"is_hero": True, "hero_tree": "left", "type": "circle", "row": 0},
+        101: {"is_hero": True, "hero_tree": "right", "type": "circle", "row": 0},
+    }
+    groups = _hero_partition(node_sets, {100, 101}, node_meta)
+    assert len(groups) == 2
+
+
+def test_hero_partition_falls_back_to_exact_sets_without_side_info():
+    # Without "hero_tree" side info, grouping degrades to exact node sets
+    # (the pre-fix behavior), so differing hero picks still split.
+    from wow_advisor.processor.talents import _hero_partition
+    node_sets = [{1, 100}, {1, 101}]
+    node_meta = {
+        100: {"is_hero": True, "type": "circle", "row": 0},
+        101: {"is_hero": True, "type": "circle", "row": 0},
+    }
+    groups = _hero_partition(node_sets, {100, 101}, node_meta)
+    assert len(groups) == 2
+
+
+def test_hac_uses_original_indices_for_ranks():
+    # Regression: HAC must look up node_ranks by the ORIGINAL player index
+    # carried in each pair, not by position within the (possibly subset)
+    # pairs list. Players 2 and 3 have identical builds and ranks, so they
+    # must merge — the buggy positional lookup would read players 0/1's
+    # wildly different ranks and split them.
+    from wow_advisor.processor.talents import cluster_talents_hac
+    node_ranks_list = [{1: 1}, {1: 100}, {1: 1}, {1: 1}]
+    pairs = [({1}, 2), ({1}, 3)]
+    node_meta = {1: {"row": 0, "type": "circle"}}
+    clusters = cluster_talents_hac(pairs, node_ranks_list, node_meta, threshold=0.3)
+    assert len(clusters) == 1

@@ -98,7 +98,9 @@ def build_aggregation(
                     "type": node["type"],
                     "is_hero": False,
                 }
-        # Extract from hero trees
+        # Extract from hero trees. "hero_tree" records which tree the node
+        # belongs to so clustering can partition players by tree identity
+        # rather than by exact node picks (hero trees contain choice nodes).
         hero_trees = tree_data.get("heroTrees", {})
         for side in ["left", "right"]:
             hero_tree = hero_trees.get(side, {})
@@ -107,6 +109,7 @@ def build_aggregation(
                     "row": node["row"],
                     "type": node["type"],
                     "is_hero": True,
+                    "hero_tree": side,
                 }
 
     player_info = [{"name": p.name, "realm": p.realm, "region": p.region} for p in players_with_talent]

@@ -109,11 +109,59 @@ def _weighted_jaccard_distance(
     return 1.0 - (weighted_intersection / weighted_union) if weighted_union > 0.0 else 0.0
 
 
+class _DistanceCache:
+    """Memoized pairwise weighted-Jaccard distances, keyed by original player index.
+
+    Built once per dataset and shared across HAC (both linkages), silhouette
+    scoring, and medoid selection, so each pair's distance is computed at most
+    once instead of once per consumer per merge iteration.
+    """
+
+    def __init__(
+        self,
+        node_sets_by_idx: dict[int, set[int]],
+        node_ranks_list: list[dict[int, int]],
+        node_meta: dict[int, dict],
+        pick_rates: dict[int, float] | None = None,
+    ):
+        self._sets = node_sets_by_idx
+        self._ranks = node_ranks_list
+        self._meta = node_meta
+        self._pick_rates = pick_rates
+        self._memo: dict[tuple[int, int], float] = {}
+
+    @classmethod
+    def from_pairs(
+        cls,
+        pairs: list[tuple[set[int], int]],
+        node_ranks_list: list[dict[int, int]],
+        node_meta: dict[int, dict],
+        pick_rates: dict[int, float] | None = None,
+    ) -> "_DistanceCache":
+        return cls({idx: nodes for nodes, idx in pairs}, node_ranks_list, node_meta, pick_rates)
+
+    def __call__(self, idx_a: int, idx_b: int) -> float:
+        if idx_a == idx_b:
+            return 0.0
+        key = (idx_a, idx_b) if idx_a < idx_b else (idx_b, idx_a)
+        d = self._memo.get(key)
+        if d is None:
+            d = _weighted_jaccard_distance(
+                self._sets[idx_a], self._ranks[idx_a],
+                self._sets[idx_b], self._ranks[idx_b],
+                self._meta,
+                pick_rates=self._pick_rates,
+            )
+            self._memo[key] = d
+        return d
+
+
 def _calculate_medoid(
     cluster: list[tuple[set[int], int]],
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
     pick_rates: dict[int, float] | None = None,
+    dist: _DistanceCache | None = None,
 ) -> tuple[set[int], int]:
     """
     Find the cluster member (node_set, original_index) that has the minimum
@@ -124,20 +172,14 @@ def _calculate_medoid(
     if len(cluster) == 1:
         return cluster[0]
 
+    if dist is None:
+        dist = _DistanceCache.from_pairs(cluster, node_ranks_list, node_meta, pick_rates)
+
     best_member = cluster[0]
     min_sum_dist = float('inf')
 
     for member_a, idx_a in cluster:
-        sum_dist = 0.0
-        for member_b, idx_b in cluster:
-            if idx_a == idx_b:
-                continue
-            sum_dist += _weighted_jaccard_distance(
-                member_a, node_ranks_list[idx_a],
-                member_b, node_ranks_list[idx_b],
-                node_meta,
-                pick_rates=pick_rates,
-            )
+        sum_dist = sum(dist(idx_a, idx_b) for _, idx_b in cluster if idx_b != idx_a)
         if sum_dist < min_sum_dist:
             min_sum_dist = sum_dist
             best_member = (member_a, idx_a)
@@ -152,6 +194,7 @@ def cluster_talents_hac(
     threshold: float = HAC_THRESHOLD,
     pick_rates: dict[int, float] | None = None,
     linkage: str = "complete",
+    dist: _DistanceCache | None = None,
 ) -> list[list[tuple[set[int], int]]]:
     """
     Cluster talent builds using Agglomerative Hierarchical Clustering (HAC)
@@ -164,9 +207,11 @@ def cluster_talents_hac(
     if not pairs:
         return []
 
-    # Every point starts as its own cluster (a list containing one pair and its
-    # original index, so node_ranks can be looked up later)
-    clusters = [[(pairs[i], i)] for i in range(len(pairs))]
+    if dist is None:
+        dist = _DistanceCache.from_pairs(pairs, node_ranks_list, node_meta, pick_rates)
+
+    # Every (node_set, original_index) pair starts as its own cluster
+    clusters = [[pair] for pair in pairs]
 
     while len(clusters) > 1:
         best_dist = float('inf')
@@ -175,14 +220,9 @@ def cluster_talents_hac(
         for i in range(len(clusters)):
             for j in range(i + 1, len(clusters)):
                 dists = [
-                    _weighted_jaccard_distance(
-                        p_a[0], node_ranks_list[idx_a],
-                        p_b[0], node_ranks_list[idx_b],
-                        node_meta,
-                        pick_rates=pick_rates,
-                    )
-                    for (p_a, idx_a) in clusters[i]
-                    for (p_b, idx_b) in clusters[j]
+                    dist(idx_a, idx_b)
+                    for _, idx_a in clusters[i]
+                    for _, idx_b in clusters[j]
                 ]
                 d = max(dists) if linkage == "complete" else sum(dists) / len(dists)
                 if d < best_dist:
@@ -196,9 +236,7 @@ def cluster_talents_hac(
         clusters[i].extend(clusters[j])
         clusters.pop(j)
 
-    # Unwrap (pair, index) back to just pair for the return value
-    final_clusters = [[p for p, idx in c] for c in clusters]
-    return sorted(final_clusters, key=len, reverse=True)
+    return sorted(clusters, key=len, reverse=True)
 
 
 def cluster_talents_hac_average(
@@ -248,13 +286,14 @@ def calculate_silhouette_scores(
     node_ranks_list: list[dict[int, int]],
     node_meta: dict[int, dict],
     pick_rates: dict[int, float] | None = None,
+    dist: _DistanceCache | None = None,
 ) -> dict[int, float]:
     """
     Calculate the silhouette score for each player index in the dataset.
     Returns a dictionary mapping original player index to their silhouette score.
     """
     scores = {}
-    
+
     # Flatten clusters to map each index to its cluster id
     idx_to_cluster = {}
     for cluster_id, cluster in enumerate(clusters):
@@ -265,26 +304,9 @@ def calculate_silhouette_scores(
     if len(clusters) <= 1:
         return {idx: 0.0 for cluster in clusters for _, idx in cluster}
 
-    # Precompute pairwise distances between all points in the dataset
     all_members = [item for cluster in clusters for item in cluster]
-    n_points = len(all_members)
-    dist_matrix = {}
-    
-    for i in range(n_points):
-        nodes_a, idx_a = all_members[i]
-        for j in range(i, n_points):
-            nodes_b, idx_b = all_members[j]
-            if idx_a == idx_b:
-                dist = 0.0
-            else:
-                dist = _weighted_jaccard_distance(
-                    nodes_a, node_ranks_list[idx_a],
-                    nodes_b, node_ranks_list[idx_b],
-                    node_meta,
-                    pick_rates=pick_rates,
-                )
-            dist_matrix[(idx_a, idx_b)] = dist
-            dist_matrix[(idx_b, idx_a)] = dist
+    if dist is None:
+        dist = _DistanceCache.from_pairs(all_members, node_ranks_list, node_meta, pick_rates)
 
     for nodes_a, idx_a in all_members:
         c_a = idx_to_cluster[idx_a]
@@ -294,7 +316,7 @@ def calculate_silhouette_scores(
         if len(cluster_a) <= 1:
             a_val = 0.0
         else:
-            same_cluster_dists = [dist_matrix[(idx_a, idx_b)] for _, idx_b in cluster_a if idx_b != idx_a]
+            same_cluster_dists = [dist(idx_a, idx_b) for _, idx_b in cluster_a if idx_b != idx_a]
             a_val = sum(same_cluster_dists) / len(same_cluster_dists)
 
         # 2. Calculate b(idx_a) - average distance to members of nearest other cluster
@@ -302,7 +324,7 @@ def calculate_silhouette_scores(
         for c_id, cluster_b in enumerate(clusters):
             if c_id == c_a:
                 continue
-            other_cluster_dists = [dist_matrix[(idx_a, idx_b)] for _, idx_b in cluster_b]
+            other_cluster_dists = [dist(idx_a, idx_b) for _, idx_b in cluster_b]
             avg_dist_to_b = sum(other_cluster_dists) / len(other_cluster_dists)
             if avg_dist_to_b < min_other_cluster_dist:
                 min_other_cluster_dist = avg_dist_to_b
@@ -318,6 +340,29 @@ def calculate_silhouette_scores(
         scores[idx_a] = s_val
 
     return scores
+
+
+def _hero_partition(
+    node_sets: list[set[int]],
+    hero_nodes: set[int],
+    node_meta: dict[int, dict],
+) -> dict[tuple, list[int]]:
+    """Group player indices by hero-tree choice.
+
+    Hero trees contain choice nodes, so two players on the same tree may
+    differ in exact node picks — they must still land in one partition.
+    Nodes carrying a "hero_tree" side ("left"/"right") are grouped by that
+    identity; nodes without side info fall back to exact-set grouping.
+    """
+    groups: dict[tuple, list[int]] = {}
+    for i, nodes in enumerate(node_sets):
+        taken = nodes & hero_nodes
+        sides = frozenset(
+            side for nid in taken if (side := node_meta[nid].get("hero_tree"))
+        )
+        unknown = frozenset(nid for nid in taken if not node_meta[nid].get("hero_tree"))
+        groups.setdefault((sides, unknown), []).append(i)
+    return groups
 
 
 def summarize_talent_clusters(
@@ -339,10 +384,20 @@ def summarize_talent_clusters(
             "clustering_method": "none",
         }
 
+    ranks = node_ranks_list or [{} for _ in range(n)]
+    meta = node_meta or {}
+
     analysis = analyze_talents(
         node_sets, node_ranks_list=node_ranks_list, node_meta=node_meta
     )
-    
+
+    # One distance cache shared by both linkages, silhouette scoring, and
+    # medoid selection — each pair's distance is computed at most once.
+    dist = _DistanceCache(
+        {i: node_sets[i] for i in range(n)}, ranks, meta,
+        pick_rates=analysis.pick_rates,
+    )
+
     global_pickers = defaultdict(list)
     if player_info:
         for i, nodes in enumerate(node_sets):
@@ -369,60 +424,41 @@ def summarize_talent_clusters(
 
     # Partition by Hero Tree choice
     hero_nodes = {
-        nid for nid, meta in (node_meta or {}).items() if meta.get("is_hero")
+        nid for nid, m in meta.items() if m.get("is_hero")
     }
-    hero_groups: dict[frozenset[int], list[int]] = {}
-    for i in range(n):
-        h_set = frozenset(node_sets[i] & hero_nodes)
-        if h_set not in hero_groups:
-            hero_groups[h_set] = []
-        hero_groups[h_set].append(i)
+    if hero_nodes:
+        hero_groups = _hero_partition(node_sets, hero_nodes, meta)
+    else:
+        # No hero nodes found (e.g. low level) — treat as one group
+        hero_groups = {(frozenset(), frozenset()): list(range(n))}
 
-    # If no hero nodes found (e.g. low level), treat as one group
-    if not hero_nodes:
-        hero_groups = {frozenset(): list(range(n))}
-
-    # 1. Run Complete Linkage
-    comp_clusters = []
-    for indices in hero_groups.values():
-        group_pairs = [(node_sets[i], i) for i in indices]
-        group_clusters = cluster_talents_hac(
-            group_pairs,
-            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
-            node_meta=node_meta or {},
-            threshold=HAC_THRESHOLD,
+    # Run both linkages over the same partition, sharing the distance cache
+    linkage_results = {}
+    for linkage in ("complete", "average"):
+        clusters_for_linkage = []
+        for indices in hero_groups.values():
+            group_pairs = [(node_sets[i], i) for i in indices]
+            clusters_for_linkage.extend(cluster_talents_hac(
+                group_pairs,
+                node_ranks_list=ranks,
+                node_meta=meta,
+                threshold=HAC_THRESHOLD,
+                pick_rates=analysis.pick_rates,
+                linkage=linkage,
+                dist=dist,
+            ))
+        scores = calculate_silhouette_scores(
+            clusters_for_linkage,
+            node_ranks_list=ranks,
+            node_meta=meta,
             pick_rates=analysis.pick_rates,
+            dist=dist,
         )
-        comp_clusters.extend(group_clusters)
+        mean = sum(scores.values()) / len(scores) if scores else 0.0
+        linkage_results[linkage] = (clusters_for_linkage, scores, mean)
 
-    comp_scores = calculate_silhouette_scores(
-        comp_clusters,
-        node_ranks_list=node_ranks_list or [{} for _ in range(n)],
-        node_meta=node_meta or {},
-        pick_rates=analysis.pick_rates,
-    )
-    comp_mean = sum(comp_scores.values()) / len(comp_scores) if comp_scores else 0.0
-
-    # 2. Run Average Linkage
-    avg_clusters = []
-    for indices in hero_groups.values():
-        group_pairs = [(node_sets[i], i) for i in indices]
-        group_clusters = cluster_talents_hac_average(
-            group_pairs,
-            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
-            node_meta=node_meta or {},
-            threshold=HAC_THRESHOLD,
-            pick_rates=analysis.pick_rates,
-        )
-        avg_clusters.extend(group_clusters)
-
-    avg_scores = calculate_silhouette_scores(
-        avg_clusters,
-        node_ranks_list=node_ranks_list or [{} for _ in range(n)],
-        node_meta=node_meta or {},
-        pick_rates=analysis.pick_rates,
-    )
-    avg_mean = sum(avg_scores.values()) / len(avg_scores) if avg_scores else 0.0
+    comp_clusters, comp_scores, comp_mean = linkage_results["complete"]
+    avg_clusters, avg_scores, avg_mean = linkage_results["average"]
 
     # Select the superior linkage based on silhouette score
     if comp_mean >= avg_mean:
@@ -442,9 +478,10 @@ def summarize_talent_clusters(
         # Find the medoid of the cluster
         medoid_nodes, medoid_idx = _calculate_medoid(
             cluster,
-            node_ranks_list=node_ranks_list or [{} for _ in range(n)],
-            node_meta=node_meta or {},
+            node_ranks_list=ranks,
+            node_meta=meta,
             pick_rates=analysis.pick_rates,
+            dist=dist,
         )
         canonical_decision_set = medoid_nodes & decision_nodes
         canonical_hero_set = medoid_nodes & hero_nodes
@@ -463,9 +500,8 @@ def summarize_talent_clusters(
         # Determine rank for each node from the medoid player
         takes_with_ranks = []
         output_nodes = sorted(canonical_decision_set | canonical_hero_set)
-        ranks_source = node_ranks_list or [{} for _ in range(n)]
         for nid in output_nodes:
-            medoid_rank = ranks_source[medoid_idx].get(nid, 1)
+            medoid_rank = ranks[medoid_idx].get(nid, 1)
             # Real share of this cluster's members that take the talent, so the
             # ratio (pickers/count) and the bar agree. Falls back to 100% only
             # when no picker roster is available (player_info omitted).
