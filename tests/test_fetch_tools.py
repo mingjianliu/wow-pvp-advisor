@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import ANY, MagicMock, patch, AsyncMock
+from wow_advisor.api.models import LeaderboardPage
 from wow_advisor.tools.fetch import fetch_top_players_async
 
 @pytest.mark.asyncio
@@ -40,7 +41,7 @@ async def test_fetch_top_players_async_cache_hit():
         assert result["skipped"] is True
         
         mock_store.is_stale.assert_called_once_with(
-            "restoration-shaman", "3v3", "us", ttl_hours=2, locale=locale
+            "restoration-shaman", "3v3", "us", ttl_hours=2, locale=locale, game_build=ANY
         )
         mock_store.get_aggregation.assert_called_once_with(
             "restoration-shaman", "3v3", "us", locale=locale
@@ -100,7 +101,7 @@ async def test_fetch_top_players_async_full_success():
         mock_store.is_stale.return_value = True
         
         mock_client = MagicMock()
-        mock_client.fetch_leaderboard = AsyncMock(return_value=mock_leaderboard)
+        mock_client.fetch_leaderboard = AsyncMock(return_value=LeaderboardPage(entries=mock_leaderboard, season_id=41))
         mock_client.fetch_character_spec = AsyncMock(side_effect=[char1_phase1, char2_phase1])
         mock_client.fetch_character_details = AsyncMock(side_effect=[char1_full, char2_full])
         
@@ -120,7 +121,8 @@ async def test_fetch_top_players_async_full_success():
             bracket="3v3",
             region="us",
             data=mock_agg,
-            locale=locale
+            locale=locale,
+            game_build=ANY,
         )
         
         # Verify client calls
@@ -187,7 +189,7 @@ async def test_fetch_top_players_async_partial_results():
         mock_store.is_stale.return_value = True
         
         mock_client = MagicMock()
-        mock_client.fetch_leaderboard = AsyncMock(return_value=mock_leaderboard)
+        mock_client.fetch_leaderboard = AsyncMock(return_value=LeaderboardPage(entries=mock_leaderboard, season_id=41))
         mock_client.fetch_character_spec = AsyncMock(side_effect=[char1_match, char2_mismatch, char3_match])
         mock_client.fetch_character_details = AsyncMock(side_effect=[char1_full, char3_full])
         
@@ -222,7 +224,7 @@ async def test_fetch_top_players_async_empty_leaderboard():
         mock_store.is_stale.return_value = True
         
         mock_client = MagicMock()
-        mock_client.fetch_leaderboard = AsyncMock(return_value=[]) # Empty
+        mock_client.fetch_leaderboard = AsyncMock(return_value=LeaderboardPage(entries=[], season_id=41))
         mock_make_client.return_value = (MagicMock(), mock_client)
         
         result = await fetch_top_players_async(spec, bracket)
@@ -252,7 +254,7 @@ async def test_fetch_top_players_async_no_matches():
         mock_store.is_stale.return_value = True
         
         mock_client = MagicMock()
-        mock_client.fetch_leaderboard = AsyncMock(return_value=mock_leaderboard)
+        mock_client.fetch_leaderboard = AsyncMock(return_value=LeaderboardPage(entries=mock_leaderboard, season_id=41))
         mock_client.fetch_character_spec = AsyncMock(return_value=char_mismatch)
         mock_make_client.return_value = (MagicMock(), mock_client)
         
@@ -260,3 +262,110 @@ async def test_fetch_top_players_async_no_matches():
         
         assert "error" in result
         assert "Found 0" in result["error"]
+
+
+# --- Game build stamping ----------------------------------------------------
+#
+# The build stamp read here is a plain DB read of whatever the talent node cache
+# last recorded — no HTTP, no credentials — so a cache hit still works offline.
+
+@pytest.mark.asyncio
+async def test_cache_hit_check_is_build_aware():
+    """Without this, get_full_summary asks for a refresh and fetch skips it.
+
+    get_full_summary detects the build change, calls fetch_top_players, and
+    fetch's own is_stale check would report "fresh" on TTL alone — leaving the
+    aggregation stamped with the old build forever.
+    """
+    with patch("wow_advisor.tools.fetch.get_default_db") as mock_get_db, \
+         patch("wow_advisor.tools.fetch.CacheStore") as mock_store_class, \
+         patch("wow_advisor.processor.talent_names.TalentNameCache") as mock_cache_class:
+
+        mock_get_db.return_value = MagicMock()
+        mock_store = MagicMock()
+        mock_store_class.return_value = mock_store
+        mock_store.is_stale.return_value = False
+        mock_store.get_aggregation.return_value = {"sample_size": 50, "cached_at": 1}
+        mock_cache_class.return_value.game_build.return_value = "12.1.0_68914"
+
+        await fetch_top_players_async("restoration shaman", "3v3")
+
+        assert mock_store.is_stale.call_args.kwargs["game_build"] == "12.1.0_68914"
+
+
+@pytest.mark.asyncio
+async def test_saved_aggregation_is_stamped_with_game_build():
+    from wow_advisor.api.models import CharacterData, LeaderboardEntry, TalentData
+
+    char = CharacterData(
+        name="Player1", realm="Realm1", region="us", character_class="Shaman",
+        spec="Restoration", equipped_ilvl=630, rating=3000, class_id=7, spec_id=264,
+        talent=TalentData(loadout_code="abc", spec_node_ids=[1, 2, 3]),
+    )
+
+    with patch("wow_advisor.tools.fetch.get_default_db") as mock_get_db, \
+         patch("wow_advisor.tools.fetch.CacheStore") as mock_store_class, \
+         patch("wow_advisor.tools.fetch._make_client") as mock_make_client, \
+         patch("wow_advisor.tools.fetch.build_aggregation") as mock_build_agg, \
+         patch("wow_advisor.processor.talent_names.TalentNameCache") as mock_cache_class:
+
+        mock_get_db.return_value = MagicMock()
+        mock_store = MagicMock()
+        mock_store_class.return_value = mock_store
+        mock_store.is_stale.return_value = True
+
+        mock_client = MagicMock()
+        mock_client.fetch_leaderboard = AsyncMock(
+            return_value=LeaderboardPage(
+                entries=[LeaderboardEntry(rank=1, rating=3000, name="Player1", realm="Realm1")],
+                season_id=41,
+            )
+        )
+        mock_client.fetch_character_spec = AsyncMock(return_value=char)
+        mock_client.fetch_character_details = AsyncMock(return_value=char)
+        mock_make_client.return_value = (MagicMock(), mock_client)
+        mock_build_agg.return_value = {"sample_size": 1}
+        mock_cache_class.return_value.game_build.return_value = "12.1.0_68914"
+
+        await fetch_top_players_async("restoration shaman", "3v3", limit=1)
+
+        assert mock_store.save_aggregation.call_args.kwargs["game_build"] == "12.1.0_68914"
+
+
+# --- Per-spec leaderboard slugs ---------------------------------------------
+#
+# Blizzard's slugs are lowercase with spaces REMOVED, not hyphenated:
+# 'shuffle-demonhunter-havoc', 'shuffle-deathknight-blood',
+# 'shuffle-hunter-beastmastery'. Hyphenating produced 404s, which silently
+# disabled solo shuffle for every Death Knight and Demon Hunter spec plus
+# Beast Mastery Hunter.
+
+@pytest.mark.parametrize("spec,bracket,expected", [
+    ("restoration shaman", "solo shuffle", "shuffle-shaman-restoration"),
+    ("havoc demon hunter", "solo shuffle", "shuffle-demonhunter-havoc"),
+    ("blood death knight", "solo shuffle", "shuffle-deathknight-blood"),
+    ("beast mastery hunter", "solo shuffle", "shuffle-hunter-beastmastery"),
+    ("devourer demon hunter", "solo shuffle", "shuffle-demonhunter-devourer"),
+    ("restoration shaman", "blitz", "blitz-shaman-restoration"),
+    ("devourer demon hunter", "blitz", "blitz-demonhunter-devourer"),
+    ("restoration shaman", "3v3", "3v3"),
+    ("restoration shaman", "rbg", "rbg"),
+])
+@pytest.mark.asyncio
+async def test_leaderboard_slug_matches_blizzard(spec, bracket, expected):
+    with patch("wow_advisor.tools.fetch.get_default_db") as mock_get_db, \
+         patch("wow_advisor.tools.fetch.CacheStore") as mock_store_class, \
+         patch("wow_advisor.tools.fetch._make_client") as mock_make_client:
+
+        mock_get_db.return_value = MagicMock()
+        mock_store = MagicMock()
+        mock_store_class.return_value = mock_store
+        mock_store.is_stale.return_value = True
+
+        mock_client = MagicMock()
+        mock_client.fetch_leaderboard = AsyncMock(return_value=LeaderboardPage(entries=[], season_id=41))
+        mock_make_client.return_value = (MagicMock(), mock_client)
+
+        await fetch_top_players_async(spec, bracket)
+
+        mock_client.fetch_leaderboard.assert_called_once_with(bracket=expected)

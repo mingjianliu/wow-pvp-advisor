@@ -17,9 +17,14 @@ mcp = FastMCP("wow-pvp-advisor")
 def fetch_top_players_tool(spec: str, bracket: str, region: str = "us", limit: int = 50) -> dict:
     """Fetch and cache top players for a spec+bracket. Call this first or to refresh stale data.
 
+    The PvP season is detected from the Blizzard API, so a season rollover needs
+    no code change. While a brand-new season's ladder is still empty, results
+    come from the previous season and the response carries
+    "season_fallback": true alongside the "season_id" actually used.
+
     Args:
         spec: Spec name, e.g. 'restoration shaman', 'rsham', 'arms warrior'
-        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle'
+        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle', 'blitz', 'rbg'
         region: 'us' or 'eu' (default: 'us')
         limit: Number of top players to fetch (default: 50)
     """
@@ -61,12 +66,22 @@ def get_full_summary_tool(spec: str, bracket: str, region: str = "us") -> dict:
     """Complete PvP meta summary for a spec+bracket in one call.
 
     Returns everything: regular talent clusters, PvP talent pick rates,
-    gear per slot, and enchants. Auto-fetches from Blizzard API if cache
-    is older than 2 hours. Use this as the default starting point.
+    gear per slot, and enchants. Auto-fetches from Blizzard API if the cache is
+    older than 2 hours, or if the game build changed since it was computed.
+    Use this as the default starting point.
+
+    Blizzard reassigns talents across node IDs between client builds, so cached
+    data is only interpretable against the build it was captured under. If a
+    refresh could not repair a build mismatch, talent names are withheld rather
+    than guessed and a "stale_build" field reports {aggregation, current}.
+
+    "season_id" reports which ladder the sample came from; "season_fallback": true
+    appears when that is not the current season (a season that has just started
+    has no ranked ladder yet).
 
     Args:
         spec: Spec name, e.g. 'restoration shaman', 'rsham', 'arms warrior'
-        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle'
+        bracket: PvP bracket, e.g. '3v3', '2v2', 'solo shuffle', 'blitz', 'rbg'
         region: 'us' or 'eu' (default: 'us')
     """
     return get_full_summary(spec=spec, bracket=bracket, region=region)

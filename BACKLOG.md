@@ -43,6 +43,48 @@
 - [ ] **Split `tools/ui.py` (518 lines, five responsibilities)** — MCP tool entry, data transform, HTML bundling via regex replacement, an embedded HTTP server + background thread, and browser launching all in one module with import-time side effects (`load_dotenv()` at line 14, mid-file imports at 275/383). Extract a pure `page_builder.py` (data → HTML) and a standalone server module. Server-specific fixes: use `ThreadingHTTPServer` — `DynamicReportHandler.translate_path` triggers a full `build_page` (dozens of API calls) synchronously inside the single-threaded server, blocking all requests; `_ensure_server` treats any process listening on 8080 as its own server (`ui.py:339-348`); the error page at `ui.py:311` interpolates the error string into HTML unescaped.
 - [ ] **Precompile the frontend** — `index.html` ships React development builds + Babel standalone from unpkg CDN, recompiling ~2900 lines of JSX in the browser on every page load. "Self-contained" pages actually depend on unpkg/zamimg — offline means a blank page. Add an esbuild/vite build step (vite already exists under `tests/visual`) and switch to React production builds. Also dedupe `_SPEC_LABELS` (40 specs hardcoded in `ui.py:22-62`) against the spec mapping in `normalize.py` — one domain table, two copies today.
 
+## Patch 12.1 pass (2026-08-18)
+
+Game build `12.1.0_68914`, talent trees last modified 2026-08-14. Diffed the 10 specs that had a pre-12.1 (May) talent-tree snapshot against the live static API.
+
+### Landed
+
+- [x] **Choice nodes had no name** — `api/client.py::fetch_talent_nodes` read only `ranks[0].tooltip.talent.name` and ignored `choice_of_tooltips`, so every CHOICE node resolved to `name=None` — 156 of 1017 cached nodes. `tools/ui.py:72` filters out nameless nodes, so the highest-weight build-defining talents were dropped from HTML reports entirely, and `_enrich_talents` emitted `null` names for them. Now resolves to both options joined (`"Ascendance / Healing Tide Totem"`) plus a structured `choices` list. Predates 12.1. Verified live: Restoration Shaman went from 20 unnamed nodes to 1 (a placeholder the API returns with no ranks).
+- [x] **Node IDs are reassigned between builds, silently mislabelling cached data** — 12.1 swapped `92615`/`109679` (Battlelord ↔ Master Tactician) on Arms Warrior, rotated six Assassination Rogue IDs and three Feral Druid IDs. All PASSIVE single-rank nodes, so this is genuine reassignment, not a choice-node parsing artifact. Aggregations store raw node IDs and names are resolved at read time, while `TalentNameCache` revalidates hourly — so the next `get_full_summary_tool` call after 12.1 would have refreshed the tree and relabelled May node IDs with 12.1 names, with no error. Now every `talent_node_cache` row and aggregation is stamped with `game_build` (from the `Battlenet-Namespace` header); a build change forces staleness regardless of TTL, and if a refresh cannot repair the mismatch the summary withholds names and reports `stale_build`. Added `cache/db.py::_migrate` since `CREATE TABLE IF NOT EXISTS` never adds columns to an existing database.
+- [x] **No PvP talent baseline existed** — the pool was only ever observed through player profiles (what the top 50 picked), so a removal was undetectable locally; Balance Druid's `Dying Stars` removal was confirmed only by cross-checking patch notes against the live API. Added the `pvp_talent_pool` table, `BnetClient.fetch_pvp_talents`, `processor/pvp_talents.diff_pvp_talent_pool`, and `scripts/snapshot_pvp_talents.py`. Baseline saved for all 39 specs at build `12.1.0_68914` (241 unique talents, 8–15 per spec).
+- [x] **Stale mocks hid a production break** — `tests/test_talent_names.py` stubbed `fetch_talent_nodes` wholesale, so changing its return contract kept the suite green while `resolve()` swallowed the resulting `ValueError` and returned `{}` (all talent names gone). Added contract tests driving the real `BnetClient` with `respx` at the wire.
+
+### Landed (second pass)
+
+- [x] **Devourer Demon Hunter was missing entirely** — the API lists 40 playable specs; `_SPEC_INFO_MAP` had 39, so spec ID `1480` could not be queried at all despite 5002 entries on the Season 1 solo-shuffle leaderboard. Added to `normalize.py` with `devourer` / `dev dh` aliases, plus the frontend `app.jsx` `CLASSES` table and its zh translation (`噬灭`, taken from the API's `zh_CN` locale rather than guessed). A test now pins `len(_SPEC_INFO_MAP) == 40` so the next added spec fails loudly. Verified live: 50 players, ilvl 250.
+- [x] **`blitz` bracket alias was dead** — `_BRACKET_ALIASES` mapped `blitz` to `battlegrounds/blitz`, which 404s. Blitz publishes per-spec boards (`blitz-{class}-{spec}`) exactly like solo shuffle, so `blitz` now normalizes to `blitz` and `tools/fetch.py` routes both brackets through one `_PER_SPEC_LEADERBOARDS` table. The frontend already normalized `Blitz` to `blitz`, so only the backend was wrong. Verified live: 50 players, ilvl 254.
+- [x] **Leaderboard slugs were hyphenated instead of collapsed** — `tools/fetch.py::slugify` produced `demon-hunter` / `death-knight` / `beast-mastery`, but Blizzard's slugs remove spaces entirely (`shuffle-demonhunter-havoc`, `shuffle-deathknight-blood`, `shuffle-hunter-beastmastery`). Every affected slug 404s, which had silently disabled solo shuffle for all 3 Death Knight specs, all Demon Hunter specs, and Beast Mastery Hunter — 7 specs, matching the complete absence of solo-shuffle rows for them in the cache. Found while wiring blitz through the same code path. Verified live: Blood Death Knight solo shuffle now returns 50 players.
+
+### Static data refresh (2026-08-18)
+
+- [x] **All non-player caches brought to build `12.1.0_68914`** — added `scripts/refresh_static_data.py`, which re-resolves talent nodes, refreshes PvP talent pools, and re-fetches Wowhead tooltips for every spec and locale in one command. Result: `talent_node_cache` 14 rows (10 specs, May) → **80 rows (40 specs x en_US/zh_CN)**, 0 rows off the current build; `pvp_talent_pool` 39 → **80 rows** (Devourer added, zh_CN baselined); `tooltips` 1163 (May) → **5641 rows** (2826 en_US + 2815 zh_CN), all re-fetched. Player data is deliberately untouched — each aggregation refetches lazily on first access because its `game_build` no longer matches.
+- [x] **`prefetch_tooltips` had no concurrency bound** — it gathered every id at once. The static refresh asks for ~2800 tooltips per locale, which would have opened that many simultaneous connections to Wowhead, a third-party site with no published quota. Now bounded by `WOWHEAD_CONCURRENCY = 8` in settings.
+- [x] **PvP pool fetch/diff/save deduplicated** — `processor/pvp_talents.refresh_pvp_talent_pools` is now the single tested implementation; `snapshot_pvp_talents.py` and `refresh_static_data.py` are reporting shells over it.
+
+### Found, not yet fixed
+- [ ] **Most cached player data predates 12.1** — the original 1412 players were fetched 2026-05-19 to 06-01 with aggregations computed 07-07. Combined with node-ID reassignment that is not merely stale but wrong; the build stamp now forces a refetch per spec on first access, so this repairs itself lazily rather than needing a bulk run. Refetched so far as end-to-end validation (5 of 22 aggregations): `restoration-shaman` 3v3 and blitz, `devourer-demon-hunter` solo-shuffle, `blood-death-knight` solo-shuffle, `arms-warrior` 3v3. The remaining 17 carry `game_build IS NULL`.
+- [ ] **Some node IDs cannot be named from Blizzard data** — `102911`, `102912`, `103120`, `103121` appear in Restoration Shaman `class_node_ids` in player profiles but are absent from `class_talent_nodes`/`spec_talent_nodes`/`hero_talent_trees` in the static talent-tree endpoint. Each spec also has one placeholder CHOICE node with no ranks (e.g. `99846`). ~8% of core nodes; predates 12.1. Would need a non-Blizzard source (e.g. wowhead) to resolve.
+
+### 12.1 talent tree changes (specs with a May baseline)
+
+| Spec | Nodes | Added | Removed | ID reassigned | Moved |
+| --- | --- | --- | --- | --- | --- |
+| marksmanship-hunter | 112→111 | 2 (`Deadeye`, `Eagle's Accuracy`) | 3 (incl. `Double Tap`) | 2 | 10 |
+| assassination-rogue | 111→111 | 0 | 0 | 7 | 0 |
+| arms-warrior | 106→105 | 0 | 1 (`Mass Execution`, merged into choice node `92614`) | 4 | 1 |
+| feral-druid | 123→123 | 0 | 0 | 3 | 0 |
+| restoration-shaman | 117→117 | 1 (`Swelling Tides`) | 1 (`Calm Waters`) | 0 | 1 |
+| holy-paladin, blood-death-knight, enhancement-shaman, augmentation-evoker | unchanged | – | – | – | – |
+
+Marksmanship `104127` moved from row 5 to row 4, which drops its clustering weight from `WEIGHT_MAJOR_NODE` (5.0) to `WEIGHT_UTILITY_NODE` (0.1). PvP talents: no removals among those the May cache had observed; `Dying Stars` (Balance Druid) confirmed removed pool-wide, matching patch notes.
+
+---
+
 ## Bugs
 
 - [x] **Talent node IDs are not human-readable** — (RESOLVED) Implemented `TalentNameCache` to map node IDs to names via the Blizzard static API. Integrated with MCP tools and HTML reports.
@@ -66,7 +108,7 @@ All four items below turned out to already be covered (verified 2026-07-07):
 
 ## TODO
 
-- [ ] **Automate `CURRENT_SEASON_ID` detection** — Replace hardcoded `CURRENT_SEASON_ID = 41` in `wow_advisor/api/client.py` with an automated lookup via `/data/wow/pvp-season/index` on startup.
+- [x] **Automate `CURRENT_SEASON_ID` detection** — (RESOLVED 2026-08-18) `BnetClient.fetch_current_season_id()` reads `current_season.id` from `/data/wow/pvp-season/index` per request; the constant is renamed `FALLBACK_SEASON_ID` and used only when that lookup fails. Season 41 (Midnight Season 1) ended 2026-08-11 while Season 2 starts 2026-08-19, so the rollover would otherwise have served a frozen Season 1 ladder with no error. `fetch_leaderboard` now returns a `LeaderboardPage` carrying `season_id` and `is_fallback`: a season that has just started answers 200 with zero entries, so it falls back exactly one season and flags it, and `get_full_summary_tool` surfaces `season_id` / `season_fallback`. A contract test drives the real client through `fetch_top_players_async` — the existing mocks stubbed `fetch_leaderboard` wholesale and stayed green while production raised `TypeError` on `len()`.
 - [ ] **Wire `BNET_REGION` environment variable** — Ensure `wow_advisor/api/client.py` and `tools/fetch.py` respect the `BNET_REGION` env var if no region is explicitly provided via CLI/MCP.
 - [ ] **Expose `scan_limit` via CLI and MCP** — currently hardcoded to scan the full leaderboard. For common specs (Warrior, Mage) you hit 50 players quickly; for rare specs you scan everything. A user-configurable limit would help.
 

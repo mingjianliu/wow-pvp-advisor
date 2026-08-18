@@ -2,9 +2,13 @@
 
 The **canonical reference for each tool's purpose and parameters is its docstring in `mcp_server.py`** — that's what MCP clients see, so it's kept accurate. This file only covers what doesn't fit in a docstring: output schemas, internal mechanics, known limitations, and future work.
 
-All tools accept spec aliases (`"rsham"`, `"resto shaman"`, `"restoration-shaman"`) and bracket aliases (`"3v3"`, `"2v2"`, `"solo shuffle"`, `"shuffle"`) via `normalize.py`.
+All tools accept spec aliases (`"rsham"`, `"resto shaman"`, `"restoration-shaman"`) and bracket aliases (`"3v3"`, `"2v2"`, `"solo shuffle"`, `"shuffle"`, `"blitz"`, `"rbg"`) via `normalize.py`.
+
+**Per-spec leaderboards:** solo shuffle and blitz publish one board per spec rather than a single board. `tools/fetch.py` builds those slugs as `{shuffle|blitz}-{class}-{spec}` with spaces *removed*, not hyphenated — `shuffle-demonhunter-havoc`, `shuffle-deathknight-blood`, `shuffle-hunter-beastmastery`. Hyphenated slugs 404.
 
 **Cache TTLs:** `get_full_summary_tool` and `build_page_tool` auto-refresh when the aggregation is older than **2 hours**; `get_talent_distribution_tool` and `get_gear_summary_tool` use **24 hours**.
+
+**Game build invalidation:** Blizzard reassigns talents across node IDs between client builds — 12.1 swapped `92615`/`109679` (Battlelord ↔ Master Tactician) on Arms Warrior and rotated three Feral Druid IDs. Aggregations store raw node IDs, so one computed under a different build is *wrong*, not merely old, and no TTL can rescue it. Every talent-node cache row and aggregation is therefore stamped with the build it was captured under (`game_build`, e.g. `12.1.0_68914`, read from the `Battlenet-Namespace` response header). A build change makes the aggregation stale regardless of age; rows predating build stamping (`game_build IS NULL`) also count as stale, since they cannot be proven current.
 
 ---
 
@@ -41,11 +45,22 @@ Error cases return `{"error": "..."}`: unknown spec, no leaderboard data for the
 
 - **Fetched count < limit**: rare specs may not have `limit` players on the full ladder. The tool returns however many it found.
 - **Stale player data**: if a top player transfers realms or changes spec between fetches, Phase 1 will miss them. No fix without a per-player cache (see BACKLOG).
-- **Season ID hardcoded** (`CURRENT_SEASON_ID = 41` in `client.py`). Will silently fetch wrong data when Season 42 starts.
+- **Sparse ladder right after a season starts**: the fallback below returns last season's ladder, whose players' talents and gear are still read live — but the *ranking* is last season's.
+
+### Season selection
+
+The season is detected per request from `/data/wow/pvp-season/index` (`current_season.id`); `FALLBACK_SEASON_ID` in `settings.py` is only used when that lookup fails, and a wrong value there surfaces as "no leaderboard data" rather than as silently stale data.
+
+A season that has just started answers 200 with **zero entries** until placement games finish. Rather than report "no data" for every spec for a week, `fetch_leaderboard` falls back one season and flags it. `fetch_top_players_tool` and `get_full_summary_tool` then report:
+
+```json
+"season_id": 41,
+"season_fallback": true
+```
+
+`season_fallback` is present only when the sample did not come from the current season. `fetch_leaderboard` never falls back more than one season, and an explicit `season_id=` argument disables both detection and fallback.
 
 ### Future work
-
-- Auto-detect current season from Blizzard API on startup
 - Per-player cache: skip Phase 2 for players whose detail data is still fresh
 - Expose `scan_limit` parameter (currently scans full ladder)
 
@@ -190,9 +205,50 @@ On top of the cached aggregation, resolves all numeric talent node IDs into name
 }
 ```
 
+Choice ("diamond") nodes resolve to both options joined with `/`, e.g. `{"id": 81032, "name": "Ascendance / Healing Tide Totem"}`. Player profiles do record which side was taken, but the aggregation keys on node IDs only, so the node is labelled with the pair rather than a guess.
+
+`stale_build` appears only when a build mismatch survived the refresh attempt:
+
+```json
+"stale_build": {"aggregation": "12.0.5_67000", "current": "12.1.0_68914"}
+```
+
+When present, every talent `name` is `null` — withheld deliberately, because labelling old node IDs with current names produces confidently wrong talent names.
+
 ### Known limitations
 
-- **Resolution overhead**: the first time a spec is resolved, it may take 1-2 seconds to fetch name data from Blizzard. Subsequent calls are cached in the `talent_names` table.
+- **Resolution overhead**: the first time a spec is resolved, it may take 1-2 seconds to fetch name data from Blizzard. Subsequent calls are cached in the `talent_node_cache` table.
+- **Nodes Blizzard does not publish**: a handful of node IDs per spec appear in player profiles but are absent from the static talent-tree endpoint (Restoration Shaman: `102911`, `102912`, `103120`, `103121` in `class_node_ids`), so they cannot be named from Blizzard data. Each spec also has one placeholder CHOICE node the API returns with no ranks at all (e.g. `99846`). Both predate 12.1 and affect roughly 8% of core nodes.
+
+---
+
+## 4b. PvP talent pool snapshots (no MCP tool)
+
+PvP talents reach the aggregation only through player profiles, which show what the top 50 happened to pick — never the full pool. A talent nobody ran is indistinguishable from one that was deleted, so "did this patch change PvP talents?" was previously answerable only by reading patch notes.
+
+`scripts/snapshot_pvp_talents.py` records every spec's complete pool (`playable-specialization/{id}` → `pvp_talents`) into the `pvp_talent_pool` table, stamped with the game build:
+
+```bash
+python scripts/snapshot_pvp_talents.py          # diff against the stored snapshot, change nothing
+python scripts/snapshot_pvp_talents.py --save   # diff, then persist as the new baseline
+```
+
+`processor/pvp_talents.diff_pvp_talent_pool` treats the talent ID as identity, so a changed name under a stable ID is reported as a rename rather than an add plus a remove.
+
+Baseline captured at build `12.1.0_68914`: 40 specs x en_US/zh_CN, 8–15 talents each.
+
+### Refreshing static data after a patch
+
+`scripts/refresh_static_data.py` brings every non-player cache to the live build in one command — talent nodes, PvP talent pools, and Wowhead tooltips, for all specs and locales:
+
+```bash
+python scripts/refresh_static_data.py                      # en_US + zh_CN
+python scripts/refresh_static_data.py --locales en_US      # one locale
+python scripts/refresh_static_data.py --skip-tooltips      # trees and pools only
+python scripts/refresh_static_data.py --force-tooltips     # ignore the 30-day tooltip TTL
+```
+
+Player data is deliberately out of scope: aggregations carry a `game_build` stamp, so each one refetches lazily on first access once the build moves. Tooltip fetching is bounded by `WOWHEAD_CONCURRENCY` (8) because Wowhead is a third-party site rather than a quota-ed API.
 
 ---
 

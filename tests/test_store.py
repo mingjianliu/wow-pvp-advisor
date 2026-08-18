@@ -117,3 +117,46 @@ def test_get_default_db_separate_connection_per_thread(tmp_path, monkeypatch):
         "SELECT name FROM sqlite_master WHERE type='table'"
     )}
     assert "players" in tables and "aggregations" in tables
+
+
+# --- Game build stamping ----------------------------------------------------
+#
+# Blizzard reassigns talents across node IDs between client builds (12.1 swapped
+# Battlelord and Master Tactician on Arms Warrior). An aggregation stores raw
+# node IDs, so it is only interpretable against the build it was computed under.
+
+def test_save_aggregation_records_game_build(store):
+    store.save_aggregation("restoration-shaman", "3v3", "us", {"v": 1}, game_build="12.1.0_68914")
+    assert store.aggregation_game_build("restoration-shaman", "3v3", "us") == "12.1.0_68914"
+
+
+def test_aggregation_game_build_is_none_when_unstamped(store):
+    store.save_aggregation("restoration-shaman", "3v3", "us", {"v": 1})
+    assert store.aggregation_game_build("restoration-shaman", "3v3", "us") is None
+
+
+def test_fresh_aggregation_is_stale_when_game_build_changed(store):
+    store.save_aggregation("restoration-shaman", "3v3", "us", {}, game_build="12.0.5_67000")
+    assert store.is_stale(
+        "restoration-shaman", "3v3", "us", ttl_hours=24, game_build="12.1.0_68914"
+    )
+
+
+def test_fresh_aggregation_is_not_stale_when_game_build_matches(store):
+    store.save_aggregation("restoration-shaman", "3v3", "us", {}, game_build="12.1.0_68914")
+    assert not store.is_stale(
+        "restoration-shaman", "3v3", "us", ttl_hours=24, game_build="12.1.0_68914"
+    )
+
+
+def test_unstamped_aggregation_is_stale_once_a_build_is_known(store):
+    """Pre-existing rows carry no build, so they cannot be proven current."""
+    store.save_aggregation("restoration-shaman", "3v3", "us", {})
+    assert store.is_stale(
+        "restoration-shaman", "3v3", "us", ttl_hours=24, game_build="12.1.0_68914"
+    )
+
+
+def test_game_build_unknown_falls_back_to_ttl_only(store):
+    store.save_aggregation("restoration-shaman", "3v3", "us", {}, game_build="12.0.5_67000")
+    assert not store.is_stale("restoration-shaman", "3v3", "us", ttl_hours=24, game_build=None)

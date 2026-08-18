@@ -2,10 +2,22 @@ import asyncio
 import re
 import httpx
 from wow_advisor.api.auth import BnetAuth
-from wow_advisor.api.models import LeaderboardEntry, CharacterData, TalentData, GearSlot
-from wow_advisor.settings import CURRENT_SEASON_ID, API_CONCURRENCY
+from wow_advisor.api.models import LeaderboardEntry, LeaderboardPage, CharacterData, TalentData, GearSlot
+from wow_advisor.settings import FALLBACK_SEASON_ID, API_CONCURRENCY
 
 _API_BASE = "https://{region}.api.blizzard.com"
+
+
+def _game_build_from_namespace(namespace: str | None) -> str | None:
+    """'static-12.1.0_68914-us' -> '12.1.0_68914'.
+
+    Region is stripped so a build captured in one region compares equal to the
+    same build in another.
+    """
+    if not namespace:
+        return None
+    m = re.match(r"^static-(.+)-[a-z]{2}$", namespace)
+    return m.group(1) if m else None
 
 
 def _headers(token: str, namespace: str) -> dict:
@@ -151,16 +163,20 @@ class BnetClient:
         spec_id: int,
         if_modified_since: str | None = None,
         locale: str = "en_US",
-    ) -> tuple[dict[int, dict], str | None, bool]:
+    ) -> tuple[dict[int, dict], str | None, bool, str | None]:
         """
-        Returns (nodes, last_modified, was_modified).
+        Returns (nodes, last_modified, was_modified, game_build).
         was_modified=False on 304 — caller skips cache write.
-        nodes maps node_id → {name, row, col, type, max_rank, icon, children}.
+        nodes maps node_id → {name, row, col, type, max_rank, icon, choices, children}.
+        game_build stamps which client build the node IDs belong to; Blizzard
+        reassigns talents across node IDs between builds, so cached data keyed by
+        node ID is only interpretable against the build it was captured under.
         """
         url = f"{self._base}/data/wow/talent-tree/{tree_id}/playable-specialization/{spec_id}"
         resp = await self._get_static(url, f"static-{self._region}", if_modified_since=if_modified_since, locale=locale)
+        game_build = _game_build_from_namespace(resp.headers.get("Battlenet-Namespace"))
         if resp.status_code == 304:
-            return {}, None, False
+            return {}, None, False, game_build
         resp.raise_for_status()
         last_modified = resp.headers.get("Last-Modified")
         data = resp.json()
@@ -170,11 +186,26 @@ class BnetClient:
             ranks = node.get("ranks", [])
             name = None
             icon = None
+            choices: list[str] = []
             if ranks:
-                tooltip = ranks[0].get("tooltip", {})
+                first = ranks[0]
+                tooltip = first.get("tooltip", {})
                 name = tooltip.get("talent", {}).get("name")
                 spell = tooltip.get("spell_tooltip", {}).get("spell", {})
                 icon = str(spell["id"]) if spell.get("id") else None
+                # Choice ("diamond") nodes have no ranks[].tooltip at all — both
+                # options live in choice_of_tooltips, which sits either on the
+                # rank itself or nested inside tooltip. Without this branch every
+                # choice node resolved to name=None, and callers that filter on a
+                # present name dropped the highest-weight nodes in the tree.
+                cot = first.get("choice_of_tooltips") or tooltip.get("choice_of_tooltips") or []
+                choices = [c.get("talent", {}).get("name") for c in cot]
+                choices = [c for c in choices if c]
+                if choices:
+                    name = " / ".join(choices)
+                    first_spell = cot[0].get("spell_tooltip", {}).get("spell", {})
+                    if first_spell.get("id"):
+                        icon = str(first_spell["id"])
             nodes[node_id] = {
                 "name": name,
                 "row": node.get("display_row"),
@@ -182,17 +213,49 @@ class BnetClient:
                 "type": node.get("node_type", {}).get("type"),
                 "max_rank": len(ranks),
                 "icon": icon,
+                "choices": choices,
                 "children": node.get("child_ids", []),
             }
-        return nodes, last_modified, True
+        return nodes, last_modified, True, game_build
 
-    async def fetch_leaderboard(
-        self, bracket: str, season_id: int = CURRENT_SEASON_ID
-    ) -> list[LeaderboardEntry]:
+    async def fetch_pvp_talents(
+        self, spec_id: int, locale: str = "en_US"
+    ) -> tuple[list[dict], str | None]:
+        """Full PvP talent pool available to a spec, as [{"id", "name"}] by id.
+
+        Returns (talents, game_build). This is the whole pool, not the subset
+        players happened to pick, so it can serve as a baseline for diffing a
+        later patch.
+        """
+        url = f"{self._base}/data/wow/playable-specialization/{spec_id}"
+        resp = await self._get_static(url, f"static-{self._region}", locale=locale)
+        resp.raise_for_status()
+        game_build = _game_build_from_namespace(resp.headers.get("Battlenet-Namespace"))
+        talents = []
+        for entry in resp.json().get("pvp_talents", []):
+            talent = entry.get("talent", {})
+            if talent.get("id") and talent.get("name"):
+                talents.append({"id": talent["id"], "name": talent["name"]})
+        return sorted(talents, key=lambda t: t["id"]), game_build
+
+    async def fetch_current_season_id(self) -> int | None:
+        """Current PvP season per Blizzard, or None if the lookup fails."""
+        url = f"{self._base}/data/wow/pvp-season/index"
+        try:
+            async with httpx.AsyncClient() as client:
+                data = await self._get(client, url, f"dynamic-{self._region}")
+        except httpx.HTTPError:
+            # Detection is best-effort: the caller falls back to the configured
+            # season rather than failing the whole fetch.
+            return None
+        if not data:
+            return None
+        return data.get("current_season", {}).get("id")
+
+    async def _fetch_leaderboard_entries(self, bracket: str, season_id: int) -> list[LeaderboardEntry]:
         url = f"{self._base}/data/wow/pvp-season/{season_id}/pvp-leaderboard/{bracket}"
-        namespace = f"dynamic-{self._region}"
         async with httpx.AsyncClient() as client:
-            data = await self._get(client, url, namespace)
+            data = await self._get(client, url, f"dynamic-{self._region}")
         if data is None:
             return []
         entries = []
@@ -205,6 +268,30 @@ class BnetClient:
                 rank=e.get("rank", 0),
             ))
         return entries
+
+    async def fetch_leaderboard(
+        self, bracket: str, season_id: int | None = None
+    ) -> LeaderboardPage:
+        """Leaderboard for a bracket, defaulting to the season Blizzard reports as current.
+
+        A season that has just started has no ranked ladder yet — the endpoint
+        answers 200 with zero entries. Rather than report "no data" for every
+        spec until placements finish, fall back one season and flag it, so the
+        caller can say which ladder the sample actually came from.
+        """
+        explicit = season_id is not None
+        if not explicit:
+            season_id = await self.fetch_current_season_id() or FALLBACK_SEASON_ID
+
+        entries = await self._fetch_leaderboard_entries(bracket, season_id)
+        if entries or explicit or season_id <= 1:
+            return LeaderboardPage(entries=entries, season_id=season_id)
+
+        previous = season_id - 1
+        entries = await self._fetch_leaderboard_entries(bracket, previous)
+        if not entries:
+            return LeaderboardPage(entries=[], season_id=season_id)
+        return LeaderboardPage(entries=entries, season_id=previous, is_fallback=True)
 
     async def fetch_character_spec(
         self, client: httpx.AsyncClient, name: str, realm: str, rating: int, locale: str = "en_US"

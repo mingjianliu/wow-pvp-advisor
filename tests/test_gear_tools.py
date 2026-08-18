@@ -132,3 +132,28 @@ def test_get_player_details_not_found():
         
         assert "error" in result
         assert "not found in cache" in result["error"]
+
+
+def test_gear_summary_staleness_is_build_aware():
+    """Gear rides along on the same aggregation row as talents.
+
+    The row is refreshed as a unit, so it has to be invalidated as a unit —
+    otherwise a build change leaves gear pinned to a pre-patch sample.
+    """
+    from unittest.mock import MagicMock, patch
+    from wow_advisor.tools.gear import get_gear_summary
+
+    with patch("wow_advisor.tools.gear.get_default_db") as mock_get_db, \
+         patch("wow_advisor.tools.gear.CacheStore") as mock_store_class, \
+         patch("wow_advisor.processor.talent_names.TalentNameCache") as mock_cache_class:
+
+        mock_get_db.return_value = MagicMock()
+        mock_store = MagicMock()
+        mock_store.is_stale.return_value = False
+        mock_store.get_aggregation.return_value = {"sample_size": 1}
+        mock_store_class.return_value = mock_store
+        mock_cache_class.return_value.game_build.return_value = "12.1.0_68914"
+
+        get_gear_summary("restoration shaman", "3v3")
+
+        assert mock_store.is_stale.call_args.kwargs["game_build"] == "12.1.0_68914"

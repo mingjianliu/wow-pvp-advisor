@@ -1,5 +1,5 @@
 .env
-data/wow_advisor.db
+data/wow_advisor.db*
 .venv/
 __pycache__/
 *.pyc

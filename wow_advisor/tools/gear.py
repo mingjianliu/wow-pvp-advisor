@@ -3,7 +3,7 @@ from wow_advisor.cache.db import get_default_db
 from wow_advisor.cache.store import CacheStore
 from wow_advisor.normalize import normalize_spec, normalize_bracket
 from wow_advisor.settings import QUERY_TTL_HOURS
-from wow_advisor.tools.fetch import fetch_top_players
+from wow_advisor.tools.fetch import _current_game_build, fetch_top_players
 
 
 def get_gear_summary(spec: str, bracket: str, region: str = "us", locale: str = "en_US") -> dict:
@@ -11,7 +11,10 @@ def get_gear_summary(spec: str, bracket: str, region: str = "us", locale: str = 
     bracket = normalize_bracket(bracket)
     conn = get_default_db()
     store = CacheStore(conn)
-    if store.is_stale(spec, bracket, region, ttl_hours=QUERY_TTL_HOURS, locale=locale):
+    if store.is_stale(
+        spec, bracket, region, ttl_hours=QUERY_TTL_HOURS, locale=locale,
+        game_build=_current_game_build(conn, spec, locale),
+    ):
         result = fetch_top_players(spec=spec, bracket=bracket, region=region, locale=locale)
         if "error" in result:
             return result

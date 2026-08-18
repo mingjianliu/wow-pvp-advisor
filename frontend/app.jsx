@@ -16,7 +16,10 @@ const FLEX_STYLES = [
 // === WoW classes / specs / brackets for the breadcrumb dropdowns ============
 const CLASSES = {
   "Death Knight": { color: "#C41E3A", specs: ["Blood", "Frost", "Unholy"] },
-  "Demon Hunter": { color: "#A330C9", specs: ["Havoc", "Vengeance"] },
+  "Demon Hunter": {
+    color: "#A330C9",
+    specs: ["Havoc", "Vengeance", "Devourer"],
+  },
   Druid: {
     color: "#FF7C0A",
     specs: ["Balance", "Feral", "Guardian", "Restoration"],
@@ -140,6 +143,7 @@ const TRANSLATIONS = {
     Unholy: "邪恶",
     Havoc: "浩劫",
     Vengeance: "复仇",
+    Devourer: "噬灭",
     Balance: "平衡",
     Feral: "野性",
     Guardian: "守护",

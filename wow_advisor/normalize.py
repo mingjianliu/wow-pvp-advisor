@@ -35,6 +35,8 @@ _SPEC_ALIASES: dict[str, str] = {
     "blood dk": "blood-death-knight",
     "havoc": "havoc-demon-hunter",
     "veng": "vengeance-demon-hunter",
+    "devourer": "devourer-demon-hunter",
+    "dev dh": "devourer-demon-hunter",
     "ele": "elemental-shaman",
     "enhance": "enhancement-shaman",
     "enh": "enhancement-shaman",
@@ -67,7 +69,12 @@ _BRACKET_ALIASES: dict[str, str] = {
     "solo-shuffle": "solo-shuffle",
     "shuffle": "solo-shuffle",
     "rbg": "rbg",
-    "blitz": "battlegrounds/blitz",
+    # Blitz leaderboards are per-spec like solo shuffle ("blitz-{class}-{spec}")
+    # plus a "blitz-overall" board. The old "battlegrounds/blitz" slug 404s.
+    "blitz": "blitz",
+    "solo blitz": "blitz",
+    "bg blitz": "blitz",
+    "battleground blitz": "blitz",
 }
 
 # Maps normalized spec slug -> (Class ID, Spec ID, WoW class name, WoW spec name)
@@ -102,6 +109,7 @@ _SPEC_INFO_MAP: dict[str, tuple[int, int, str, str]] = {
     "blood-death-knight": (6, 250, "Death Knight", "Blood"),
     "havoc-demon-hunter": (12, 577, "Demon Hunter", "Havoc"),
     "vengeance-demon-hunter": (12, 581, "Demon Hunter", "Vengeance"),
+    "devourer-demon-hunter": (12, 1480, "Demon Hunter", "Devourer"),
     "arcane-mage": (8, 62, "Mage", "Arcane"),
     "fire-mage": (8, 63, "Mage", "Fire"),
     "frost-mage": (8, 64, "Mage", "Frost"),

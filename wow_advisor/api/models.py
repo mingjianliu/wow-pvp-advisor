@@ -10,6 +10,19 @@ class LeaderboardEntry:
 
 
 @dataclass
+class LeaderboardPage:
+    """Leaderboard entries plus which season actually produced them.
+
+    season_id is recorded because it is not always the current season: on day one
+    of a new season the ladder is empty, and falling back to the previous season
+    is only acceptable if callers can see that it happened.
+    """
+    entries: list[LeaderboardEntry]
+    season_id: int
+    is_fallback: bool = False
+
+
+@dataclass
 class GearSlot:
     slot: str
     item_id: int

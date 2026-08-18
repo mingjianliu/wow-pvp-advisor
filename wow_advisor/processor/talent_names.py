@@ -58,20 +58,23 @@ class TalentNameCache:
             return {int(k): v for k, v in json.loads(row["nodes_json"]).items()}
 
         if row:
-            nodes, last_modified, was_modified = await self._fetch(
+            nodes, last_modified, was_modified, game_build = await self._fetch(
                 spec_id, client, if_modified_since=row["last_modified"], locale=locale
             )
             if not was_modified:
+                # Content is unchanged, but the build stamp still advances: the
+                # same node IDs are now known to be current for this build.
                 self._conn.execute(
-                    "UPDATE talent_node_cache SET checked_at=? WHERE spec=? AND locale=?", (now, spec, locale)
+                    "UPDATE talent_node_cache SET checked_at=?, game_build=? WHERE spec=? AND locale=?",
+                    (now, game_build, spec, locale),
                 )
                 self._conn.commit()
                 return {int(k): v for k, v in json.loads(row["nodes_json"]).items()}
-            self._save(spec, nodes, last_modified, now, locale=locale)
+            self._save(spec, nodes, last_modified, now, locale=locale, game_build=game_build)
             return nodes
 
-        nodes, last_modified, _ = await self._fetch(spec_id, client, locale=locale)
-        self._save(spec, nodes, last_modified, now, locale=locale)
+        nodes, last_modified, _, game_build = await self._fetch(spec_id, client, locale=locale)
+        self._save(spec, nodes, last_modified, now, locale=locale, game_build=game_build)
         return nodes
 
     async def _fetch(
@@ -80,16 +83,31 @@ class TalentNameCache:
         client: BnetClient,
         if_modified_since: str | None = None,
         locale: str = "en_US",
-    ) -> tuple[dict[int, dict], str | None, bool]:
+    ) -> tuple[dict[int, dict], str | None, bool, str | None]:
         tree_id, _ = await client.fetch_talent_tree_id(spec_id, locale=locale)
         return await client.fetch_talent_nodes(tree_id, spec_id, if_modified_since=if_modified_since, locale=locale)
 
     def _save(
-        self, spec: str, nodes: dict[int, dict], last_modified: str | None, now: int, locale: str = "en_US"
+        self,
+        spec: str,
+        nodes: dict[int, dict],
+        last_modified: str | None,
+        now: int,
+        locale: str = "en_US",
+        game_build: str | None = None,
     ) -> None:
         self._conn.execute(
-            """INSERT OR REPLACE INTO talent_node_cache (spec, locale, nodes_json, last_modified, checked_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            (spec, locale, json.dumps({str(k): v for k, v in nodes.items()}), last_modified, now),
+            """INSERT OR REPLACE INTO talent_node_cache
+               (spec, locale, nodes_json, last_modified, checked_at, game_build)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (spec, locale, json.dumps({str(k): v for k, v in nodes.items()}), last_modified, now, game_build),
         )
         self._conn.commit()
+
+    def game_build(self, spec: str, locale: str = "en_US") -> str | None:
+        """Client build the cached node IDs for this spec were captured under."""
+        row = self._conn.execute(
+            "SELECT game_build FROM talent_node_cache WHERE spec=? AND locale=?",
+            (normalize_spec(spec), locale),
+        ).fetchone()
+        return row["game_build"] if row else None

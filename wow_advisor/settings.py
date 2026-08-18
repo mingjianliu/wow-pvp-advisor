@@ -6,9 +6,14 @@ lands in exactly one place.
 import os
 
 # --- Blizzard API ---
-# TODO: auto-detect via /data/wow/pvp-season/index on startup (see BACKLOG)
-CURRENT_SEASON_ID = 41
+# The season is detected per request from /data/wow/pvp-season/index. This is
+# only the fallback for when that lookup fails, so it may lag reality — a wrong
+# value here surfaces as "no leaderboard data", never as silently stale data.
+FALLBACK_SEASON_ID = 41
 API_CONCURRENCY = 10
+
+# --- Wowhead (third-party, no published quota) ---
+WOWHEAD_CONCURRENCY = 8
 
 # --- Cache ---
 AGGREGATION_TTL_HOURS = 2   # full summary / page builds refresh at this age

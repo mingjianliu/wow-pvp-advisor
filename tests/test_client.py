@@ -39,7 +39,9 @@ async def test_fetch_leaderboard(client):
         "https://us.api.blizzard.com/data/wow/pvp-season/40/pvp-leaderboard/3v3"
     ).mock(return_value=httpx.Response(200, json=LEADERBOARD_RESPONSE))
 
-    entries = await client.fetch_leaderboard(bracket="3v3", season_id=40)
+    page = await client.fetch_leaderboard(bracket="3v3", season_id=40)
+    entries = page.entries
+    assert page.season_id == 40
     assert len(entries) == 2
     assert entries[0].name == "healbot"
     assert entries[0].realm == "area-52"

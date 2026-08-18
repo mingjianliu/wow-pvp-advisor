@@ -100,14 +100,60 @@ class CacheStore:
         return result
 
     def save_aggregation(
-        self, spec: str, bracket: str, region: str, data: dict, locale: str = "en_US"
+        self,
+        spec: str,
+        bracket: str,
+        region: str,
+        data: dict,
+        locale: str = "en_US",
+        game_build: str | None = None,
     ) -> None:
         self._conn.execute(
-            """INSERT OR REPLACE INTO aggregations (spec, bracket, region, locale, computed_at, data)
-               VALUES (?,?,?,?,?,?)""",
-            (spec, bracket, region, locale, int(time.time()), json.dumps(data)),
+            """INSERT OR REPLACE INTO aggregations
+               (spec, bracket, region, locale, computed_at, data, game_build)
+               VALUES (?,?,?,?,?,?,?)""",
+            (spec, bracket, region, locale, int(time.time()), json.dumps(data), game_build),
         )
         self._conn.commit()
+
+    def save_pvp_talent_pool(
+        self,
+        spec: str,
+        talents: list[dict],
+        locale: str = "en_US",
+        game_build: str | None = None,
+    ) -> None:
+        self._conn.execute(
+            """INSERT OR REPLACE INTO pvp_talent_pool
+               (spec, locale, talents_json, game_build, fetched_at)
+               VALUES (?,?,?,?,?)""",
+            (spec, locale, json.dumps(talents), game_build, int(time.time())),
+        )
+        self._conn.commit()
+
+    def get_pvp_talent_pool(self, spec: str, locale: str = "en_US") -> list[dict] | None:
+        row = self._conn.execute(
+            "SELECT talents_json FROM pvp_talent_pool WHERE spec=? AND locale=?",
+            (spec, locale),
+        ).fetchone()
+        return json.loads(row["talents_json"]) if row else None
+
+    def pvp_talent_pool_game_build(self, spec: str, locale: str = "en_US") -> str | None:
+        row = self._conn.execute(
+            "SELECT game_build FROM pvp_talent_pool WHERE spec=? AND locale=?",
+            (spec, locale),
+        ).fetchone()
+        return row["game_build"] if row else None
+
+    def aggregation_game_build(
+        self, spec: str, bracket: str, region: str, locale: str = "en_US"
+    ) -> str | None:
+        """Client build this aggregation's raw node IDs were captured under."""
+        row = self._conn.execute(
+            "SELECT game_build FROM aggregations WHERE spec=? AND bracket=? AND region=? AND locale=?",
+            (spec, bracket, region, locale),
+        ).fetchone()
+        return row["game_build"] if row else None
 
     def get_aggregation(
         self, spec: str, bracket: str, region: str, locale: str = "en_US"
@@ -123,12 +169,26 @@ class CacheStore:
         return result
 
     def is_stale(
-        self, spec: str, bracket: str, region: str, ttl_hours: int = 24, locale: str = "en_US"
+        self,
+        spec: str,
+        bracket: str,
+        region: str,
+        ttl_hours: int = 24,
+        locale: str = "en_US",
+        game_build: str | None = None,
     ) -> bool:
         row = self._conn.execute(
-            "SELECT computed_at FROM aggregations WHERE spec=? AND bracket=? AND region=? AND locale=?",
+            "SELECT computed_at, game_build FROM aggregations"
+            " WHERE spec=? AND bracket=? AND region=? AND locale=?",
             (spec, bracket, region, locale),
         ).fetchone()
         if not row:
+            return True
+        # Node IDs get reassigned between client builds, so an aggregation from
+        # another build is wrong rather than merely old — no TTL can rescue it.
+        # Rows predating build stamping (game_build IS NULL) cannot be proven
+        # current, so they count as stale too. When the caller does not know the
+        # current build, fall back to the TTL alone.
+        if game_build is not None and row["game_build"] != game_build:
             return True
         return time.time() - row["computed_at"] > ttl_hours * 3600

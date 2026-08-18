@@ -3,6 +3,7 @@ import time
 import httpx
 import asyncio
 from wow_advisor.cache.db import get_default_db
+from wow_advisor.settings import WOWHEAD_CONCURRENCY
 
 # Wowhead locale IDs: 0 = en_US, 4 = zh_CN
 _LOCALE_MAP = {
@@ -56,11 +57,21 @@ async def fetch_tooltip(client: httpx.AsyncClient, type_str: str, entry_id: int,
     return None
 
 async def prefetch_tooltips(ids: list[int], type_str: str = "spell", locale: str = "en_US") -> dict[int, dict]:
-    """Fetch multiple tooltips in parallel and return a map."""
+    """Fetch multiple tooltips in parallel and return a map.
+
+    Concurrency is bounded: Wowhead is a third-party site rather than an API with
+    a published quota, and a full static refresh asks for a few thousand tooltips
+    at once.
+    """
     results = {}
+    sem = asyncio.Semaphore(WOWHEAD_CONCURRENCY)
+
+    async def bounded(client, eid):
+        async with sem:
+            return await fetch_tooltip(client, type_str, eid, locale)
+
     async with httpx.AsyncClient() as client:
-        tasks = [fetch_tooltip(client, type_str, eid, locale) for eid in ids]
-        responses = await asyncio.gather(*tasks)
+        responses = await asyncio.gather(*[bounded(client, eid) for eid in ids])
         for eid, data in zip(ids, responses):
             if data:
                 results[eid] = data

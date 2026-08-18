@@ -92,3 +92,25 @@ def test_get_talent_distribution_missing_data():
         
         assert "error" in result
         assert "No data for" in result["error"]
+
+
+def test_talent_distribution_staleness_is_build_aware():
+    """Raw node IDs from another client build are wrong data, not old data.
+
+    This tool returns node IDs unresolved, so a cross-build cache hit hands the
+    caller IDs that now mean different talents.
+    """
+    with patch("wow_advisor.tools.talents.get_default_db") as mock_get_db, \
+         patch("wow_advisor.tools.talents.CacheStore") as mock_store_class, \
+         patch("wow_advisor.processor.talent_names.TalentNameCache") as mock_cache_class:
+
+        mock_get_db.return_value = MagicMock()
+        mock_store = MagicMock()
+        mock_store.is_stale.return_value = False
+        mock_store.get_aggregation.return_value = {"sample_size": 1}
+        mock_store_class.return_value = mock_store
+        mock_cache_class.return_value.game_build.return_value = "12.1.0_68914"
+
+        get_talent_distribution("restoration shaman", "3v3")
+
+        assert mock_store.is_stale.call_args.kwargs["game_build"] == "12.1.0_68914"

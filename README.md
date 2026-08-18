@@ -79,6 +79,6 @@ The `data/keystone_talents.json` file lets you override the automatic clustering
 
 ## Extending
 
-- **New brackets** (2v2, Solo Shuffle): just pass `bracket="solo shuffle"` or `bracket="2v2"` — no code changes
+- **Other brackets**: pass `bracket="solo shuffle"`, `"2v2"`, `"blitz"`, or `"rbg"` — no code changes
 - **EU region**: add `region="eu"` to any tool call
-- **Season update**: change `CURRENT_SEASON_ID` in `wow_advisor/api/client.py`
+- **Season update**: nothing to do — the current season is detected from the Blizzard API per request. `FALLBACK_SEASON_ID` in `wow_advisor/settings.py` is only a safety net for when that lookup fails. While a new season's ladder is still empty, results come from the previous season and are flagged with `season_fallback: true`.

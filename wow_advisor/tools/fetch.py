@@ -10,8 +10,31 @@ from wow_advisor.processor.aggregator import build_aggregation
 from wow_advisor.settings import AGGREGATION_TTL_HOURS, MissingCredentialsError, get_credentials
 
 
+# Brackets whose leaderboard is published per spec rather than as one board.
+_PER_SPEC_LEADERBOARDS = {"solo-shuffle": "shuffle", "blitz": "blitz"}
+
+
 def slugify(s: str) -> str:
-    return s.lower().replace(" ", "-")
+    """Class/spec name as it appears in a Blizzard leaderboard slug.
+
+    Spaces are removed rather than hyphenated: "Demon Hunter" -> "demonhunter",
+    "Beast Mastery" -> "beastmastery". Hyphenating 404s, which silently disabled
+    solo shuffle for every Death Knight and Demon Hunter spec plus Beast Mastery.
+    """
+    return s.lower().replace(" ", "")
+
+
+def _current_game_build(conn, spec: str, locale: str) -> str | None:
+    """Client build the cached talent node IDs for this spec belong to.
+
+    Reads only what the talent node cache already recorded, so this never hits
+    the network and never needs credentials.
+    """
+    from wow_advisor.processor.talent_names import TalentNameCache
+    try:
+        return TalentNameCache(conn).game_build(spec, locale=locale)
+    except Exception:
+        return None
 
 
 def _make_client(region: str) -> tuple[BnetAuth, BnetClient]:
@@ -35,10 +58,18 @@ async def fetch_top_players_async(
     if ids is None:
         return {"error": f"Unknown spec: {spec}. Check spelling or add it to normalize.py."}
 
-    # Skip API fetch if data is fresher than the TTL
+    # Skip API fetch if data is fresher than the TTL and was built under the same
+    # client build. The build stamp is a plain DB read of whatever the talent node
+    # cache last recorded — no HTTP, no credentials — so cache hits still work
+    # offline. Node IDs get reassigned between builds, so an aggregation from
+    # another build has to be rebuilt no matter how recent it is.
     conn = get_default_db()
     store = CacheStore(conn)
-    if not store.is_stale(spec, bracket, region, ttl_hours=AGGREGATION_TTL_HOURS, locale=locale):
+    game_build = _current_game_build(conn, spec, locale)
+    if not store.is_stale(
+        spec, bracket, region, ttl_hours=AGGREGATION_TTL_HOURS, locale=locale,
+        game_build=game_build,
+    ):
         agg = store.get_aggregation(spec, bracket, region, locale=locale)
         return {"fetched": agg.get("sample_size", 0), "cached_at": agg.get("cached_at"), "spec": spec, "bracket": bracket, "skipped": True}
 
@@ -52,14 +83,19 @@ async def fetch_top_players_async(
     except MissingCredentialsError as e:
         return {"error": str(e)}
 
-    # Solo Shuffle leaderboard is spec-specific: shuffle-{class}-{spec}
+    # Solo Shuffle and Blitz publish one leaderboard per spec.
     api_bracket = bracket
-    if bracket == "solo-shuffle":
-        api_bracket = f"shuffle-{slugify(target_class)}-{slugify(target_spec)}"
+    prefix = _PER_SPEC_LEADERBOARDS.get(bracket)
+    if prefix:
+        api_bracket = f"{prefix}-{slugify(target_class)}-{slugify(target_spec)}"
 
-    leaderboard = await client.fetch_leaderboard(bracket=api_bracket)
+    page = await client.fetch_leaderboard(bracket=api_bracket)
+    leaderboard = page.entries
     if not leaderboard:
-        return {"error": f"No leaderboard data for bracket '{api_bracket}'. Check bracket name and season ID."}
+        return {"error": (
+            f"No leaderboard data for bracket '{api_bracket}' in season {page.season_id}. "
+            "Check the bracket name, or wait for placement games if the season just started."
+        )}
 
     # Phase 1: cheap spec-only scan across full leaderboard (1 API call per player).
     # Stops as soon as we have `limit` matching players.
@@ -86,7 +122,12 @@ async def fetch_top_players_async(
 
     if not matched:
         return {
-            "error": f"Found 0 {spec} players across {len(leaderboard)} {bracket} leaderboard entries."
+            "error": (
+                f"Found 0 {spec} players across {len(leaderboard)} {bracket} leaderboard "
+                f"entries in season {page.season_id}."
+            ),
+            "season_id": page.season_id,
+            "season_fallback": page.is_fallback,
         }
 
     # Phase 2: fetch full talent + gear for matched players only (2 API calls each).
@@ -105,9 +146,24 @@ async def fetch_top_players_async(
         bracket=bracket,
         region=region,
     )
-    store.save_aggregation(spec=spec, bracket=bracket, region=region, data=aggregation, locale=locale)
+    # Record which ladder the sample came from — it is not always the current
+    # season (see LeaderboardPage), and a summary built off last season's ladder
+    # has to say so.
+    aggregation["season_id"] = page.season_id
+    aggregation["season_fallback"] = page.is_fallback
+    store.save_aggregation(
+        spec=spec, bracket=bracket, region=region, data=aggregation, locale=locale,
+        game_build=game_build,
+    )
 
-    return {"fetched": len(collected), "cached_at": int(time.time()), "spec": spec, "bracket": bracket}
+    return {
+        "fetched": len(collected),
+        "cached_at": int(time.time()),
+        "spec": spec,
+        "bracket": bracket,
+        "season_id": page.season_id,
+        "season_fallback": page.is_fallback,
+    }
 
 
 def fetch_top_players(
