@@ -242,3 +242,93 @@ def test_build_page_localization(mock_db, mock_pages_dir, mock_write, mock_get_p
     # Check blitz
     result = build_page("restoration-shaman", "rated blitz", open_browser=False)
     assert "restoration-shaman_blitz.html" in result["path"]
+
+
+@pytest.fixture
+def hero_split_summary():
+    """A real 3v3 shape: two clusters, each committed to one hero tree.
+
+    Modelled on restoration-shaman, where 32 of 50 run Totemic (left) and 18 run
+    Farseer (right). Hero picks land at 64%/36%, so every hero node falls in the
+    "contested" band — which MAX_DECISION_NODES truncates. Only a right-leaning
+    remnant survives into core/flex/contested, so a dominance calculation based
+    on those lists sees the minority tree as dominant.
+    """
+    return {
+        "spec": "restoration-shaman",
+        "bracket": "3v3",
+        "sample_size": 50,
+        "avg_ilvl": 268,
+        "pvp_talents": [],
+        "talents": {
+            "core": [{"id": 1, "name": "Talent 1", "pct": 100.0, "pts": 1}],
+            "flex": [],
+            # the truncated remnant: one left node at 4%, one right node at 8%
+            "contested": [
+                {"id": 50, "name": "Totemic A", "pct": 4.0},
+                {"id": 60, "name": "Farseer A", "pct": 8.0},
+            ],
+            "clusters": [
+                {
+                    "rank": 1, "pct": 64.0, "count": 32, "canonical_code": "totemic",
+                    "takes": [{"id": 1, "pct": 100.0}, {"id": 50, "pct": 100.0},
+                              {"id": 51, "pct": 100.0}],
+                    "skips": [], "flex_takes": [], "pickers": [],
+                },
+                {
+                    "rank": 2, "pct": 36.0, "count": 18, "canonical_code": "farseer",
+                    "takes": [{"id": 1, "pct": 100.0}, {"id": 60, "pct": 100.0},
+                              {"id": 61, "pct": 100.0}],
+                    "skips": [], "flex_takes": [], "pickers": [],
+                },
+            ],
+        },
+        "gear": {"head": [{"item_id": 1001, "name": "Cool Hat", "pct": 90.0}]},
+        "enchants": {},
+    }
+
+
+@pytest.fixture
+def hero_split_tree():
+    return {
+        "trees": [{"nodes": [{"id": 1, "name": "Talent 1", "spellId": 101}]}],
+        "heroTrees": {
+            "left": {"heroName": "Totemic", "nodes": [
+                {"id": 50, "name": "Totemic A", "spellId": 501},
+                {"id": 51, "name": "Totemic B", "spellId": 502},
+            ]},
+            "right": {"heroName": "Farseer", "nodes": [
+                {"id": 60, "name": "Farseer A", "spellId": 601},
+                {"id": 61, "name": "Farseer B", "spellId": 602},
+            ]},
+        },
+    }
+
+
+def test_hero_core_follows_player_counts_not_truncated_pick_rates(
+    hero_split_summary, hero_split_tree
+):
+    # 32 of 50 players run Totemic, so Totemic is what the page must present as
+    # the hero tree. Averaging pick rates over the truncated contested list picks
+    # Farseer — the minority tree — because it is the only one left in that list.
+    result = _make_cluster_data(hero_split_summary, hero_split_tree)
+
+    hero_names = {t["name"] for t in result["talents"]["core"] if t["id"] in {50, 51, 60, 61}}
+    assert hero_names == {"Totemic A", "Totemic B"}, (
+        f"expected the majority (Totemic) tree as hero core, got {hero_names}"
+    )
+
+
+def test_hero_core_ignores_a_stray_node_from_the_other_tree(
+    hero_split_summary, hero_split_tree
+):
+    # Every member of cluster #1 runs Totemic, but its takes list also carries a
+    # single Farseer node (this happens on shadow-priest). Crediting presence
+    # rather than majority would count those 32 players toward both trees and
+    # hand the tie to whichever side is checked first.
+    hero_split_summary["talents"]["clusters"][0]["takes"].append({"id": 61, "pct": 6.0})
+
+    result = _make_cluster_data(hero_split_summary, hero_split_tree)
+
+    hero_names = {t["name"] for t in result["talents"]["core"] if t["id"] in {50, 51, 60, 61}}
+    assert hero_names == {"Totemic A", "Totemic B"}

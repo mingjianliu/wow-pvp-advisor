@@ -166,7 +166,38 @@ Blizzard's `pvp-season/index` reported 42 and its 3v3 board was already populate
       `clustering_degraded` on the aggregation. The bad row was repaired by
       rebuilding offline from the cached roster; all 29 healer rows re-verified.
 
+- [x] **Page showed the minority hero tree** — (RESOLVED 2026-08-20) `_hero_core_nodes`
+      in `tools/ui.py` picked the "dominant" hero tree by averaging pick rates over
+      `core + flex + contested`. Hero talents are an all-or-nothing tree choice, so a
+      split anywhere near even puts every hero node in the contested band (20-80%),
+      which `MAX_DECISION_NODES` truncates — leaving an arbitrary remnant to average.
+      On restoration-shaman 3v3 that remnant was 4 of 28 hero nodes and pointed at
+      Farseer while 32 of 50 players ran Totemic. **17 of 80 (spec, bracket) pages
+      named the minority tree**, including discipline-priest (Oracle 38 shown as
+      Voidweaver 12) and restoration-druid (Keeper 39 shown as Wildstalker 11).
+
+      Dominance now comes from cluster member counts, assigned by majority overlap
+      rather than presence — a cluster whose members all run one tree can still list
+      a stray node from the other (shadow-priest: 14 Voidweaver + 1 Archon), and
+      counting presence would credit its players to both trees. Verified against the
+      cache: all 40 specs now match the real member split.
+
+      Clustering itself was never wrong — 622 clusters across 81 (spec, bracket)
+      combinations each hold members of exactly one hero tree, so `_hero_partition`
+      does enforce hero choice as the top-level split. This was display only.
+
 ### Open
+
+- [ ] **A page names one hero tree when the field is genuinely split** — even
+      corrected, the page presents a single hero tree and `strip_hero` removes hero
+      nodes from every cluster, so restoration-shaman 3v3 reads as "Totemic" with no
+      sign that 36% run Farseer. Preservation-evoker (28/22) and subtlety-rogue
+      (27/23) are near coin flips. Since clusters already partition cleanly by hero
+      tree, each cluster could name and render its own.
+
+- [ ] **Hero nodes on the page carry pct 0** — `_hero_core_nodes` reads pct from
+      `core/flex/contested`, which holds only the untruncated remnant, so most hero
+      nodes render at 0%. Cluster takes carry the real per-cluster rate.
 
 - [x] **`fetch_top_players` rescans the whole shared ladder per spec and per
       locale** — (RESOLVED 2026-08-20) — phase 1 only reads `class_id`/`spec_id` off each profile, so it is

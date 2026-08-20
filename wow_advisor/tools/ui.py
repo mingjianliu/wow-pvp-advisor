@@ -78,20 +78,45 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
     def _hero_core_nodes() -> list[dict]:
         """Return the dominant hero tree's nodes as core entries.
 
-        Hero talents are all-or-nothing tree selections, not individual choices.
-        We classify the higher-pick-rate tree as core so the frontend can render
-        its nodes green and selectHeroTree() can identify it via overlap.
+        Hero talents are an all-or-nothing tree choice, so "dominant" is the tree
+        more players committed to. Clusters carry exactly that: their hero nodes
+        and their member count.
+
+        Averaging pick rates over core/flex/contested cannot answer it. A hero
+        split anywhere near even puts every hero node in the contested band
+        (20-80%), which MAX_DECISION_NODES truncates, leaving an arbitrary
+        remnant to average over. On restoration-shaman 3v3 that remnant was 4 of
+        28 hero nodes and pointed at Farseer while 64% of players ran Totemic.
         """
         all_raw = raw["talents"]["core"] + raw["talents"]["flex"] + raw["talents"]["contested"]
         rate: dict[int, float] = {t["id"]: t["pct"] for t in all_raw if t["id"] in hero_ids}
         pts: dict[int, int] = {t["id"]: t.get("pts", 1) for t in all_raw if t["id"] in hero_ids}
         dist: dict[int, list] = {t["id"]: t.get("rankDist", []) for t in all_raw if t["id"] in hero_ids}
-        
+
         left_ids  = {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
         right_ids = {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
-        left_avg  = sum(rate.get(i, 0) for i in left_ids)  / max(len(left_ids), 1)
-        right_avg = sum(rate.get(i, 0) for i in right_ids) / max(len(right_ids), 1)
-        dominant  = left_ids if left_avg >= right_avg else right_ids
+
+        left_players = right_players = 0
+        for c in raw["talents"].get("clusters", []):
+            picked = {t["id"] for t in c.get("takes", [])} | {t["id"] for t in c.get("flex_takes", [])}
+            # Assign by majority, not by mere presence: a cluster whose members
+            # all run one tree can still list a stray node from the other (seen
+            # on shadow-priest: 14 Voidweaver nodes plus 1 Archon). Counting
+            # presence would credit that cluster's players to both trees.
+            l, r = len(picked & left_ids), len(picked & right_ids)
+            if l > r:
+                left_players += c.get("count", 0)
+            elif r > l:
+                right_players += c.get("count", 0)
+
+        if left_players or right_players:
+            dominant = left_ids if left_players >= right_players else right_ids
+        else:
+            # No cluster names a hero node (specs without hero trees in the
+            # sample); fall back to whatever pick rates are available.
+            left_avg  = sum(rate.get(i, 0) for i in left_ids)  / max(len(left_ids), 1)
+            right_avg = sum(rate.get(i, 0) for i in right_ids) / max(len(right_ids), 1)
+            dominant  = left_ids if left_avg >= right_avg else right_ids
         
         return [
             {
