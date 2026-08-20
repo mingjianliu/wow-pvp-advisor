@@ -127,7 +127,11 @@ class BnetClient:
                     continue
                 resp.raise_for_status()
                 return resp.json()
-            except httpx.TimeoutException:
+            except httpx.TransportError:
+                # Connection-level failures — DNS blips, resets, timeouts — are
+                # as transient as a 429 and just as fatal to the surrounding
+                # gather: one DNS hiccup in phase 2 discarded a completed
+                # 8-minute ladder scan.
                 if attempt == 2:
                     return None
                 await asyncio.sleep(1)
@@ -136,18 +140,39 @@ class BnetClient:
     async def _get_static(
         self, url: str, namespace: str, if_modified_since: str | None = None, locale: str = "en_US"
     ) -> httpx.Response:
-        """GET for static game data. Returns the raw Response (caller handles 304)."""
+        """GET for static game data. Returns the raw Response (caller handles 304).
+
+        Retries transport errors and 5xx. Static data is what supplies talent
+        node metadata, and callers degrade quietly when it is missing — a failed
+        tree fetch silently costs clustering its weights — so a transient blip
+        must not surface as absent game data.
+        """
         token = await self._auth.get_token()
         headers = _headers(token, namespace)
         if if_modified_since:
             headers["If-Modified-Since"] = if_modified_since
+        last_error: Exception | None = None
+        resp: httpx.Response | None = None
         async with httpx.AsyncClient() as client:
-            return await client.get(
-                url,
-                headers=headers,
-                params={"locale": locale},
-                timeout=10.0,
-            )
+            for attempt in range(3):
+                try:
+                    resp = await client.get(
+                        url,
+                        headers=headers,
+                        params={"locale": locale},
+                        timeout=10.0,
+                    )
+                except httpx.TransportError as e:
+                    last_error = e
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                if resp.status_code >= 500:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                return resp
+        if resp is not None:
+            return resp  # 5xx every time; let the caller raise_for_status on it
+        raise last_error
 
     async def fetch_talent_tree_id(self, spec_id: int, locale: str = "en_US") -> tuple[int, str | None]:
         """Returns (tree_id, last_modified) for the given spec_id."""

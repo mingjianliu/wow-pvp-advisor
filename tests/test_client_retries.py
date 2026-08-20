@@ -110,3 +110,83 @@ async def test_client_error_still_raises(client):
     async with httpx.AsyncClient() as http_client:
         with pytest.raises(httpx.HTTPStatusError):
             await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_retry_on_connect_error(mock_sleep, client):
+    # A DNS blip mid-fetch used to escape _get and abort the whole gather,
+    # discarding an already-completed ladder scan.
+    respx.get("https://us.api.blizzard.com/test-url").side_effect = [
+        httpx.ConnectError("nodename nor servname provided"),
+        httpx.Response(200, json={"status": "ok"}),
+    ]
+
+    async with httpx.AsyncClient() as http_client:
+        result = await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")
+
+    assert result == {"status": "ok"}
+    assert mock_sleep.call_count == 1
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_connect_error_exhausted_returns_none(mock_sleep, client):
+    respx.get("https://us.api.blizzard.com/test-url").mock(
+        side_effect=httpx.ConnectError("dns"))
+
+    async with httpx.AsyncClient() as http_client:
+        result = await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")
+
+    assert result is None
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_retries_transport_error(mock_sleep, client):
+    # Static data feeds talent node metadata, and a missing tree degrades
+    # clustering silently — so this path must retry too.
+    respx.get("https://us.api.blizzard.com/static-url").side_effect = [
+        httpx.ConnectError("dns"),
+        httpx.Response(200, json={"ok": True}),
+    ]
+
+    resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+    assert resp.status_code == 200
+    assert mock_sleep.call_count == 1
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_retries_5xx(mock_sleep, client):
+    respx.get("https://us.api.blizzard.com/static-url").side_effect = [
+        httpx.Response(503),
+        httpx.Response(200, json={"ok": True}),
+    ]
+
+    resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+    assert resp.status_code == 200
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_raises_when_transport_never_recovers(mock_sleep, client):
+    respx.get("https://us.api.blizzard.com/static-url").mock(
+        side_effect=httpx.ConnectError("dns"))
+
+    with pytest.raises(httpx.ConnectError):
+        await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_returns_last_5xx_for_the_caller_to_raise(mock_sleep, client):
+    # Exhausted 5xx stays a Response so callers keep their raise_for_status path.
+    respx.get("https://us.api.blizzard.com/static-url").mock(
+        return_value=httpx.Response(500))
+
+    resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+    assert resp.status_code == 500
