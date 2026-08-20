@@ -113,6 +113,11 @@ def get_full_summary(spec: str, bracket: str, region: str = "us", locale: str = 
         out["season_id"] = agg["season_id"]
     if agg.get("season_fallback"):
         out["season_fallback"] = True
+    # Same rule as season_fallback: an aggregation clustered without node
+    # metadata has different build variants, and a caller that cannot see that
+    # will present them as the meta.
+    if agg.get("clustering_degraded"):
+        out["clustering_degraded"] = True
     return out
 
 

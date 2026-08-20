@@ -34,6 +34,10 @@ All tools accept spec aliases (`"rsham"`, `"resto shaman"`, `"restoration-shaman
 }
 ```
 
+A completed fetch (not a cache hit) also carries `season_id`, `season_fallback`,
+and `clustering_degraded` — see "Season selection" below and the
+`clustering_degraded` note under `get_talent_distribution_tool`.
+
 Error cases return `{"error": "..."}`: unknown spec, no leaderboard data for the bracket, or zero matching players on the ladder.
 
 ### Side effects
@@ -59,6 +63,26 @@ A season that has just started answers 200 with **zero entries** until placement
 ```
 
 `season_fallback` is present only when the sample did not come from the current season. `fetch_leaderboard` never falls back more than one season, and an explicit `season_id=` argument disables both detection and fallback.
+
+### Bulk collection
+
+`fetch_top_players_tool` samples one spec. Phase 1 of that fetch reads only
+`class_id`/`spec_id` off each character profile, so on a shared board (3v3, 2v2,
+rbg) one pass over the ladder can serve every spec at once — running it per spec
+re-reads the same ~5000 profiles for each one, and a spec too rare to reach the
+limit forces the full ladder every time.
+
+`wow_advisor.tools.fetch.fetch_bracket()` (CLI: `python cli.py fetch-all
+<bracket> [--locales en_US,zh_CN] [--specs a,b]`) does that single pass and
+buckets entries by spec. Sampling is unchanged — still the highest-ranked
+`limit` players of each spec. It is a library/CLI entry point, not an MCP tool:
+bulk collection is an operator task, while the MCP surface stays per spec.
+
+The scan is also shared across locales. Only two fields of a scanned profile are
+locale-dependent — the class and spec display names — and both are per-spec
+constants, so `fetch_spec_labels` relabels a whole roster with one static lookup
+instead of re-fetching every profile per locale. Per-spec boards (solo shuffle,
+blitz) still fetch their own board per spec, but reuse the scan across locales.
 
 ### Future work
 - Per-player cache: skip Phase 2 for players whose detail data is still fresh
@@ -214,6 +238,20 @@ Choice ("diamond") nodes resolve to both options joined with `/`, e.g. `{"id": 8
 ```
 
 When present, every talent `name` is `null` — withheld deliberately, because labelling old node IDs with current names produces confidently wrong talent names.
+
+`clustering_degraded` appears only when the aggregation was built without talent
+tree metadata:
+
+```json
+"clustering_degraded": true
+```
+
+Clustering weights nodes by row and type (choice nodes dominate build identity).
+When `get_tree_structure` is unavailable at aggregation time, every talent gets
+the same weight and the build variants come out genuinely different. The result
+is still real player data — the cluster split is what is unreliable. Rebuild it
+offline from the cached roster (`CacheStore.get_players` → `build_aggregation` →
+`save_aggregation`); no network beyond the tree lookup is needed.
 
 ### Known limitations
 

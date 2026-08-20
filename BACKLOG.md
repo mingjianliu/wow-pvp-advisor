@@ -138,6 +138,58 @@ All four items below turned out to already be covered (verified 2026-07-07):
 
 - [ ] **Google Drive export** — export the build report as a Google Doc via the Google Drive MCP for annotation and sharing.
 
+## Season 42 collection pass (2026-08-20)
+
+First full collection on the new season's ladder (season 42, opened ~2026-08-18).
+Blizzard's `pvp-season/index` reported 42 and its 3v3 board was already populated
+(4934→4988 entries), so nothing fell back to season 41 — every row is stamped
+`season_id: 42, season_fallback: false`.
+
+### Landed
+
+- [x] **A single 5xx aborted a whole 50-player fetch** — `BnetClient._get` handled
+      404/429/timeout but let 5xx through `raise_for_status()`. That exception
+      propagates out of the `asyncio.gather` fanning out over the roster, so one
+      flaky character profile threw away the entire spec's sample (it killed
+      mistweaver-monk/zh_CN mid-run). 5xx now backs off and retries like 429, then
+      gives up as `None` — callers already treat a missing profile as a skip.
+      Non-404/429 4xx still raises, so a bad namespace or revoked token stays loud.
+
+- [x] **Clustering degraded silently when the talent tree was unavailable** —
+      `build_aggregation` gets node metadata (row, type, hero side) from
+      `get_tree_structure`, which swallows every failure into `{"error": ...}`. The
+      old code just skipped populating `node_meta` on error, leaving every talent
+      with the same clustering weight — different build variants, no warning, cached
+      as sound for the full 2h TTL. It happened for real: the cached
+      restoration-shaman/solo-shuffle/en_US row held the unweighted `[33,12,4,1]`
+      split where the weighted answer is `[37,12,1]`. Now logs a warning and stamps
+      `clustering_degraded` on the aggregation. The bad row was repaired by
+      rebuilding offline from the cached roster; all 29 healer rows re-verified.
+
+### Open
+
+- [x] **`fetch_top_players` rescans the whole shared ladder per spec and per
+      locale** — (RESOLVED 2026-08-20) — phase 1 only reads `class_id`/`spec_id` off each profile, so it is
+      locale-independent, yet it runs once per (spec, locale). On a shared board
+      (3v3/2v2/rbg) a rare spec scans all ~5000 entries to find 14 players, and does
+      it twice. Measured: 14 of 66 planned 3v3 fetches took 56 minutes, projecting
+      ~3.5h and ~250k API calls for the set; protection-paladin alone cost ~450s per
+      locale. Scanning the ladder **once** and bucketing entries by spec gives
+      identical sampling (still the highest-ranked 50 per spec) for ~12k calls and
+      ~25 minutes. Fixed by extracting phase 1 into `_scan_ladder` (bucketing a
+      single pass by spec) and adding `fetch_bracket()` / `python cli.py
+      fetch-all`. `fetch_top_players` now runs on the same helpers with a
+      one-spec target, so its behavior is unchanged. The locale half is fixed
+      too: the scan runs once for all locales, and the only locale-dependent
+      fields in a scanned profile (class and spec display names) are per-spec
+      constants, so `fetch_spec_labels` relabels a roster with one static lookup
+      instead of a profile fetch per player per locale. Measured after: 33 specs
+      x 2 locales of 3v3 in 16.3 min (8 of it the single scan) vs ~3.5h.
+
+      Does **not** close the Tier 2 locale item above — players and aggregations
+      are still cached per locale, so phase 2 and the stored rows are still
+      duplicated. This removes the expensive half.
+
 ## Competitive Analysis TODOs (vs murlok.io / pvpq.net / arenacoach.gg)
 
 ### 🔴 High Priority — Quick Wins, High Impact

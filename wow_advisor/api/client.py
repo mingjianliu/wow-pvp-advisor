@@ -117,7 +117,12 @@ class BnetClient:
                     )
                 if resp.status_code == 404:
                     return None
-                if resp.status_code == 429:
+                # 429 and 5xx are transient. Raising here would propagate out of
+                # the asyncio.gather that fans out over a whole roster, so one
+                # flaky character profile sank an entire 50-player spec fetch.
+                # Back off instead, and give up as None — callers already treat
+                # a missing profile as a player to skip.
+                if resp.status_code == 429 or resp.status_code >= 500:
                     await asyncio.sleep(2 ** attempt)
                     continue
                 resp.raise_for_status()
@@ -237,6 +242,29 @@ class BnetClient:
             if talent.get("id") and talent.get("name"):
                 talents.append({"id": talent["id"], "name": talent["name"]})
         return sorted(talents, key=lambda t: t["id"]), game_build
+
+    async def fetch_spec_labels(
+        self, spec_id: int, locale: str = "en_US"
+    ) -> tuple[str, str] | None:
+        """Localized (class name, spec name) for a spec, or None if unavailable.
+
+        These two strings are per-spec constants, not per-character data. They
+        reach the UI via CharacterData, which otherwise only gets them from a
+        character profile — so localizing a roster used to mean re-fetching every
+        profile in the target locale just to read the same two strings back.
+        """
+        url = f"{self._base}/data/wow/playable-specialization/{spec_id}"
+        try:
+            resp = await self._get_static(url, f"static-{self._region}", locale=locale)
+            resp.raise_for_status()
+        except httpx.HTTPError:
+            return None
+        data = resp.json()
+        class_name = (data.get("playable_class") or {}).get("name")
+        spec_name = data.get("name")
+        if not class_name or not spec_name:
+            return None
+        return class_name, spec_name
 
     async def fetch_current_season_id(self) -> int | None:
         """Current PvP season per Blizzard, or None if the lookup fails."""

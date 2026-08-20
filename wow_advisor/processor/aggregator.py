@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 from collections import Counter
 from wow_advisor.api.models import CharacterData
 from wow_advisor.processor.talents import summarize_talent_clusters
 from wow_advisor.processor.gear import aggregate_gear
 from wow_advisor.talent_tree import get_tree_structure
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_KEYSTONE_FILE = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "keystone_talents.json")
@@ -89,7 +92,17 @@ def build_aggregation(
     # Fetch tree structure to get node metadata (row, type) for clustering weights
     tree_data = get_tree_structure(spec)
     node_meta = {}
-    if "error" not in tree_data:
+    # get_tree_structure swallows every failure into an error dict. Without node
+    # metadata each talent carries the same clustering weight, so the build
+    # variants come out genuinely different — silently, and cached as sound for
+    # the full TTL. Record it so a degraded run is identifiable and rebuildable.
+    tree_error = tree_data.get("error")
+    if tree_error:
+        logger.warning(
+            "Talent tree structure unavailable for %s (%s) — clustering weights "
+            "degraded to uniform for this aggregation.", spec, tree_error,
+        )
+    else:
         # Extract from main trees (class, spec)
         for tree in tree_data.get("trees", []):
             for node in tree.get("nodes", []):
@@ -142,6 +155,8 @@ def build_aggregation(
         "sample_size": len(players),
         "avg_ilvl": gear_summary["avg_ilvl"],
         "talents": talent_summary,
+        # True when node metadata was missing, so clustering ran unweighted.
+        "clustering_degraded": bool(tree_error),
         "pvp_talents": pvp_summary,
         "gear": gear_summary["gear"],
         "enchants": gear_summary["enchants"],

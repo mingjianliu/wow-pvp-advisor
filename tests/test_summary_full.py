@@ -194,3 +194,42 @@ def test_summary_flags_a_previous_season_sample(
 
     assert result["season_id"] == 41
     assert result["season_fallback"] is True
+
+
+def test_full_summary_surfaces_degraded_clustering(monkeypatch):
+    # A degraded aggregation must not read as a sound one to MCP callers.
+    from unittest.mock import MagicMock, patch
+    from wow_advisor.tools.summary import get_full_summary
+
+    agg = {"sample_size": 5, "avg_ilvl": 600, "talents": {}, "gear": {}, "enchants": {},
+           "pvp_talents": [], "season_id": 42, "clustering_degraded": True}
+    with patch("wow_advisor.tools.summary.get_default_db"), \
+         patch("wow_advisor.tools.summary.CacheStore") as store_cls, \
+         patch("wow_advisor.tools.summary._resolve_node_names", return_value=({}, "b1")):
+        store = MagicMock()
+        store_cls.return_value = store
+        store.is_stale.return_value = False
+        store.get_aggregation.return_value = agg
+        store.aggregation_game_build.return_value = "b1"
+        out = get_full_summary("restoration-shaman", "3v3")
+
+    assert out["clustering_degraded"] is True
+
+
+def test_full_summary_omits_the_flag_when_clustering_was_sound():
+    from unittest.mock import MagicMock, patch
+    from wow_advisor.tools.summary import get_full_summary
+
+    agg = {"sample_size": 5, "avg_ilvl": 600, "talents": {}, "gear": {}, "enchants": {},
+           "pvp_talents": [], "season_id": 42, "clustering_degraded": False}
+    with patch("wow_advisor.tools.summary.get_default_db"), \
+         patch("wow_advisor.tools.summary.CacheStore") as store_cls, \
+         patch("wow_advisor.tools.summary._resolve_node_names", return_value=({}, "b1")):
+        store = MagicMock()
+        store_cls.return_value = store
+        store.is_stale.return_value = False
+        store.get_aggregation.return_value = agg
+        store.aggregation_game_build.return_value = "b1"
+        out = get_full_summary("restoration-shaman", "3v3")
+
+    assert "clustering_degraded" not in out

@@ -136,3 +136,35 @@ def test_build_aggregation_corrupt_keystone_file(tmp_path):
         keystone_file=str(keystone_file),
     )
     assert result["talents"]["clustering_method"] == "variance+weighted"
+
+
+def test_clustering_degraded_flag_when_tree_unavailable(tmp_path, monkeypatch):
+    # A tree-structure failure leaves every talent with the same clustering
+    # weight, which changes the build variants. It must be visible in the
+    # output, not silently cached as a sound aggregation.
+    monkeypatch.setattr(
+        "wow_advisor.processor.aggregator.get_tree_structure",
+        lambda spec: {"error": "boom"},
+    )
+    result = build_aggregation(
+        players=[make_char(i) for i in range(10)],
+        spec="restoration-shaman", bracket="3v3", region="us",
+        keystone_file=str(tmp_path / "keystone_talents.json"),
+    )
+    assert result["clustering_degraded"] is True
+
+
+def test_clustering_not_degraded_when_tree_available(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "wow_advisor.processor.aggregator.get_tree_structure",
+        lambda spec: {"trees": [{"nodes": [
+            {"id": 201, "row": 5, "type": "choice"},
+            {"id": 202, "row": 1, "type": "single"},
+        ]}], "heroTrees": {}},
+    )
+    result = build_aggregation(
+        players=[make_char(i) for i in range(10)],
+        spec="restoration-shaman", bracket="3v3", region="us",
+        keystone_file=str(tmp_path / "keystone_talents.json"),
+    )
+    assert result["clustering_degraded"] is False

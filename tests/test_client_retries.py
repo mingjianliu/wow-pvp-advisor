@@ -66,3 +66,47 @@ async def test_retry_on_timeout(mock_sleep, client):
     assert result == {"status": "ok"}
     assert mock_sleep.call_count == 1
     mock_sleep.assert_called_with(1) # Timeout sleep is constant 1
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_retry_on_500_success(mock_sleep, client):
+    # A transient server error must not escape _get: it propagates out of the
+    # asyncio.gather over a full roster and aborts the whole spec fetch.
+    respx.get("https://us.api.blizzard.com/test-url").side_effect = [
+        httpx.Response(500),
+        httpx.Response(200, json={"status": "ok"}),
+    ]
+
+    async with httpx.AsyncClient() as http_client:
+        result = await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")
+
+    assert result == {"status": "ok"}
+    assert mock_sleep.call_count == 1
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_retry_on_500_exhausted_returns_none(mock_sleep, client):
+    respx.get("https://us.api.blizzard.com/test-url").side_effect = [
+        httpx.Response(500),
+        httpx.Response(503),
+        httpx.Response(502),
+    ]
+
+    async with httpx.AsyncClient() as http_client:
+        result = await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")
+
+    assert result is None
+    assert mock_sleep.call_count == 3
+
+
+@respx.mock
+async def test_client_error_still_raises(client):
+    # 4xx that is not 404/429 is a real bug (bad namespace, revoked token) and
+    # must stay loud rather than being retried into a silent None.
+    respx.get("https://us.api.blizzard.com/test-url").mock(return_value=httpx.Response(403))
+
+    async with httpx.AsyncClient() as http_client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await client._get(http_client, "https://us.api.blizzard.com/test-url", "test-namespace")

@@ -19,3 +19,6 @@ app_output.txt
 node_modules/
 .codex/
 .mcp.json
+
+# generated report dumps (regenerate from the cache DB)
+reports/
