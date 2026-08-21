@@ -137,14 +137,48 @@ All four items below turned out to already be covered (verified 2026-07-07):
 
 - [ ] **Solo Shuffle and 2v2 validation** — fetch at least one spec for each bracket to confirm the season ID and leaderboard parsing work for non-3v3 brackets.
 
-- [ ] **Tune `HAC_THRESHOLD` against silhouette scores** — supersedes the deleted
-  keystone idea, which could not affect grouping. The real fragmentation lever is
-  `HAC_THRESHOLD` (currently 0.3). Measured on the season-42 3v3 sample: holy-priest
-  goes 18 -> 11 -> 3 (`[22,20,3]`) clusters at 0.3/0.4/0.5, mistweaver 14 -> 9 -> 3
-  (`[44,4,2]`), while restoration-shaman stays at 2 across all of them — so raising it
-  consolidates the fragmented specs without disturbing the clean ones. Not monotonic:
-  holy-priest goes back up to 5 at 0.6. Pick the value by sweeping silhouette scores
-  across specs, not by eye.
+- [x] **Tune `HAC_THRESHOLD` against silhouette scores** — (SWEPT 2026-08-21,
+  **no change made**) Swept 0.20-0.70 in 0.05 steps across all 65 (spec, bracket)
+  combos with a sample of 30+, on the season-42 rosters, offline.
+
+  **0.30 — the current value — is the only setting in the range that neither
+  shatters nor collapses.** Scoring each threshold by how many genuinely-split
+  fields lose their split (a field is split when 2+ builds each hold >=20% of the
+  players):
+
+  | threshold | median clusters | singletons | fields losing their split |
+  |-----------|-----------------|------------|---------------------------|
+  | 0.20      | 14              | 7.25       | 19 (shattered — no build reaches 20%) |
+  | 0.25      | 11              | 4.77       | 12 (shattered) |
+  | **0.30**  | **7**           | **2.75**   | **0** |
+  | 0.35      | 6               | 1.75       | 4 (collapsed) |
+  | 0.40      | 4               | 1.03       | 4 (collapsed) |
+  | 0.50      | 2               | 0.35       | 8 (collapsed) |
+  | 0.70      | 2               | 0.17       | 9 (collapsed) |
+
+  The two ends fail differently: below 0.30 the field shatters so finely that no
+  build is substantial; above it, real splits merge away (shadow-priest 3v3 and
+  unholy-death-knight 3v3 lose their second build at 0.45, windwalker-monk 3v3 and
+  survival-hunter 3v3 at 0.50). Mean silhouette is not a usable selector on its own
+  — it is highest at 0.20, where 14 tiny clusters are trivially cohesive.
+
+  A per-combo adaptive threshold ("raise it until a substantial build would
+  collapse") was evaluated and **degenerates**: it picks the sweep ceiling for 44 of
+  65 combos, because the constraint is vacuous for fields that had no substantial
+  build to protect. It produced holy-priest solo-shuffle as `[49, 1]` — 49 of 50
+  players in one cluster, from 13 distinguishable groups at 0.30.
+
+  Conclusion: the fragmentation on holy-priest (18 clusters), mistweaver (14), and
+  devastation-evoker (26) is not a threshold problem. Those fields genuinely had no
+  consolidated meta three days into the season. Leaving `HAC_THRESHOLD` at 0.30.
+  Worth re-running the sweep mid-season, when the meta has settled, to confirm the
+  fragmentation resolves on its own.
+
+  Noted while sweeping: cluster count is **not monotonic** in the threshold
+  (holy-priest 3v3 gives 3 clusters at 0.50 but 5 at 0.55). `summarize_talent_clusters`
+  runs both complete and average linkage at each threshold and keeps whichever scores
+  better, so the winning linkage can flip as the threshold moves. Expected given the
+  design, but it means the knob cannot be reasoned about as "higher = fewer clusters".
 
 - [ ] **Persistent Report Caching** — currently HTML reports are just files on disk. Add a system to track report freshness in the SQLite DB, allowing the `DynamicReportHandler` to automatically re-generate reports when the underlying Blizzard data becomes stale (e.g. >2 hours old).
 
