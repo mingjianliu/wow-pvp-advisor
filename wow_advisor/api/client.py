@@ -169,9 +169,20 @@ class BnetClient:
                 if resp.status_code >= 500:
                     await asyncio.sleep(2 ** attempt)
                     continue
+                # A 200 carrying a non-JSON body is transient garbage from a
+                # proxy or CDN, and every caller of this method parses JSON. It
+                # reaches get_tree_structure as "tree unavailable" and silently
+                # costs clustering its node weights, so retry it like a 5xx.
+                # Only 200 is checked: a 304 has no body by design.
+                if resp.status_code == 200:
+                    try:
+                        resp.json()
+                    except ValueError:
+                        await asyncio.sleep(2 ** attempt)
+                        continue
                 return resp
         if resp is not None:
-            return resp  # 5xx every time; let the caller raise_for_status on it
+            return resp  # never recovered; let the caller surface it
         raise last_error
 
     async def fetch_talent_tree_id(self, spec_id: int, locale: str = "en_US") -> tuple[int, str | None]:

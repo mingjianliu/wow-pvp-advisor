@@ -190,3 +190,34 @@ async def test_static_get_returns_last_5xx_for_the_caller_to_raise(mock_sleep, c
     resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
 
     assert resp.status_code == 500
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_retries_200_with_non_json_body(mock_sleep, client):
+    # Seen in the wild: a 200 whose body is not JSON. It is not a transport
+    # error and not a 5xx, so it slipped past both retries and reached
+    # get_tree_structure as "tree unavailable", degrading clustering weights.
+    respx.get("https://us.api.blizzard.com/static-url").side_effect = [
+        httpx.Response(200, text="<html>gateway hiccup</html>"),
+        httpx.Response(200, json={"ok": True}),
+    ]
+
+    resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+    assert resp.json() == {"ok": True}
+    assert mock_sleep.call_count == 1
+
+
+@respx.mock
+@patch("asyncio.sleep", new_callable=AsyncMock)
+async def test_static_get_does_not_parse_a_304(mock_sleep, client):
+    # 304 has no body by design — validating it as JSON would retry every
+    # unchanged talent tree three times and then hand back a bogus response.
+    respx.get("https://us.api.blizzard.com/static-url").mock(
+        return_value=httpx.Response(304))
+
+    resp = await client._get_static("https://us.api.blizzard.com/static-url", "static-us")
+
+    assert resp.status_code == 304
+    mock_sleep.assert_not_called()
