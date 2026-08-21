@@ -138,18 +138,23 @@ Returns the `talents` section of the cached aggregation (raw node IDs, no names)
 - `skips` — talents NOT taken by this cluster's medoid build.
 - `silhouette_score` — cohesion metric for this cluster (higher is better, range -1 to 1).
 
-**`clustering_method`:** `"variance+weighted"` (default HAC) or `"keystone"` (if forced by `data/keystone_talents.json`).
+**`clustering_method`:** always `"variance+weighted"`. Kept as a field so a
+future alternative is distinguishable in cached data.
 
 **`mean_silhouette_score`:** overall clustering quality score.
 
 ### Known limitations
 
-- **Fragmented clusters**: if build diversity is extremely high, clusters can still be small.
+- **Fragmented clusters**: if build diversity is extremely high, clusters can still
+  be small — early in a season this is the norm, not an edge case (holy-priest 3v3
+  came out as 18 clusters over 50 players two days into season 42). The lever is
+  `HAC_THRESHOLD`; `MAX_DECISION_NODES` cannot help, since decision nodes only pick
+  which talents a build is *labelled* by and never enter the distance function.
 - **Node IDs only**: use `get_full_summary_tool` for a version with human-readable names.
 
 ### Future work
 
-- Add more `data/keystone_talents.json` entries to force cleaner clusters
+- Tune `HAC_THRESHOLD` against silhouette scores across specs (see BACKLOG)
 - Expose clustering threshold as a parameter
 
 ---

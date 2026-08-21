@@ -35,7 +35,22 @@
 - [x] **Spec domain table duplicated 3× in Python** — (RESOLVED 2026-07-07) `ui._SPEC_LABELS` and `talent_names.SPEC_IDS` are now derived from `normalize._SPEC_INFO_MAP` (single source). The frontend `app.jsx` `CLASSES` table remains a 4th copy — fold into the Tier 3 frontend-precompile work (generate it at build time).
 - [x] **Query-tool TTL was an implicit default** — (RESOLVED 2026-07-07) Added `QUERY_TTL_HOURS = 24` to settings; `get_gear_summary` and `get_talent_distribution` now pass it explicitly instead of relying on `store.is_stale`'s signature default.
 - [x] **One-off debug scripts** — (RESOLVED 2026-07-07) Deleted `run_app.py` (PyInstaller smoke test with hardcoded dist path) and `scripts/{debug_clustering,debug_clustering_v2,linkage_comparison,ab_test_batch}.py` (clustering-tuning era leftovers; `linkage_comparison` embedded a stale copy of the average-linkage implementation). Kept `fetch_all_specs`, `fetch_healers`, `get_spec_clusters`.
-- [ ] **Keystone mechanism is dead code** — `data/keystone_talents.json` is `{}`; the whole override path (`_load_keystone_nodes`, the `keystone` branch in `summarize_talent_clusters`, docs mentions) has never fired. Decide: populate it for key specs, or remove the mechanism. (User decision pending.)
+- [x] **Keystone mechanism is dead code** — (RESOLVED 2026-08-21) Removed. It could
+  not have done what it claimed: `keystone_nodes` only ever replaced `decision_nodes`,
+  which appears in three places — labelling a cluster's takes/skips and reporting
+  `contested_nodes`. Clustering runs on full node sets with weighted Jaccard distance
+  and never reads it. Measured on holy-priest 3v3 (50 players, 18 clusters): overriding
+  with 1, 2, 3, or 4 keystone nodes left the grouping byte-identical
+  (`[6,6,4,3,3,3,3,2,2,2,2,2,2,1,1,1,1,1]`); only `contested_nodes` (8 -> 2) and the
+  listed skips (4 -> 0) changed. The old test asserted `clustering_method == "keystone"`
+  — the label, not the behavior — which is how the dead path survived.
+
+  Deleted `data/keystone_talents.json`, `_load_keystone_nodes`, the `keystone_file`
+  parameter, and the `keystone_nodes` branch. Fixed both docs that claimed it
+  "overrides the automatic clustering" (README, AGENTS.md) and the comment on
+  `MAX_DECISION_NODES` claiming it prevents fragmentation. Added a regression test
+  asserting the cap changes labelling but not grouping. All 161 cached aggregations
+  rebuild identically, confirming no behavior change.
 
 ### 🟢 Tier 3 — Larger refactors
 
@@ -122,7 +137,14 @@ All four items below turned out to already be covered (verified 2026-07-07):
 
 - [ ] **Solo Shuffle and 2v2 validation** — fetch at least one spec for each bracket to confirm the season ID and leaderboard parsing work for non-3v3 brackets.
 
-- [ ] **keystone_talents.json for Resto Shaman** — add node IDs for the 3-4 genuinely defining talent choices to produce cleaner clusters. Requires knowing current Midnight S1 Resto Shaman talent tree.
+- [ ] **Tune `HAC_THRESHOLD` against silhouette scores** — supersedes the deleted
+  keystone idea, which could not affect grouping. The real fragmentation lever is
+  `HAC_THRESHOLD` (currently 0.3). Measured on the season-42 3v3 sample: holy-priest
+  goes 18 -> 11 -> 3 (`[22,20,3]`) clusters at 0.3/0.4/0.5, mistweaver 14 -> 9 -> 3
+  (`[44,4,2]`), while restoration-shaman stays at 2 across all of them — so raising it
+  consolidates the fragmented specs without disturbing the clean ones. Not monotonic:
+  holy-priest goes back up to 5 at 0.6. Pick the value by sweeping silhouette scores
+  across specs, not by eye.
 
 - [ ] **Persistent Report Caching** — currently HTML reports are just files on disk. Add a system to track report freshness in the SQLite DB, allowing the `DynamicReportHandler` to automatically re-generate reports when the underlying Blizzard data becomes stale (e.g. >2 hours old).
 

@@ -368,7 +368,6 @@ def _hero_partition(
 def summarize_talent_clusters(
     node_sets: list[set[int]],
     loadout_codes: list[str],
-    keystone_nodes: list[int] | None = None,
     node_ranks_list: list[dict[int, int]] | None = None,
     node_meta: dict[int, dict] | None = None,
     player_info: list[dict] | None = None,
@@ -406,21 +405,20 @@ def summarize_talent_clusters(
             for nid in nodes:
                 global_pickers[nid].append(p_obj)
 
-    if keystone_nodes is not None:
-        decision_nodes = set(keystone_nodes)
-        method = "keystone"
-    else:
-        decision_nodes = analysis.contested_nodes
-        method = "variance+weighted"
-        # Auto-limit to the most contested nodes (closest to 50% pick rate).
-        # With small samples, 10+ contested nodes fragment into dozens of 1-player clusters.
-        if len(decision_nodes) > MAX_DECISION_NODES:
-            decision_nodes = set(
-                sorted(
-                    decision_nodes,
-                    key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
-                )[:MAX_DECISION_NODES]
-            )
+    # Which talents get *named* as this build's decision points. Clustering runs
+    # on the full node sets below and never reads this — it only decides which
+    # talents a cluster's takes/skips call out, and what `contested_nodes`
+    # reports. Keep the list short enough to read: prefer the nodes closest to a
+    # 50/50 split, since those separate builds most.
+    decision_nodes = analysis.contested_nodes
+    method = "variance+weighted"
+    if len(decision_nodes) > MAX_DECISION_NODES:
+        decision_nodes = set(
+            sorted(
+                decision_nodes,
+                key=lambda nd: abs(0.5 - analysis.pick_rates.get(nd, 0)),
+            )[:MAX_DECISION_NODES]
+        )
 
     # Partition by Hero Tree choice
     hero_nodes = {

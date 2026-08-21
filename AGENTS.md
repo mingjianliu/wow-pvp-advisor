@@ -12,6 +12,6 @@ Instructions for any AI agent (Claude Code, Antigravity, Codex, etc.) working in
 ## Engineering Standards
 
 - **Clustering Context:** Builds are grouped using Agglomerative Hierarchical Clustering (HAC) with Weighted Jaccard Distance.
-- **Static Metadata:** `data/keystone_talents.json` allows overriding automatic clustering by specifying important node IDs.
+- **Clustering Levers:** grouping is driven by `HAC_THRESHOLD` and the Weighted Jaccard node weights in `settings.py`. `MAX_DECISION_NODES` is labelling only — it caps how many talents a build is *described* by and cannot change who groups with whom.
 - **Verification:** Always verify logic changes with existing tests in `tests/` and run the CLI for manual validation.
 - **Documentation:** Tool docstrings in `mcp_server.py` are the canonical reference for purpose and parameters — keep them accurate, MCP clients read them. `docs/mcp-tools.md` only holds what docstrings can't: output schemas, internal mechanics, known limitations, and future work. Update it when those change.

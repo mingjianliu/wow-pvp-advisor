@@ -75,8 +75,6 @@ Top player builds are clustered automatically using **Agglomerative Hierarchical
 - **Contested talents** (20-80%): these define the build variants
 - **Flex talents** (≤20%): rarely taken
 
-The `data/keystone_talents.json` file lets you override the automatic clustering for a specific spec by listing the node IDs that matter most.
-
 ## Extending
 
 - **Other brackets**: pass `bracket="solo shuffle"`, `"2v2"`, `"blitz"`, or `"rbg"` — no code changes

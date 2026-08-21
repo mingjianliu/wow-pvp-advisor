@@ -1,6 +1,4 @@
-import json
 import logging
-import os
 from collections import Counter
 from wow_advisor.api.models import CharacterData
 from wow_advisor.processor.talents import summarize_talent_clusters
@@ -8,24 +6,6 @@ from wow_advisor.processor.gear import aggregate_gear
 from wow_advisor.talent_tree import get_tree_structure
 
 logger = logging.getLogger(__name__)
-
-_DEFAULT_KEYSTONE_FILE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "data", "keystone_talents.json")
-)
-
-
-def _load_keystone_nodes(spec: str, keystone_file: str) -> list[int] | None:
-    """Load keystone node IDs for a given spec from a JSON file."""
-    if not os.path.exists(keystone_file):
-        return None
-    try:
-        with open(keystone_file) as f:
-            data = json.load(f)
-        return data.get(spec)
-    except (json.JSONDecodeError, IOError):
-        # Fall back to default behavior if file is corrupt or unreadable
-        return None
-
 
 def _aggregate_pvp_talents(players_with_talent: list[CharacterData]) -> list[dict]:
     """Calculate frequency of PvP talents across players with talent data."""
@@ -66,7 +46,6 @@ def build_aggregation(
     spec: str,
     bracket: str,
     region: str,
-    keystone_file: str = _DEFAULT_KEYSTONE_FILE,
 ) -> dict:
     """
     Build a comprehensive summary of talents, gear, and PvP talents from a list of players.
@@ -76,7 +55,6 @@ def build_aggregation(
         spec: The specialization name.
         bracket: PvP bracket (e.g., '3v3').
         region: Region code (e.g., 'us').
-        keystone_file: Path to the JSON file containing keystone talent nodes.
 
     Returns:
         A dictionary containing the aggregated data.
@@ -87,7 +65,6 @@ def build_aggregation(
     node_sets = [p.talent.all_node_ids for p in players_with_talent]
     node_ranks_list = [p.talent.node_ranks for p in players_with_talent]
     loadout_codes = [p.talent.loadout_code for p in players_with_talent]
-    keystone_nodes = _load_keystone_nodes(spec, keystone_file)
 
     # Fetch tree structure to get node metadata (row, type) for clustering weights
     tree_data = get_tree_structure(spec)
@@ -130,7 +107,6 @@ def build_aggregation(
     talent_summary = summarize_talent_clusters(
         node_sets=node_sets,
         loadout_codes=loadout_codes,
-        keystone_nodes=keystone_nodes,
         node_ranks_list=node_ranks_list,
         node_meta=node_meta,
         player_info=player_info,
