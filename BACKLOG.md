@@ -188,12 +188,17 @@ Blizzard's `pvp-season/index` reported 42 and its 3v3 board was already populate
 
 ### Open
 
-- [ ] **A page names one hero tree when the field is genuinely split** — even
-      corrected, the page presents a single hero tree and `strip_hero` removes hero
-      nodes from every cluster, so restoration-shaman 3v3 reads as "Totemic" with no
-      sign that 36% run Farseer. Preservation-evoker (28/22) and subtlety-rogue
-      (27/23) are near coin flips. Since clusters already partition cleanly by hero
-      tree, each cluster could name and render its own.
+- [x] **A build was drawn under a hero tree its players never picked** —
+      (RESOLVED 2026-08-21) The frontend already renders exactly one hero tree per
+      cluster, but `selectHeroTree` picked it by counting how many of each tree's
+      nodes appear in the cluster's `nodeMap`. `strip_hero` removes hero nodes from
+      cluster takes, so the only hero nodes in `nodeMap` come from global core —
+      making every cluster resolve to the same page-level tree. Restoration-shaman's
+      18-player Farseer build rendered under Totemic. `_make_cluster_data` now tags
+      each cluster with `heroTree` ("left"/"right", by majority overlap, `None` when
+      a cluster names neither), and `selectHeroTree` prefers that tag, keeping the
+      overlap heuristic only for the no-cluster global view. Selecting a build now
+      shows that build's own hero tree and no other.
 
 - [ ] **Hero nodes on the page carry pct 0** — `_hero_core_nodes` reads pct from
       `core/flex/contested`, which holds only the untruncated remnant, so most hero

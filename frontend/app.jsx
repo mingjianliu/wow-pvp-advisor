@@ -334,17 +334,23 @@ function deriveNodeMap(data, cluster) {
   return map;
 }
 
-// Pick the hero tree whose nodeIds have the most overlap with the cluster's
-// core+takes node IDs. Falls back to the right tree (Totemic for Resto Shaman).
+// The hero tree this build actually runs. build_page tags every cluster with
+// its own tree; prefer that tag over guessing from node overlap, because hero
+// nodes are stripped from cluster takes — the only hero nodes left in nodeMap
+// come from global core, so overlap makes every cluster look like the one tree
+// that landed there, and a build gets drawn under a tree its players skipped.
+// Overlap stays as the fallback for the no-cluster (global) view.
 // Also overrides the pickRate of the selected hero tree's nodes to 100% for this cluster.
-function selectHeroTree(data, nodeMap) {
+function selectHeroTree(data, nodeMap, cluster) {
   const heroTrees = data.tree && data.tree.heroTrees;
   if (!heroTrees) return null;
   const dominated = (ht) => ht.nodeIds.filter((id) => nodeMap[id]).length;
+  const tagged = cluster && cluster.heroTree && heroTrees[cluster.heroTree];
   const selected =
-    dominated(heroTrees.left) >= dominated(heroTrees.right)
+    tagged ||
+    (dominated(heroTrees.left) >= dominated(heroTrees.right)
       ? heroTrees.left
-      : heroTrees.right;
+      : heroTrees.right);
 
   // Override nodeMap for the selected hero tree so tooltips show 100% (in cluster)
   selected.nodeIds.forEach((id) => {
@@ -534,7 +540,7 @@ function App() {
 
   const heroTree = useMemo(() => {
     if (!cluster || !nodeMap) return null;
-    return selectHeroTree(data, nodeMap);
+    return selectHeroTree(data, nodeMap, cluster);
   }, [data, nodeMap, cluster]);
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);

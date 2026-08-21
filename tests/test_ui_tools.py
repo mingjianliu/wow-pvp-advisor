@@ -332,3 +332,34 @@ def test_hero_core_ignores_a_stray_node_from_the_other_tree(
 
     hero_names = {t["name"] for t in result["talents"]["core"] if t["id"] in {50, 51, 60, 61}}
     assert hero_names == {"Totemic A", "Totemic B"}
+
+
+def test_each_cluster_carries_its_own_hero_tree(hero_split_summary, hero_split_tree):
+    # Hero nodes are stripped from cluster takes, so the frontend cannot recover
+    # a build's hero tree by overlap — without this tag the minority build gets
+    # drawn under the majority's tree, which its players never picked.
+    result = _make_cluster_data(hero_split_summary, hero_split_tree)
+
+    sides = {c["rank"]: c["heroTree"] for c in result["clusters"]}
+    assert sides == {1: "left", 2: "right"}
+
+
+def test_cluster_hero_tree_survives_a_stray_node_from_the_other_tree(
+    hero_split_summary, hero_split_tree
+):
+    hero_split_summary["talents"]["clusters"][0]["takes"].append({"id": 61, "pct": 6.0})
+
+    result = _make_cluster_data(hero_split_summary, hero_split_tree)
+
+    assert result["clusters"][0]["heroTree"] == "left"
+
+
+def test_cluster_hero_tree_is_none_when_no_hero_node_is_named(
+    hero_split_summary, hero_split_tree
+):
+    for c in hero_split_summary["talents"]["clusters"]:
+        c["takes"] = [t for t in c["takes"] if t["id"] not in {50, 51, 60, 61}]
+
+    result = _make_cluster_data(hero_split_summary, hero_split_tree)
+
+    assert all(c["heroTree"] is None for c in result["clusters"])

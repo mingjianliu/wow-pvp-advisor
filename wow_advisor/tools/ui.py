@@ -57,10 +57,24 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
             if n.get("spellId"):
                 id_to_spellid[n["id"]] = n["spellId"]
 
-    hero_ids: set[int] = (
-        {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
-        | {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
-    )
+    hero_left_ids: set[int] = {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
+    hero_right_ids: set[int] = {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
+    hero_ids: set[int] = hero_left_ids | hero_right_ids
+
+    def _hero_side(c: dict) -> str | None:
+        """Which hero tree this cluster's members run, or None if it names neither.
+
+        Clusters never mix trees — hero choice is the top-level partition — but a
+        cluster can still list a stray node from the other tree (shadow-priest
+        clusters carry 14 Voidweaver nodes plus 1 Archon), so assign by majority.
+        """
+        picked = {t["id"] for t in c.get("takes", [])} | {t["id"] for t in c.get("flex_takes", [])}
+        l, r = len(picked & hero_left_ids), len(picked & hero_right_ids)
+        if l > r:
+            return "left"
+        if r > l:
+            return "right"
+        return None
 
     def enrich(talent_list: list[dict]) -> list[dict]:
         return [
@@ -93,20 +107,14 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
         pts: dict[int, int] = {t["id"]: t.get("pts", 1) for t in all_raw if t["id"] in hero_ids}
         dist: dict[int, list] = {t["id"]: t.get("rankDist", []) for t in all_raw if t["id"] in hero_ids}
 
-        left_ids  = {n["id"] for n in tree["heroTrees"]["left"]["nodes"]}
-        right_ids = {n["id"] for n in tree["heroTrees"]["right"]["nodes"]}
+        left_ids, right_ids = hero_left_ids, hero_right_ids
 
         left_players = right_players = 0
         for c in raw["talents"].get("clusters", []):
-            picked = {t["id"] for t in c.get("takes", [])} | {t["id"] for t in c.get("flex_takes", [])}
-            # Assign by majority, not by mere presence: a cluster whose members
-            # all run one tree can still list a stray node from the other (seen
-            # on shadow-priest: 14 Voidweaver nodes plus 1 Archon). Counting
-            # presence would credit that cluster's players to both trees.
-            l, r = len(picked & left_ids), len(picked & right_ids)
-            if l > r:
+            side = _hero_side(c)
+            if side == "left":
                 left_players += c.get("count", 0)
-            elif r > l:
+            elif side == "right":
                 right_players += c.get("count", 0)
 
         if left_players or right_players:
@@ -176,6 +184,12 @@ def _make_cluster_data(raw: dict, tree: dict, locale: str = "en_US") -> dict:
             "flex_takes": flex_takes,
             "skips": skips,
             "silhouette_score": c.get("silhouette_score", 0.0),
+            # Which hero tree this build runs. The frontend renders only this
+            # one: hero nodes are stripped from cluster takes, so it cannot
+            # recover the tree by overlap — every cluster would otherwise show
+            # whichever tree landed in global core, including the builds whose
+            # players never picked it.
+            "heroTree": _hero_side(c),
             # Member roster for this cluster ({"n": name, "r": realm}). The frontend
             # uses this to compute cluster-aware pick-rate ratios for global talents.
             "pickers": c.get("pickers", []),
